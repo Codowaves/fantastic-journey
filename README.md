@@ -13,7 +13,7 @@ pair pipeline have realistic signal to act on.
 | `src/payment.ts` | Money utilities, no tests | Test-coverage scanner |
 | `src/email.ts` | Email helpers, no tests | Test-coverage scanner |
 | `src/api/v1.ts` | Public Order API, no JSDoc | Documenter scanner |
-| `src/legacy/old-hash.ts` | md5 + hardcoded key + timing-unsafe compare | Security scanner |
+| `src/legacy/old-hash.ts` | bcrypt password hashing | Security scanner |
 | `src/wip/notes.ts` | TODO / FIXME / HACK / console.log / debugger | Bug-scan |
 | Whole repo + this README | LLM-readable orientation | Feature suggestor |
 | `.github/workflows/ci.yml` | Typecheck + lint + test | PR processor, ciPoller, ciWorker |
