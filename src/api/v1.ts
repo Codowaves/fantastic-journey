@@ -1,7 +1,7 @@
-// Documenter bait — every public export is missing JSDoc.
-// The documenter scanner should file one issue listing each undocumented
-// export here.
-
+/**
+ * Represents a customer order in the system.
+ * @interface
+ */
 export interface Order {
   id: string;
   customerId: string;
@@ -9,7 +9,16 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+/**
+ * Creates a new order for a customer.
+ * @param customerId - The ID of the customer placing the order.
+ * @param items - Array of items with id and quantity.
+ * @returns The newly created Order with status "pending".
+ */
+export function createOrder(
+  customerId: string,
+  items: Array<{ id: string; qty: number }>,
+): Order {
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -18,12 +27,28 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
   };
 }
 
+/**
+ * Confirms an order, updating its status to "confirmed".
+ * @param order - The order to confirm.
+ * @returns The updated order with status "confirmed".
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
+/**
+ * Retrieves the status of an order by its ID.
+ * @param orderId - The ID of the order to look up.
+ * @returns A Promise resolving to the order status or null if not found.
+ */
+export function getOrderStatus(
+  orderId: string,
+): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/**
+ * List of supported currency codes for order transactions.
+ * @constant
+ */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
