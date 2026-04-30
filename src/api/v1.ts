@@ -2,6 +2,8 @@
 // The documenter scanner should file one issue listing each undocumented
 // export here.
 
+import { isValidCustomerId } from "../customer.js";
+
 export interface Order {
   id: string;
   customerId: string;
@@ -10,6 +12,9 @@ export interface Order {
 }
 
 export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+  if (!isValidCustomerId(customerId)) {
+    throw new Error("Invalid customerId");
+  }
   return {
     id: `ord_${Date.now()}`,
     customerId,
