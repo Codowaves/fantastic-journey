@@ -18,5 +18,5 @@ export function calculateTotal(items: { price: number; qty: number }[]): number 
 export function legacyParse(input: string): unknown {
   console.warn("[wip] legacyParse called with", input);
   // TODO: replace with Zod schema
-  return JSON.parse(input);
+  return JSON.parse(input.trim());
 }
