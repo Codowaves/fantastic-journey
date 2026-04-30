@@ -27,3 +27,18 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
 }
 
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
+
+export function exportOrdersAsCsv(orders: Order[]): string {
+  const headers = ["id", "customerId", "total", "status"].join(",");
+  const rows = orders.map((order) =>
+    [
+      order.id,
+      order.customerId,
+      order.total.toString(),
+      order.status,
+    ]
+      .map((field) => `"${String(field).replace(/"/g, '""')}"`)
+      .join(",")
+  );
+  return [headers, ...rows].join("\n") + "\n";
+}
