@@ -16,9 +16,9 @@ export function applyDiscount(price: Money, percentOff: number): Money {
   };
 }
 
-export function totalWithTax(items: Money[], taxRate: number): Money {
+export function totalWithTax(items: Money[], taxRate: number, fallbackCurrency = "USD"): Money {
   if (!items.length) {
-    return { amount: 0, currency: "USD" };
+    return { amount: 0, currency: fallbackCurrency };
   }
   const currency = items[0]!.currency;
   const subtotal = items.reduce((sum, m) => sum + m.amount, 0);
