@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: typecheck + lint + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # Install (bun is a lot faster than npm for monorepo-style trees;
+      # falls back to npm install when no bun.lock exists)
+      - name: install
+        run: |
+          if [ -f bun.lock ] || [ -f bun.lockb ]; then
+            bun install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          else
+            bun install
+          fi
+
+      # Type-check (skipped silently if no script defined)
+      - name: typecheck
+        run: |
+          if jq -e '.scripts.typecheck' package.json > /dev/null; then
+            bun run typecheck
+          fi
+
+      # Lint
+      - name: lint
+        run: |
+          if jq -e '.scripts.lint' package.json > /dev/null; then
+            bun run lint
+          fi
+
+      # Test
+      - name: test
+        run: |
+          if jq -e '.scripts.test' package.json > /dev/null; then
+            bun run test
+          elif jq -e '.scripts.["test:unit"]' package.json > /dev/null; then
+            bun run test:unit
+          fi
+
+  # The Codowave agent looks for this exact job name when polling CI
+  # (`ciPoller.requiredChecks`). Rename here AND in the dashboard's
+  # repo config if you want a different name.
+  required-check:
+    name: required-check
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - run: echo "All required checks green."
