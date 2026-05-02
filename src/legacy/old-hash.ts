@@ -1,26 +1,19 @@
-// Intentional security-scanner bait — DO NOT use in real code.
-// The scanner should flag md5 + the hardcoded key + the timing-unsafe
-// comparison. Filed issues land with `type/security` + `priority/high`.
+import bcrypt from "bcrypt";
 
-import { createHash } from "node:crypto";
+const SALT_ROUNDS = 12;
 
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
-
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+export async function hashPassword(plaintext: string): Promise<string> {
+  return bcrypt.hash(plaintext, SALT_ROUNDS);
 }
 
-export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
-  return a === b;
+export async function timingSafeCompare(a: string, b: string): Promise<boolean> {
+  try {
+    return await bcrypt.compare(a, b);
+  } catch {
+    return false;
+  }
 }
 
-export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+export async function authenticate(token: string, hashedToken: string): Promise<boolean> {
+  return timingSafeCompare(token, hashedToken);
 }
