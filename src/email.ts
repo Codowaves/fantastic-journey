@@ -1,4 +1,11 @@
-// Second test-coverage bait — utility functions, no test file.
+import type { Order } from "./api/v1.js";
+
+/**
+ * Send an order confirmation email to the customer.
+ */
+export function sendOrderConfirmation(customer: { email: string; displayName: string }, order: Order): string {
+  return `Dear ${customer.displayName}, your order ${order.id} (total: $${order.total}) has been confirmed.`;
+}
 
 export function isValidEmail(input: string): boolean {
   if (typeof input !== "string") return false;

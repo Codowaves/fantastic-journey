@@ -9,7 +9,14 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
+function isValidCustomerId(customerId: string): boolean {
+  return typeof customerId === "string" && customerId.length > 0 && customerId.startsWith("cust_");
+}
+
 export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+  if (!isValidCustomerId(customerId)) {
+    throw new Error("Invalid customerId: must be a non-empty string starting with 'cust_'");
+  }
   return {
     id: `ord_${Date.now()}`,
     customerId,
