@@ -16,9 +16,12 @@ export function applyDiscount(price: Money, percentOff: number): Money {
   };
 }
 
-export function totalWithTax(items: Money[], taxRate: number): Money {
+export function totalWithTax(items: Money[], taxRate: number, fallbackCurrency?: string): Money {
   if (!items.length) {
-    return { amount: 0, currency: "USD" };
+    if (!fallbackCurrency) {
+      throw new Error("totalWithTax called with empty items and no fallbackCurrency provided");
+    }
+    return { amount: 0, currency: fallbackCurrency };
   }
   const currency = items[0]!.currency;
   const subtotal = items.reduce((sum, m) => sum + m.amount, 0);
