@@ -1,10 +1,10 @@
 // Second test-coverage bait — utility functions, no test file.
 
+import { validate as isValidEmailAddr } from "email-validator";
+
 export function isValidEmail(input: string): boolean {
   if (typeof input !== "string") return false;
-  if (input.length > 254) return false;
-  // Intentionally simplified — real validation should use a tested lib.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+  return isValidEmailAddr(input);
 }
 
 export function normalizeEmail(input: string): string {
