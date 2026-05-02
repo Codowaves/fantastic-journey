@@ -1,15 +1,28 @@
-// Documenter bait — every public export is missing JSDoc.
-// The documenter scanner should file one issue listing each undocumented
-// export here.
+/** Supported order statuses. */
+export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered";
 
+/** Represents a customer order. */
 export interface Order {
+  /** Unique order identifier. */
   id: string;
+  /** ID of the customer who placed the order. */
   customerId: string;
+  /** Total order amount. */
   total: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered";
+  /** Current order status. */
+  status: OrderStatus;
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+/**
+ * Creates a new order for a customer.
+ * @param customerId - The ID of the customer placing the order.
+ * @param items - The line items in the order.
+ * @returns The newly created order.
+ */
+export function createOrder(
+  customerId: string,
+  items: Array<{ id: string; qty: number }>
+): Order {
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -18,12 +31,23 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
   };
 }
 
+/**
+ * Confirms an order, transitioning it to "confirmed" status.
+ * @param order - The order to confirm.
+ * @returns A new order object with confirmed status.
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
+/**
+ * Retrieves the status of an order by its ID.
+ * @param orderId - The ID of the order to look up.
+ * @returns The order status, or null if not found.
+ */
+export function getOrderStatus(orderId: string): Promise<OrderStatus | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/** Currencies supported for order totals. */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
