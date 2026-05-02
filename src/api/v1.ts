@@ -26,4 +26,16 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+export function exportOrdersAsCsv(orders: Order[]): string {
+  const headers = "id,customerId,total,status";
+  const rows = orders.map((order) => {
+    const escape = (val: string | number) =>
+      typeof val === "string" && /[",\n\r]/.test(val)
+        ? `"${val.replace(/"/g, '""')}"`
+        : String(val);
+    return [escape(order.id), escape(order.customerId), escape(order.total), escape(order.status)].join(",");
+  });
+  return [headers, ...rows].join("\n") + "\n";
+}
+
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
