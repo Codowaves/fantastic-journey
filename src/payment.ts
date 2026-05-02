@@ -28,8 +28,11 @@ export function totalWithTax(items: Money[], taxRate: number): Money {
   };
 }
 
-export function isRefundEligible(orderDate: Date, returnWindowDays = 30): boolean {
+export function isRefundEligible(
+  orderDate: Date,
+  returnWindowDays = 30,
+): boolean {
   const now = Date.now();
   const orderMs = orderDate.getTime();
-  return now - orderMs < returnWindowDays * 24 * 60 * 60 * 1000;
+  return now - orderMs <= returnWindowDays * 24 * 60 * 60 * 1000;
 }
