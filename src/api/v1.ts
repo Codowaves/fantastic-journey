@@ -1,6 +1,4 @@
-// Documenter bait — every public export is missing JSDoc.
-// The documenter scanner should file one issue listing each undocumented
-// export here.
+import type { Customer } from "../customer.js";
 
 export interface Order {
   id: string;
@@ -9,10 +7,11 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+export function createOrder(customer: Customer, items: Array<{ id: string; qty: number }>): Order {
+  if (!customer.id) throw new Error("customerId is required");
   return {
     id: `ord_${Date.now()}`,
-    customerId,
+    customerId: customer.id,
     total: items.length,
     status: "pending",
   };
