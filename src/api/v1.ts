@@ -2,6 +2,8 @@
 // The documenter scanner should file one issue listing each undocumented
 // export here.
 
+import { Customer } from "../customer";
+
 export interface Order {
   id: string;
   customerId: string;
@@ -9,10 +11,10 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+export function createOrder(customer: Customer, items: Array<{ id: string; qty: number }>): Order {
   return {
     id: `ord_${Date.now()}`,
-    customerId,
+    customerId: customer.id,
     total: items.length,
     status: "pending",
   };
