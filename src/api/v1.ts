@@ -7,6 +7,7 @@ export interface Order {
   customerId: string;
   total: number;
   status: "pending" | "confirmed" | "shipped" | "delivered";
+  createdAt: Date;
 }
 
 export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
@@ -15,6 +16,7 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
     customerId,
     total: items.length,
     status: "pending",
+    createdAt: new Date(),
   };
 }
 
@@ -22,8 +24,27 @@ export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
-  return Promise.resolve(orderId ? "pending" : null);
+export interface DateRangeFilter {
+  from?: Date;
+  to?: Date;
+}
+
+export function getOrderStatus(orderId: string, filter?: DateRangeFilter): Promise<Order["status"] | null> {
+  const status = orderId ? "pending" : null;
+  if (!status) return Promise.resolve(null);
+
+  const order: Order = {
+    id: orderId,
+    customerId: "mock",
+    total: 0,
+    status: "pending",
+    createdAt: new Date(),
+  };
+
+  if (filter?.from && order.createdAt < filter.from) return Promise.resolve(null);
+  if (filter?.to && order.createdAt > filter.to) return Promise.resolve(null);
+
+  return Promise.resolve(status);
 }
 
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
