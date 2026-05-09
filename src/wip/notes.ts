@@ -1,5 +1,9 @@
 // Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
 
+type Result<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
 export function calculateTotal(items: { price: number; qty: number }[]): number {
   // TODO: handle currency conversion
   // FIXME: edge case when qty is negative
@@ -15,8 +19,14 @@ export function calculateTotal(items: { price: number; qty: number }[]): number 
   return Math.round(total * 100) / 100;
 }
 
-export function legacyParse(input: string): unknown {
+export function legacyParse(input: string): Result<unknown> {
   console.warn("[wip] legacyParse called with", input);
   // TODO: replace with Zod schema
-  return JSON.parse(input);
+  try {
+    const data = JSON.parse(input.trim());
+    return { success: true, data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `JSON parse failed: ${message}` };
+  }
 }
