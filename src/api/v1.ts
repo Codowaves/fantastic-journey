@@ -27,3 +27,31 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
 }
 
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
+
+export function exportOrdersAsCsv(orders: Order[]): string {
+  const headers = "id,customerId,total,status\n";
+
+  if (orders.length === 0) {
+    return headers;
+  }
+
+  const rows = orders.map((order) => {
+    const fields = [
+      escapeCsvField(order.id),
+      escapeCsvField(order.customerId),
+      order.total.toString(),
+      escapeCsvField(order.status),
+    ];
+    return fields.join(",");
+  });
+
+  return headers + rows.join("\n") + "\n";
+}
+
+function escapeCsvField(value: string): string {
+  // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
