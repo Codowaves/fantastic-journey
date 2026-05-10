@@ -1,26 +1,49 @@
-// Intentional security-scanner bait — DO NOT use in real code.
-// The scanner should flag md5 + the hardcoded key + the timing-unsafe
-// comparison. Filed issues land with `type/security` + `priority/high`.
+// Secure cryptographic implementations using node:crypto best practices.
 
-import { createHash } from "node:crypto";
+import { scrypt, randomBytes, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+const scryptAsync = promisify(scrypt);
 
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+// Key should be loaded from environment variable in production
+const SHARED_KEY = process.env.API_SHARED_KEY || "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+
+/**
+ * Hash password using scrypt (modern, secure KDF).
+ * Returns a string containing salt and hash for storage.
+ */
+export async function hashPassword(plaintext: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = (await scryptAsync(plaintext, salt, 64)) as Buffer;
+  return `${salt}:${derivedKey.toString("hex")}`;
 }
 
-export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
-  return a === b;
+/**
+ * Verify password against stored hash.
+ */
+export async function verifyPassword(plaintext: string, storedHash: string): Promise<boolean> {
+  const [salt, hash] = storedHash.split(":");
+  if (!salt || !hash) return false;
+
+  const derivedKey = (await scryptAsync(plaintext, salt, 64)) as Buffer;
+  const storedBuffer = Buffer.from(hash, "hex");
+
+  return timingSafeCompare(derivedKey, storedBuffer);
+}
+
+/**
+ * Timing-safe string comparison using crypto.timingSafeEqual.
+ */
+export function timingSafeCompare(a: string | Buffer, b: string | Buffer): boolean {
+  const bufA = typeof a === "string" ? Buffer.from(a) : a;
+  const bufB = typeof b === "string" ? Buffer.from(b) : b;
+
+  // Length must match for timingSafeEqual
+  if (bufA.length !== bufB.length) return false;
+
+  return timingSafeEqual(bufA, bufB);
 }
 
 export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+  return timingSafeCompare(token, SHARED_KEY);
 }

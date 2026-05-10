@@ -2,6 +2,8 @@
 // The documenter scanner should file one issue listing each undocumented
 // export here.
 
+import { randomBytes } from "node:crypto";
+
 export interface Order {
   id: string;
   customerId: string;
@@ -10,8 +12,10 @@ export interface Order {
 }
 
 export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+  // Use cryptographically secure random ID instead of predictable timestamp
+  const randomId = randomBytes(8).toString("hex");
   return {
-    id: `ord_${Date.now()}`,
+    id: `ord_${randomId}`,
     customerId,
     total: items.length,
     status: "pending",
