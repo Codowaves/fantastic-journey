@@ -1,26 +1,27 @@
-// Intentional security-scanner bait — DO NOT use in real code.
-// The scanner should flag md5 + the hardcoded key + the timing-unsafe
-// comparison. Filed issues land with `type/security` + `priority/high`.
+import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { createHash } from "node:crypto";
-
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
-
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+export function hashPassword(plaintext: string, salt?: Buffer): { hash: string; salt: string } {
+  const actualSalt = salt || randomBytes(16);
+  const hash = scryptSync(plaintext, actualSalt, 64);
+  return {
+    hash: hash.toString("hex"),
+    salt: actualSalt.toString("hex"),
+  };
 }
 
-export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
-  return a === b;
+export function verifyPassword(plaintext: string, storedHash: string, storedSalt: string): boolean {
+  const saltBuffer = Buffer.from(storedSalt, "hex");
+  const { hash } = hashPassword(plaintext, saltBuffer);
+  return timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(storedHash, "hex"));
 }
 
-export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+export function timingSafeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+export function authenticate(token: string, expectedToken: string): boolean {
+  return timingSafeCompare(token, expectedToken);
 }
