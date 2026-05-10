@@ -16,5 +16,8 @@
     "eslint": "^8.56.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "email-validator": "^2.0.4"
   }
 }
