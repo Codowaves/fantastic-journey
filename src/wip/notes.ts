@@ -1,6 +1,10 @@
 // Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
 
-export function calculateTotal(items: { price: number; qty: number }[]): number {
+type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+
+export function calculateTotal(
+  items: { price: number; qty: number }[],
+): number {
   // TODO: handle currency conversion
   // FIXME: edge case when qty is negative
   // HACK: rounding to 2 decimals via Math.round, switch to a real
@@ -15,8 +19,15 @@ export function calculateTotal(items: { price: number; qty: number }[]): number 
   return Math.round(total * 100) / 100;
 }
 
-export function legacyParse(input: string): unknown {
+export function legacyParse(input: string): Result<unknown, string> {
   console.warn("[wip] legacyParse called with", input);
   // TODO: replace with Zod schema
-  return JSON.parse(input);
+  try {
+    return { ok: true, value: JSON.parse(input.trim()) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
