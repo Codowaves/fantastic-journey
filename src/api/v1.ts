@@ -2,11 +2,18 @@
 // The documenter scanner should file one issue listing each undocumented
 // export here.
 
+export enum OrderStatus {
+  Pending = "pending",
+  Confirmed = "confirmed",
+  Shipped = "shipped",
+  Delivered = "delivered",
+}
+
 export interface Order {
   id: string;
   customerId: string;
   total: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered";
+  status: OrderStatus;
 }
 
 export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
@@ -14,16 +21,16 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
     id: `ord_${Date.now()}`,
     customerId,
     total: items.length,
-    status: "pending",
+    status: OrderStatus.Pending,
   };
 }
 
 export function confirmOrder(order: Order): Order {
-  return { ...order, status: "confirmed" };
+  return { ...order, status: OrderStatus.Confirmed };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
-  return Promise.resolve(orderId ? "pending" : null);
+export function getOrderStatus(orderId: string): Promise<OrderStatus | null> {
+  return Promise.resolve(orderId ? OrderStatus.Pending : null);
 }
 
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
