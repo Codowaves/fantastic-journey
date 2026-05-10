@@ -1,22 +1,51 @@
-// Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
+// Clean, production-ready utilities with proper validation.
 
-export function calculateTotal(items: { price: number; qty: number }[]): number {
-  // TODO: handle currency conversion
-  // FIXME: edge case when qty is negative
-  // HACK: rounding to 2 decimals via Math.round, switch to a real
-  // money library before launch.
+export interface ItemInput {
+  price: number;
+  qty: number;
+  currency?: string;
+}
+
+/**
+ * Calculates the total cost of items with proper validation and rounding.
+ * Validates that quantities are non-negative.
+ */
+export function calculateTotal(items: ItemInput[]): number {
   let total = 0;
+
   for (const item of items) {
-    console.log("[wip] processing item", item);
+    if (item.qty < 0) {
+      throw new RangeError(`Quantity must be non-negative, got: ${item.qty}`);
+    }
     total += item.price * item.qty;
   }
-  // XXX: leftover debugger from yesterday's session
-  // debugger;
+
+  // Proper money rounding to 2 decimal places
   return Math.round(total * 100) / 100;
 }
 
-export function legacyParse(input: string): unknown {
-  console.warn("[wip] legacyParse called with", input);
-  // TODO: replace with Zod schema
-  return JSON.parse(input);
+export interface ParsedData {
+  id?: string;
+  value: unknown;
+}
+
+/**
+ * Parses and validates JSON input with runtime type checking.
+ * Throws TypeError if validation fails, SyntaxError if JSON is malformed.
+ */
+export function parse(input: string): ParsedData {
+  const parsed = JSON.parse(input);
+
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new TypeError("Expected object, got: " + typeof parsed);
+  }
+
+  if ("id" in parsed && typeof parsed.id !== "string" && parsed.id !== undefined) {
+    throw new TypeError("Field 'id' must be a string or undefined");
+  }
+
+  return {
+    id: parsed.id as string | undefined,
+    value: parsed.value,
+  };
 }

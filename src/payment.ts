@@ -31,5 +31,7 @@ export function totalWithTax(items: Money[], taxRate: number): Money {
 export function isRefundEligible(orderDate: Date, returnWindowDays = 30): boolean {
   const now = Date.now();
   const orderMs = orderDate.getTime();
-  return now - orderMs < returnWindowDays * 24 * 60 * 60 * 1000;
+  const elapsed = now - orderMs;
+  // Must be in the past (elapsed >= 0) and within the return window
+  return elapsed >= 0 && elapsed < returnWindowDays * 24 * 60 * 60 * 1000;
 }
