@@ -1,5 +1,10 @@
 // Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
 
+/**
+ * Calculates the total price of items based on price and quantity.
+ * @param items - Array of items with price and quantity
+ * @returns The total price rounded to 2 decimal places
+ */
 export function calculateTotal(items: { price: number; qty: number }[]): number {
   // TODO: handle currency conversion
   // FIXME: edge case when qty is negative
@@ -15,6 +20,13 @@ export function calculateTotal(items: { price: number; qty: number }[]): number 
   return Math.round(total * 100) / 100;
 }
 
+/**
+ * Parses a JSON string into an unknown type.
+ * @deprecated This function lacks proper validation. Use a Zod schema instead.
+ * @param input - The JSON string to parse
+ * @returns The parsed JSON value
+ * @throws {SyntaxError} If the input is not valid JSON
+ */
 export function legacyParse(input: string): unknown {
   console.warn("[wip] legacyParse called with", input);
   // TODO: replace with Zod schema
