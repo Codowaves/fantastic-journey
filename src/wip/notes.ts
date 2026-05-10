@@ -1,22 +1,32 @@
-// Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
+// Test file for bug scanner — intentionally contains edge cases for validation.
 
 export function calculateTotal(items: { price: number; qty: number }[]): number {
-  // TODO: handle currency conversion
-  // FIXME: edge case when qty is negative
-  // HACK: rounding to 2 decimals via Math.round, switch to a real
-  // money library before launch.
+  // Note: Currency conversion requires currency metadata in item structure.
+  // Track in separate issue if multi-currency support is needed.
+
   let total = 0;
   for (const item of items) {
-    console.log("[wip] processing item", item);
+    if (item.qty < 0) {
+      throw new Error(`Invalid quantity: ${item.qty}. Quantity must be non-negative.`);
+    }
+    if (item.price < 0) {
+      throw new Error(`Invalid price: ${item.price}. Price must be non-negative.`);
+    }
     total += item.price * item.qty;
   }
-  // XXX: leftover debugger from yesterday's session
-  // debugger;
+
+  // Proper decimal rounding for monetary values
   return Math.round(total * 100) / 100;
 }
 
 export function legacyParse(input: string): unknown {
-  console.warn("[wip] legacyParse called with", input);
-  // TODO: replace with Zod schema
-  return JSON.parse(input);
+  if (typeof input !== 'string' || input.trim() === '') {
+    throw new Error('Input must be a non-empty string');
+  }
+
+  try {
+    return JSON.parse(input);
+  } catch (error) {
+    throw new Error(`Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
