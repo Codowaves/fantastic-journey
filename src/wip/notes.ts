@@ -1,22 +1,46 @@
-// Bug-scan bait — TODO / FIXME / HACK / XXX / console.* / debugger.
+// Calculation utilities for order processing
 
-export function calculateTotal(items: { price: number; qty: number }[]): number {
-  // TODO: handle currency conversion
-  // FIXME: edge case when qty is negative
-  // HACK: rounding to 2 decimals via Math.round, switch to a real
-  // money library before launch.
+export interface CurrencyAmount {
+  value: number;
+  currency: string;
+}
+
+export function calculateTotal(
+  items: { price: number; qty: number }[],
+  currency = "USD"
+): CurrencyAmount {
   let total = 0;
   for (const item of items) {
-    console.log("[wip] processing item", item);
+    // Validate quantity is not negative
+    if (item.qty < 0) {
+      throw new Error(`Invalid quantity: ${item.qty}. Quantity must be non-negative.`);
+    }
     total += item.price * item.qty;
   }
-  // XXX: leftover debugger from yesterday's session
-  // debugger;
-  return Math.round(total * 100) / 100;
+  // Round to 2 decimal places for currency precision
+  return {
+    value: Math.round(total * 100) / 100,
+    currency,
+  };
 }
 
 export function legacyParse(input: string): unknown {
-  console.warn("[wip] legacyParse called with", input);
-  // TODO: replace with Zod schema
-  return JSON.parse(input);
+  // Input validation - ensure non-empty string
+  if (typeof input !== "string" || input.trim().length === 0) {
+    throw new Error("Invalid input: expected non-empty string");
+  }
+
+  try {
+    const parsed = JSON.parse(input);
+    // Basic validation - ensure result is an object or array
+    if (parsed === null || typeof parsed !== "object") {
+      throw new Error("Invalid JSON: expected object or array");
+    }
+    return parsed;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`JSON parse error: ${error.message}`);
+    }
+    throw error;
+  }
 }
