@@ -18,6 +18,23 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
   };
 }
 
+/**
+ * Returns a new Order object with status set to "confirmed".
+ *
+ * This is a pure function that does not mutate the original order,
+ * trigger database saves, send email notifications, or perform any
+ * other side effects. It simply creates a shallow copy with an
+ * updated status field.
+ *
+ * @param order - The order to confirm
+ * @returns A new Order object with status: "confirmed"
+ *
+ * @example
+ * const pending = createOrder("cust_123", [{ id: "item_1", qty: 2 }]);
+ * const confirmed = confirmOrder(pending);
+ * // pending.status === "pending" (unchanged)
+ * // confirmed.status === "confirmed"
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
