@@ -1,26 +1,68 @@
-// Intentional security-scanner bait — DO NOT use in real code.
-// The scanner should flag md5 + the hardcoded key + the timing-unsafe
-// comparison. Filed issues land with `type/security` + `priority/high`.
+// Security-hardened cryptographic implementations.
+// Upgrades from weak patterns (MD5, hardcoded secrets, timing attacks).
 
-import { createHash } from "node:crypto";
+import { scrypt, randomBytes, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+const scryptAsync = promisify(scrypt);
 
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+// Secret key loaded from environment variable (no hardcoded secrets)
+function getSharedKey(): string {
+  const key = process.env.SHARED_KEY;
+  if (!key) {
+    throw new Error("SHARED_KEY environment variable is required");
+  }
+  return key;
 }
 
-export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
-  return a === b;
+/**
+ * Hash a password using scrypt (secure KDF).
+ * Returns salt:hash format for storage.
+ */
+export async function hashPassword(plaintext: string): Promise<string> {
+  const salt = randomBytes(16);
+  const derivedKey = (await scryptAsync(plaintext, salt, 64)) as Buffer;
+  return `${salt.toString("hex")}:${derivedKey.toString("hex")}`;
+}
+
+/**
+ * Verify a password against a stored hash.
+ */
+export async function verifyPassword(
+  plaintext: string,
+  hash: string,
+): Promise<boolean> {
+  const parts = hash.split(":");
+  if (parts.length !== 2) {
+    return false;
+  }
+  const saltHex = parts[0];
+  const keyHex = parts[1];
+  if (!saltHex || !keyHex) {
+    return false;
+  }
+  const salt = Buffer.from(saltHex, "hex");
+  const storedKey = Buffer.from(keyHex, "hex");
+  const derivedKey = (await scryptAsync(plaintext, salt, 64)) as Buffer;
+  return timingSafeEqual(storedKey, derivedKey);
+}
+
+/**
+ * Timing-safe string comparison using crypto.timingSafeEqual.
+ * Prevents timing attacks by comparing in constant time.
+ */
+export function timingSafeCompare(a: string, b: string): boolean {
+  const bufferA = Buffer.from(a);
+  const bufferB = Buffer.from(b);
+
+  // Early length check (length is not secret)
+  if (bufferA.length !== bufferB.length) {
+    return false;
+  }
+
+  return timingSafeEqual(bufferA, bufferB);
 }
 
 export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+  return timingSafeCompare(token, getSharedKey());
 }
