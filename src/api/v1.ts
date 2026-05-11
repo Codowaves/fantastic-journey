@@ -26,4 +26,15 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/**
+ * List of currency codes supported by the Order API.
+ *
+ * This constant defines the exhaustive set of currencies that can be used
+ * for order pricing and transactions. The `as const` assertion ensures
+ * type-level guarantees for currency validation.
+ *
+ * @remarks
+ * This list may be extended in future versions as new currency support is added.
+ * Consumers should not assume this set is immutable across API versions.
+ */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
