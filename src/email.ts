@@ -14,6 +14,6 @@ export function normalizeEmail(input: string): string {
 export function maskEmail(input: string): string {
   const [local, domain] = input.split("@");
   if (!local || !domain) return input;
-  const head = local.slice(0, 2);
-  return `${head}${"*".repeat(Math.max(0, local.length - 2))}@${domain}`;
+  const head = local.slice(0, -1);
+  return `${head}${"*".repeat(Math.max(1, local.length - 2))}@${domain}`;
 }
