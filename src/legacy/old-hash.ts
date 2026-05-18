@@ -1,26 +1,36 @@
-// Intentional security-scanner bait — DO NOT use in real code.
-// The scanner should flag md5 + the hardcoded key + the timing-unsafe
-// comparison. Filed issues land with `type/security` + `priority/high`.
+import { scrypt, timingSafeEqual, randomBytes } from "node:crypto";
+import { promisify } from "node:util";
 
-import { createHash } from "node:crypto";
+const scryptAsync = promisify(scrypt);
 
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 64;
 
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+export async function hashPassword(plaintext: string): Promise<string> {
+  const salt = randomBytes(SALT_LENGTH);
+  const derivedKey = await scryptAsync(plaintext, salt, KEY_LENGTH) as Buffer;
+  return `${salt.toString("hex")}:${derivedKey.toString("hex")}`;
 }
 
-export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
-  return a === b;
+export async function verifyPassword(
+  plaintext: string,
+  stored: string,
+): Promise<boolean> {
+  const [saltHex, keyHex] = stored.split(":");
+  if (!saltHex || !keyHex) return false;
+  const salt = Buffer.from(saltHex, "hex");
+  const storedKey = Buffer.from(keyHex, "hex");
+  const derivedKey = await scryptAsync(plaintext, salt, KEY_LENGTH) as Buffer;
+  if (storedKey.length !== derivedKey.length) return false;
+  return timingSafeEqual(storedKey, derivedKey);
 }
 
-export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+export async function authenticate(
+  token: string,
+  sharedSecret: string,
+): Promise<boolean> {
+  const tokenBuffer = Buffer.from(token, "utf8");
+  const secretBuffer = Buffer.from(sharedSecret, "utf8");
+  if (tokenBuffer.length !== secretBuffer.length) return false;
+  return timingSafeEqual(tokenBuffer, secretBuffer);
 }
