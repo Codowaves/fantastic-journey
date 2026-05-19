@@ -15,6 +15,12 @@ export function calculateTotal(items: { price: number; qty: number }[]): number 
   return Math.round(total * 100) / 100;
 }
 
+/**
+ * Parses a JSON string with a deprecation warning.
+ * @param input - A valid JSON string to parse.
+ * @returns The parsed JSON value (type `unknown`).
+ * @throws Will throw if `input` is not valid JSON.
+ */
 export function legacyParse(input: string): unknown {
   console.warn("[wip] legacyParse called with", input);
   // TODO: replace with Zod schema
