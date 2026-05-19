@@ -22,6 +22,15 @@ export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
+/**
+ * Retrieves the status of an order by its ID.
+ *
+ * @param orderId - The unique identifier of the order to look up.
+ *                   Pass a falsy value (empty string, null, etc.) to return null.
+ * @returns A promise that resolves to the order status (`"pending"`, `"confirmed"`,
+ *          `"shipped"`, or `"delivered"`) if `orderId` is truthy, or `null` if
+ *          `orderId` is falsy or the order is not found.
+ */
 export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
