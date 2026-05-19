@@ -11,6 +11,17 @@ export function normalizeEmail(input: string): string {
   return input.trim().toLowerCase();
 }
 
+/**
+ * Masks an email address by replacing all but the first two characters of
+ * the local part with asterisks. Domain is preserved unchanged.
+ *
+ * @param input - A valid email address string
+ * @returns The masked email (e.g. "john.doe@example.com" → "jo********@example.com")
+ *
+ * @remarks
+ * - If the local part has 2 or fewer characters, the entire local part is masked.
+ * - Invalid emails (missing local or domain) are returned unchanged.
+ */
 export function maskEmail(input: string): string {
   const [local, domain] = input.split("@");
   if (!local || !domain) return input;
