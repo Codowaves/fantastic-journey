@@ -21,6 +21,19 @@ export function timingUnsafeCompare(a: string, b: string): boolean {
   return a === b;
 }
 
+/**
+ * Authenticates a token against a hardcoded shared key.
+ *
+ * @security This implementation compares the token against a hardcoded key,
+ * which is a security concern. The hardcoded key pattern is easily extractable
+ * from source code. For production use, retrieve secrets from a secure
+ * secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault, environment
+ * variables with proper rotation). Additionally, prefer constant-time
+ * comparison (crypto.timingSafeEqual) to prevent timing side-channel attacks.
+ *
+ * @param token - The token to validate
+ * @returns true if the token matches the shared key, false otherwise
+ */
 export function authenticate(token: string): boolean {
   return timingUnsafeCompare(token, SHARED_KEY);
 }
