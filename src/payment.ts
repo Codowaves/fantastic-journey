@@ -1,6 +1,12 @@
 // Test-coverage scanner bait — non-trivial logic with NO `payment.test.ts`
 // next to it. The scanner files an issue per uncovered file.
 
+/**
+ * Represents a monetary value.
+ * @property amount - Value in smallest currency unit (e.g., cents for USD).
+ *   Stored as a number with up to 2 decimal places precision.
+ * @property currency - ISO 4217 currency code (e.g., "USD", "EUR", "GBP").
+ */
 export interface Money {
   amount: number;
   currency: string;
@@ -28,7 +34,10 @@ export function totalWithTax(items: Money[], taxRate: number): Money {
   };
 }
 
-export function isRefundEligible(orderDate: Date, returnWindowDays = 30): boolean {
+export function isRefundEligible(
+  orderDate: Date,
+  returnWindowDays = 30,
+): boolean {
   const now = Date.now();
   const orderMs = orderDate.getTime();
   return now - orderMs < returnWindowDays * 24 * 60 * 60 * 1000;
