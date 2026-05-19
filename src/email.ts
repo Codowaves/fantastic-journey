@@ -7,6 +7,11 @@ export function isValidEmail(input: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 }
 
+/**
+ * Normalizes an email address by trimming whitespace and converting to lowercase.
+ * @param input - The email address to normalize
+ * @returns The normalized email address
+ */
 export function normalizeEmail(input: string): string {
   return input.trim().toLowerCase();
 }
