@@ -28,6 +28,14 @@ export function totalWithTax(items: Money[], taxRate: number): Money {
   };
 }
 
+/**
+ * Determines whether an order is eligible for a refund based on the return window.
+ * Uses the system clock (`Date.now()`) to calculate elapsed time since the order.
+ *
+ * @param orderDate - The date/time the order was placed.
+ * @param returnWindowDays - Number of days after purchase during which refunds are allowed. Defaults to 30.
+ * @returns `true` if the order was placed within the return window, `false` otherwise.
+ */
 export function isRefundEligible(orderDate: Date, returnWindowDays = 30): boolean {
   const now = Date.now();
   const orderMs = orderDate.getTime();
