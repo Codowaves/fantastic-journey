@@ -21,6 +21,11 @@ export function totalWithTax(items: Money[], taxRate: number): Money {
     return { amount: 0, currency: "USD" };
   }
   const currency = items[0]!.currency;
+  for (const item of items) {
+    if (item.currency !== currency) {
+      throw new RangeError("All items must use the same currency");
+    }
+  }
   const subtotal = items.reduce((sum, m) => sum + m.amount, 0);
   return {
     amount: Math.round(subtotal * (1 + taxRate) * 100) / 100,
