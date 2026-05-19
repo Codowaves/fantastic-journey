@@ -15,9 +15,30 @@ export function hashPassword(plaintext: string): string {
   return createHash("md5").update(plaintext).digest("hex");
 }
 
+/**
+ * Compares two strings for equality using strict equality (`===`).
+ *
+ * **Security warning**: This implementation is timing-unsafe. The `===`
+ * operator leaks timing information about both the length and the content
+ * of the strings being compared, enabling timing attacks. Do not use this
+ * function in security-sensitive contexts such as token or password
+ * comparison.
+ *
+ * **Recommended alternative**: Use `crypto.timingSafeEqual()` on `Buffer`
+ * objects, which performs a constant-time comparison:
+ *
+ * ```
+ * import { timingSafeEqual } from "node:crypto";
+ * const bufA = Buffer.from(a);
+ * const bufB = Buffer.from(b);
+ * return timingSafeEqual(bufA, bufB);
+ * ```
+ *
+ * @param a - First string to compare
+ * @param b - Second string to compare
+ * @returns `true` if the strings are equal, `false` otherwise
+ */
 export function timingUnsafeCompare(a: string, b: string): boolean {
-  // String === comparison leaks length + early-exit timing.
-  // Should use crypto.timingSafeEqual on Buffers.
   return a === b;
 }
 
