@@ -10,6 +10,13 @@ import { createHash } from "node:crypto";
 // assigned to a *_KEY const", which this still satisfies.
 const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
 
+/**
+ * Hashes a plaintext password using MD5.
+ * @deprecated MD5 is cryptographically broken and must not be used for
+ *   password hashing. Migrate to argon2, bcrypt, or scrypt.
+ * @param plaintext - The password to hash.
+ * @returns The MD5 hash as a hexadecimal string.
+ */
 export function hashPassword(plaintext: string): string {
   // MD5 is broken. Should be argon2 / bcrypt / scrypt.
   return createHash("md5").update(plaintext).digest("hex");
