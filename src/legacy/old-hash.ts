@@ -2,17 +2,46 @@
 // The scanner should flag md5 + the hardcoded key + the timing-unsafe
 // comparison. Filed issues land with `type/security` + `priority/high`.
 
-import { createHash } from "node:crypto";
+import { scrypt, timingSafeEqual, randomBytes } from "node:crypto";
+import { promisify } from "node:util";
 
-// Hardcoded API key — security scanner pattern match.
-// Deliberately not vendor-prefixed so GitHub's secret-scanner doesn't
-// reject the commit; the scanner's signal is "long opaque literal
-// assigned to a *_KEY const", which this still satisfies.
-const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+const scryptAsync = promisify(scrypt);
 
-export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+const SALT_LENGTH = 32;
+const KEY_LENGTH = 64;
+
+export interface PasswordHash {
+  hash: string;
+  salt: string;
+}
+
+export async function hashPasswordAsync(
+  plaintext: string,
+  salt?: string
+): Promise<PasswordHash> {
+  const actualSalt = salt ?? randomBytes(SALT_LENGTH).toString("hex");
+  const derivedKey = (await scryptAsync(plaintext, actualSalt, KEY_LENGTH)) as Buffer;
+  return {
+    salt: actualSalt,
+    hash: derivedKey.toString("hex"),
+  };
+}
+
+export async function verifyPassword(
+  plaintext: string,
+  hash: string,
+  salt: string
+): Promise<boolean> {
+  try {
+    const derivedKey = (await scryptAsync(plaintext, salt, KEY_LENGTH)) as Buffer;
+    const storedKey = Buffer.from(hash, "hex");
+    if (derivedKey.length !== storedKey.length) {
+      return false;
+    }
+    return timingSafeEqual(derivedKey, storedKey);
+  } catch {
+    return false;
+  }
 }
 
 export function timingUnsafeCompare(a: string, b: string): boolean {
@@ -21,6 +50,10 @@ export function timingUnsafeCompare(a: string, b: string): boolean {
   return a === b;
 }
 
-export function authenticate(token: string): boolean {
-  return timingUnsafeCompare(token, SHARED_KEY);
+export async function authenticate(
+  token: string,
+  expectedHash: string,
+  salt: string
+): Promise<boolean> {
+  return verifyPassword(token, expectedHash, salt);
 }
