@@ -6,6 +6,14 @@ export interface Money {
   currency: string;
 }
 
+/**
+ * Applies a percentage discount to a money amount.
+ *
+ * @param price - The original money amount.
+ * @param percentOff - Discount percentage (0–100). Throws RangeError if outside this range.
+ * @returns A new Money object with the discounted amount.
+ * @throws RangeError When percentOff is less than 0 or greater than 100.
+ */
 export function applyDiscount(price: Money, percentOff: number): Money {
   if (percentOff < 0 || percentOff > 100) {
     throw new RangeError("percentOff must be 0–100");
