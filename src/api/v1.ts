@@ -9,7 +9,18 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+/**
+ * Creates a new order for a customer with the given items.
+ *
+ * @param customerId - The unique identifier of the customer placing the order.
+ * @param items - An array of items, each with an `id` and `qty` (quantity).
+ * @returns The newly created `Order` object with a generated ID, "pending" status,
+ *   and `total` equal to the number of items in the array (not the sum of quantities).
+ */
+export function createOrder(
+  customerId: string,
+  items: Array<{ id: string; qty: number }>,
+): Order {
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -22,7 +33,9 @@ export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
+export function getOrderStatus(
+  orderId: string,
+): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
