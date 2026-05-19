@@ -26,4 +26,8 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/**
+ * Currencies supported by the Order API.
+ * All order totals are processed in these currencies.
+ */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
