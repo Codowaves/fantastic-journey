@@ -16,6 +16,11 @@ export function applyDiscount(price: Money, percentOff: number): Money {
   };
 }
 
+/**
+ * Calculates the total amount including tax for a list of money items.
+ * Assumes all items share the same currency (uses the first item's currency).
+ * Returns USD with amount 0 for empty arrays.
+ */
 export function totalWithTax(items: Money[], taxRate: number): Money {
   if (!items.length) {
     return { amount: 0, currency: "USD" };
