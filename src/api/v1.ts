@@ -2,6 +2,13 @@
 // The documenter scanner should file one issue listing each undocumented
 // export here.
 
+/**
+ * Represents a customer order in the system.
+ * @property id - Unique order identifier (e.g., "ord_1234567890")
+ * @property customerId - ID of the customer who placed the order
+ * @property total - Order total amount
+ * @property status - Current order status. One of: "pending" | "confirmed" | "shipped" | "delivered"
+ */
 export interface Order {
   id: string;
   customerId: string;
