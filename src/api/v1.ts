@@ -9,7 +9,10 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+export function createOrder(
+  customerId: string,
+  items: Array<{ id: string; qty: number }>,
+): Order {
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -18,11 +21,19 @@ export function createOrder(customerId: string, items: Array<{ id: string; qty: 
   };
 }
 
+/**
+ * Confirms an order by updating its status to 'confirmed'.
+ *
+ * @param order - The order to confirm. Must have a status that can transition to 'confirmed'.
+ * @returns A new Order object with status set to 'confirmed'. Does not mutate the original.
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
+export function getOrderStatus(
+  orderId: string,
+): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
