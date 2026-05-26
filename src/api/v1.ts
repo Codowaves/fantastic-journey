@@ -26,4 +26,14 @@ export function getOrderStatus(orderId: string): Promise<Order["status"] | null>
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+export function handleRequest(request: Request): Response {
+  const url = new URL(request.url);
+
+  if (request.method === "GET" && url.pathname === "/healthz") {
+    return Response.json({ ok: true }, { status: 200 });
+  }
+
+  return Response.json({ error: "Not found" }, { status: 404 });
+}
+
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
