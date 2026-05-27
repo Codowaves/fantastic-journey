@@ -29,6 +29,10 @@ bun run test
 
 CI runs the same three on every PR.
 
+## Docs
+
+- [BillingClient](docs/billing.md)
+
 ## Codowave triggers
 
 The autonomous runner watches for issues carrying the
