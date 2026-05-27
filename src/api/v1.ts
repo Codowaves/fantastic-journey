@@ -16,7 +16,13 @@ import {
   saveSamlMetadata,
   createMagicLinkToken,
 } from "../auth";
+import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
+
+const DB_CHECK_TIMEOUT_MS = parseInt(
+  process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
+  10,
+);
 
 export interface Order {
   id: string;
@@ -61,7 +67,9 @@ function getProjects(): Array<{
   return projects ?? [];
 }
 
-async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
+async function readJsonBody(
+  request: Request,
+): Promise<Record<string, unknown>> {
   try {
     const body = (await request.json()) as unknown;
     return body && typeof body === "object"
@@ -143,6 +151,33 @@ async function readFormBody(request: Request): Promise<URLSearchParams> {
   return new URLSearchParams(await request.text());
 }
 
+async function checkDbConnection(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const host = process.env["DATABASE_HOST"] ?? "localhost";
+  const port = parseInt(process.env["DATABASE_PORT"] ?? "5432", 10);
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      socket.destroy();
+      resolve({ ok: false, error: "connection timeout" });
+    }, DB_CHECK_TIMEOUT_MS);
+
+    const socket = createConnection(port, host);
+    socket.connect(port, host, () => {
+      clearTimeout(timer);
+      socket.destroy();
+      resolve({ ok: true });
+    });
+    socket.on("error", (err) => {
+      clearTimeout(timer);
+      socket.destroy();
+      resolve({ ok: false, error: err.message });
+    });
+  });
+}
+
 export async function handleRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const context = contextFromRequest(request);
@@ -151,8 +186,20 @@ export async function handleRequest(request: Request): Promise<Response> {
     request.method === "GET" &&
     (url.pathname === "/healthz" || url.pathname === "/health")
   ) {
+    const probe = await checkDbConnection();
+    if (!probe.ok) {
+      return Response.json(
+        {
+          status: "degraded",
+          db: "down",
+          error: probe.error,
+          uptimeSeconds: process.uptime(),
+        },
+        { status: 503 },
+      );
+    }
     return Response.json(
-      { status: "ok", uptimeSeconds: process.uptime() },
+      { status: "ok", db: "up", uptimeSeconds: process.uptime() },
       { status: 200 },
     );
   }
@@ -172,7 +219,10 @@ export async function handleRequest(request: Request): Promise<Response> {
     const body = await readJsonBody(request);
     const workspaceId = requireString(body, "workspaceId");
     if (!workspaceId) {
-      return Response.json({ error: "workspaceId is required" }, { status: 400 });
+      return Response.json(
+        { error: "workspaceId is required" },
+        { status: 400 },
+      );
     }
 
     try {
