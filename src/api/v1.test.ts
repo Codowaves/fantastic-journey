@@ -384,6 +384,21 @@ describe("api v1 route handler", () => {
     );
   });
 
+  it("returns git SHA + build time + node version for GET /api/version", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/api/version"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      sha: expect.any(String),
+      builtAt: expect.any(String),
+      node: expect.any(String),
+    });
+  });
+
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
     await handleRequest(
       new Request("https://example.com/settings/security/saml/metadata", {

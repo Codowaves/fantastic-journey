@@ -245,6 +245,20 @@ export async function handleRequest(request: Request): Promise<Response> {
     return Response.json({ items: getProjects() }, { status: 200 });
   }
 
+  if (request.method === "GET" && url.pathname === "/api/version") {
+    return Response.json(
+      {
+        sha: process.env.GIT_SHA ?? "dev",
+        builtAt: process.env.BUILD_ISO ?? "dev",
+        node: process.version,
+      },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+
   if (request.method === "GET" && url.pathname === "/api/auth-events") {
     return Response.json({ items: listAuthEvents() }, { status: 200 });
   }
