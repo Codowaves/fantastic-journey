@@ -54,16 +54,18 @@ export interface MagicLinkToken {
   createdAt: string;
 }
 
-interface WorkspaceUser {
+export interface WorkspaceUser {
   workspaceId: string;
   userId: string;
   email: string;
   role: "owner" | "member";
+  plan?: string;
+  signed_up_at?: string;
+  last_active_at?: string;
 }
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
-const SAML_HTTP_POST_BINDING =
-  "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
+const SAML_HTTP_POST_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
 
 const authEvents: AuthEvent[] = [];
 const samlMetadataByWorkspace = new Map<string, SamlMetadata>();
@@ -84,12 +86,18 @@ function seedDefaultUsers(): void {
     userId: "owner_1",
     email: "owner@example.com",
     role: "owner",
+    plan: "pro",
+    signed_up_at: "2024-01-15T10:00:00.000Z",
+    last_active_at: "2024-06-01T12:30:00.000Z",
   });
   addWorkspaceUser({
     workspaceId: "ws_1",
     userId: "user_1",
     email: "user@example.com",
     role: "member",
+    plan: "free",
+    signed_up_at: "2024-03-20T08:45:00.000Z",
+    last_active_at: "2024-06-10T09:15:00.000Z",
   });
 }
 
@@ -125,7 +133,16 @@ function getOrCreateUser(
   return user;
 }
 
-function getUser(workspaceId: string, userId: string): WorkspaceUser | null {
+export function listWorkspaceUsers(workspaceId: string): WorkspaceUser[] {
+  return [...workspaceUsers.values()].filter(
+    (u) => u.workspaceId === workspaceId,
+  );
+}
+
+export function getUser(
+  workspaceId: string,
+  userId: string,
+): WorkspaceUser | null {
   return workspaceUsers.get(userKey(workspaceId, userId)) ?? null;
 }
 
@@ -178,7 +195,9 @@ function parseSamlAssertion(assertion: string): {
   destination: string | null;
   notOnOrAfter: string | null;
 } {
-  const xml = assertion.includes("<") ? assertion : decodeSamlResponse(assertion);
+  const xml = assertion.includes("<")
+    ? assertion
+    : decodeSamlResponse(assertion);
   const email =
     extractXmlAttribute(xml, "email") ??
     extractXmlText(xml, "NameID") ??
@@ -364,7 +383,9 @@ export async function saveSamlMetadata(params: {
     updatedAt: nowIso(),
   };
   if (!metadata.entityId || !metadata.signingCertificate) {
-    throw new Error("SAML metadata must include entityID and signing certificate");
+    throw new Error(
+      "SAML metadata must include entityID and signing certificate",
+    );
   }
   if (metadata.binding !== SAML_HTTP_POST_BINDING) {
     throw new Error("SAML metadata must use HTTP-POST binding");
