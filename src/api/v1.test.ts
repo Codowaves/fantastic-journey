@@ -1,6 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMagicLinkToken,
@@ -9,7 +9,7 @@ import {
   resetAuthState,
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
-import { handleRequest } from "./v1";
+import { handleRequest, resetContactRateLimit } from "./v1";
 
 const samlKeys = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const samlPublicKey = samlKeys.publicKey.export({
@@ -49,6 +49,7 @@ function signedSamlResponse(params: {
 describe("api v1 route handler", () => {
   beforeEach(() => {
     resetAuthState();
+    resetContactRateLimit();
     resetSentEmails();
   });
 
@@ -63,6 +64,111 @@ describe("api v1 route handler", () => {
         status: "ok",
         uptimeSeconds: expect.any(Number),
       });
+    }
+  });
+
+  it("allows five contact submissions per forwarded IP", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await handleRequest(
+        new Request("https://example.com/api/contact", {
+          method: "POST",
+          headers: { "x-forwarded-for": "198.51.100.24, 10.0.0.1" },
+          body: JSON.stringify({ message: `hello ${attempt}` }),
+        }),
+      );
+
+      expect(response.status).toBe(202);
+      await expect(response.json()).resolves.toEqual({ submitted: true });
+    }
+  });
+
+  it("returns 429 and Retry-After after five contact submissions from one forwarded IP", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await handleRequest(
+        new Request("https://example.com/api/contact", {
+          method: "POST",
+          headers: { "x-forwarded-for": "198.51.100.25, 10.0.0.1" },
+          body: JSON.stringify({ message: `hello ${attempt}` }),
+        }),
+      );
+    }
+
+    const response = await handleRequest(
+      new Request("https://example.com/api/contact", {
+        method: "POST",
+        headers: { "x-forwarded-for": "198.51.100.25, 10.0.0.2" },
+        body: JSON.stringify({ message: "blocked" }),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    await expect(response.json()).resolves.toEqual({
+      error: "Too many contact requests",
+    });
+  });
+
+  it("does not rate-limit a different forwarded IP", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await handleRequest(
+        new Request("https://example.com/api/contact", {
+          method: "POST",
+          headers: { "x-forwarded-for": "198.51.100.27" },
+          body: JSON.stringify({ message: `hello ${attempt}` }),
+        }),
+      );
+    }
+
+    const response = await handleRequest(
+      new Request("https://example.com/api/contact", {
+        method: "POST",
+        headers: { "x-forwarded-for": "198.51.100.28" },
+        body: JSON.stringify({ message: "from another ip" }),
+      }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(response.headers.get("Retry-After")).toBeNull();
+    await expect(response.json()).resolves.toEqual({ submitted: true });
+  });
+
+  it("allows contact submissions again after the rate limit window expires", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+
+    try {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await handleRequest(
+          new Request("https://example.com/api/contact", {
+            method: "POST",
+            headers: { "x-forwarded-for": "198.51.100.26" },
+            body: JSON.stringify({ message: `hello ${attempt}` }),
+          }),
+        );
+      }
+
+      const blockedResponse = await handleRequest(
+        new Request("https://example.com/api/contact", {
+          method: "POST",
+          headers: { "x-forwarded-for": "198.51.100.26" },
+          body: JSON.stringify({ message: "blocked" }),
+        }),
+      );
+      expect(blockedResponse.status).toBe(429);
+
+      vi.advanceTimersByTime(60_001);
+
+      const allowedResponse = await handleRequest(
+        new Request("https://example.com/api/contact", {
+          method: "POST",
+          headers: { "x-forwarded-for": "198.51.100.26" },
+          body: JSON.stringify({ message: "after window" }),
+        }),
+      );
+
+      expect(allowedResponse.status).toBe(202);
+    } finally {
+      vi.useRealTimers();
     }
   });
 

@@ -52,6 +52,9 @@ export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
 // In-memory projects store — in production this would be a database query.
 // Guard against undefined rows by defaulting to empty array.
 const projects: Array<{ id: string; name: string; created_at: string }> = [];
+const CONTACT_RATE_LIMIT_MAX_REQUESTS = 5;
+const CONTACT_RATE_LIMIT_WINDOW_MS = 60_000;
+const contactRateLimitRequests = new Map<string, number[]>();
 
 function getProjects(): Array<{
   id: string;
@@ -59,6 +62,56 @@ function getProjects(): Array<{
   created_at: string;
 }> {
   return projects ?? [];
+}
+
+export function resetContactRateLimit(): void {
+  contactRateLimitRequests.clear();
+}
+
+function forwardedIp(request: Request): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+  );
+}
+
+function pruneContactRateLimitRequests(now: number): void {
+  const windowStart = now - CONTACT_RATE_LIMIT_WINDOW_MS;
+
+  for (const [ip, requests] of contactRateLimitRequests) {
+    const recentRequests = requests.filter(
+      (timestamp) => timestamp > windowStart,
+    );
+
+    if (recentRequests.length === 0) {
+      contactRateLimitRequests.delete(ip);
+    } else {
+      contactRateLimitRequests.set(ip, recentRequests);
+    }
+  }
+}
+
+function checkContactRateLimit(
+  request: Request,
+  now = Date.now(),
+): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
+  const ip = forwardedIp(request);
+  pruneContactRateLimitRequests(now);
+  const recentRequests = contactRateLimitRequests.get(ip) ?? [];
+
+  if (recentRequests.length >= CONTACT_RATE_LIMIT_MAX_REQUESTS) {
+    const oldestRequest = recentRequests[0] ?? now;
+    const retryAfterMs =
+      oldestRequest + CONTACT_RATE_LIMIT_WINDOW_MS - now;
+    contactRateLimitRequests.set(ip, recentRequests);
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1_000)),
+    };
+  }
+
+  recentRequests.push(now);
+  contactRateLimitRequests.set(ip, recentRequests);
+  return { allowed: true };
 }
 
 async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
@@ -163,6 +216,21 @@ export async function handleRequest(request: Request): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/auth-events") {
     return Response.json({ items: listAuthEvents() }, { status: 200 });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/contact") {
+    const limit = checkContactRateLimit(request);
+    if (!limit.allowed) {
+      return Response.json(
+        { error: "Too many contact requests" },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfterSeconds) },
+        },
+      );
+    }
+
+    return Response.json({ submitted: true }, { status: 202 });
   }
 
   if (
