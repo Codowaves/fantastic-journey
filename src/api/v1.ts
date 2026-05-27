@@ -31,6 +31,20 @@ export function getOrderStatus(
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
+
+// In-memory projects store — in production this would be a database query.
+// Guard against undefined rows by defaulting to empty array.
+const projects: Array<{ id: string; name: string; created_at: string }> = [];
+
+function getProjects(): Array<{
+  id: string;
+  name: string;
+  created_at: string;
+}> {
+  return projects ?? [];
+}
+
 export function handleRequest(request: Request): Response {
   const url = new URL(request.url);
 
@@ -44,7 +58,9 @@ export function handleRequest(request: Request): Response {
     );
   }
 
+  if (request.method === "GET" && url.pathname === "/api/projects") {
+    return Response.json({ items: getProjects() }, { status: 200 });
+  }
+
   return Response.json({ error: "Not found" }, { status: 404 });
 }
-
-export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
