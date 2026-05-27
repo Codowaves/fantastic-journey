@@ -25,6 +25,13 @@ const DB_CHECK_TIMEOUT_MS = parseInt(
   10,
 );
 
+const CORS_ALLOWED_ORIGINS = (process.env["CORS_ALLOWED_ORIGINS"] ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const isDevOrStaging = process.env["NODE_ENV"] !== "production";
+
 export interface Order {
   id: string;
   customerId: string;
@@ -219,6 +226,53 @@ export async function handleRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const context = contextFromRequest(request);
 
+  // CORS middleware
+  const origin = request.headers.get("Origin");
+  const isPreflight = request.method === "OPTIONS";
+
+  if (origin) {
+    const allowedOrigin = CORS_ALLOWED_ORIGINS.includes(origin) ? origin : null;
+
+    if (isPreflight) {
+      if (!allowedOrigin) {
+        return new Response(null, { status: 403 });
+      }
+      return new Response(null, {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Methods":
+            "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Max-Age": isDevOrStaging ? "0" : "86400",
+        },
+      });
+    }
+
+    if (allowedOrigin) {
+      // Attach CORS headers to all responses for allowed origins
+      const response = await handleRoute(request, url, context);
+      if (response.headers.get("Access-Control-Allow-Origin")) {
+        return response;
+      }
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set("Access-Control-Allow-Origin", origin);
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    }
+  }
+
+  return handleRoute(request, url, context);
+}
+
+async function handleRoute(
+  request: Request,
+  url: URL,
+  context: ReturnType<typeof contextFromRequest>,
+): Promise<Response> {
   if (
     request.method === "GET" &&
     (url.pathname === "/healthz" || url.pathname === "/health")
