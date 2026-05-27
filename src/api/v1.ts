@@ -25,6 +25,11 @@ const DB_CHECK_TIMEOUT_MS = parseInt(
   10,
 );
 
+const ALLOWED_CORS_ORIGINS = new Set([
+  "https://app.codowave.com",
+  "https://app.staging.codowave.com",
+]);
+
 export interface Order {
   id: string;
   customerId: string;
@@ -66,6 +71,68 @@ function getProjects(): Array<{
   created_at: string;
 }> {
   return projects ?? [];
+}
+
+function corsMaxAgeSeconds(): string {
+  const environment = process.env["APP_ENV"] ?? process.env["NODE_ENV"];
+  return environment === "production" ? "86400" : "0";
+}
+
+function setVaryOrigin(headers: Headers): void {
+  const vary = headers.get("Vary");
+  if (!vary) {
+    headers.set("Vary", "Origin");
+    return;
+  }
+
+  const varyValues = vary.split(",").map((value) => value.trim().toLowerCase());
+  if (!varyValues.includes("origin")) {
+    headers.set("Vary", `${vary}, Origin`);
+  }
+}
+
+function applyCorsHeaders(request: Request, response: Response): Response {
+  const origin = request.headers.get("origin");
+  if (!origin || !ALLOWED_CORS_ORIGINS.has(origin)) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Credentials", "true");
+  setVaryOrigin(headers);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function corsPreflightResponse(request: Request): Response {
+  const origin = request.headers.get("origin");
+  const requestedHeaders = request.headers.get(
+    "access-control-request-headers",
+  );
+  const headers = new Headers({
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Max-Age": corsMaxAgeSeconds(),
+    Vary: "Origin",
+  });
+
+  if (requestedHeaders) {
+    headers.set("Access-Control-Allow-Headers", requestedHeaders);
+  } else {
+    headers.set("Access-Control-Allow-Headers", "content-type");
+  }
+
+  if (!origin || !ALLOWED_CORS_ORIGINS.has(origin)) {
+    return new Response(null, { status: 403, headers });
+  }
+
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Credentials", "true");
+  return new Response(null, { status: 204, headers });
 }
 
 async function readJsonBody(
@@ -215,7 +282,7 @@ async function checkDbConnection(): Promise<{
   });
 }
 
-export async function handleRequest(request: Request): Promise<Response> {
+async function dispatchRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const context = contextFromRequest(request);
 
@@ -567,4 +634,12 @@ export async function handleRequest(request: Request): Promise<Response> {
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });
+}
+
+export async function handleRequest(request: Request): Promise<Response> {
+  if (request.method === "OPTIONS") {
+    return corsPreflightResponse(request);
+  }
+
+  return applyCorsHeaders(request, await dispatchRequest(request));
 }

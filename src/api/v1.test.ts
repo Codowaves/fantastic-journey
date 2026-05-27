@@ -46,10 +46,147 @@ function signedSamlResponse(params: {
   )}</SignedPayload><Signature Algorithm="rsa-sha256"><SignatureValue>${signature}</SignatureValue></Signature></SAMLResponse>`;
 }
 
+async function withApiEnvironment<T>(
+  environment: string | undefined,
+  callback: () => Promise<T>,
+): Promise<T> {
+  const originalAppEnv = process.env["APP_ENV"];
+  const originalNodeEnv = process.env["NODE_ENV"];
+
+  try {
+    if (environment === undefined) {
+      delete process.env["APP_ENV"];
+      delete process.env["NODE_ENV"];
+    } else {
+      process.env["APP_ENV"] = environment;
+      delete process.env["NODE_ENV"];
+    }
+
+    return await callback();
+  } finally {
+    if (originalAppEnv === undefined) {
+      delete process.env["APP_ENV"];
+    } else {
+      process.env["APP_ENV"] = originalAppEnv;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env["NODE_ENV"];
+    } else {
+      process.env["NODE_ENV"] = originalNodeEnv;
+    }
+  }
+}
+
 describe("api v1 route handler", () => {
   beforeEach(() => {
     resetAuthState();
     resetSentEmails();
+  });
+
+  it("returns production CORS preflights with the stable cache duration", async () => {
+    await withApiEnvironment("production", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "OPTIONS",
+          headers: {
+            origin: "https://app.codowave.com",
+            "access-control-request-headers": "content-type, authorization",
+          },
+        }),
+      );
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "https://app.codowave.com",
+      );
+      expect(response.headers.get("Access-Control-Max-Age")).toBe("86400");
+      expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
+        "content-type, authorization",
+      );
+    });
+  });
+
+  it("disables CORS preflight caching in staging for the staging app origin", async () => {
+    await withApiEnvironment("staging", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "OPTIONS",
+          headers: {
+            origin: "https://app.staging.codowave.com",
+            "access-control-request-headers": "content-type",
+          },
+        }),
+      );
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "https://app.staging.codowave.com",
+      );
+      expect(response.headers.get("Access-Control-Max-Age")).toBe("0");
+    });
+  });
+
+  it("disables CORS preflight caching in development and rejects unknown origins", async () => {
+    await withApiEnvironment("development", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "OPTIONS",
+          headers: {
+            origin: "https://evil.example",
+          },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+      expect(response.headers.get("Access-Control-Max-Age")).toBe("0");
+    });
+  });
+
+  it("defaults CORS preflight max-age to zero without an explicit environment", async () => {
+    await withApiEnvironment(undefined, async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "OPTIONS",
+          headers: {
+            origin: "https://app.codowave.com",
+          },
+        }),
+      );
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("Access-Control-Max-Age")).toBe("0");
+    });
+  });
+
+  it("adds CORS headers to actual responses for allowed origins only", async () => {
+    const allowedResponse = await handleRequest(
+      new Request("https://example.com/api/version", {
+        headers: { origin: "https://app.staging.codowave.com" },
+      }),
+    );
+
+    expect(allowedResponse.status).toBe(200);
+    expect(allowedResponse.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://app.staging.codowave.com",
+    );
+    expect(allowedResponse.headers.get("Access-Control-Allow-Credentials")).toBe(
+      "true",
+    );
+    expect(allowedResponse.headers.get("Vary")).toBe("Origin");
+    expect(allowedResponse.headers.get("Cache-Control")).toBe("no-store");
+
+    const rejectedResponse = await handleRequest(
+      new Request("https://example.com/api/version", {
+        headers: { origin: "https://evil.example" },
+      }),
+    );
+
+    expect(rejectedResponse.status).toBe(200);
+    expect(
+      rejectedResponse.headers.get("Access-Control-Allow-Origin"),
+    ).toBeNull();
   });
 
   it("returns healthy JSON for GET /healthz and its /health alias", async () => {
