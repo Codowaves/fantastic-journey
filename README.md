@@ -44,9 +44,9 @@ the full taxonomy.
 
 ## Routes
 
-| Endpoint                      | Description                                           |
-| ----------------------------- | ----------------------------------------------------- |
-| `GET /healthz`, `GET /health` | Returns `{ status: "ok", uptimeSeconds }` with 200 OK |
+| Endpoint                                | Description                                           |
+| --------------------------------------- | ----------------------------------------------------- |
+| `GET /healthz` (`GET /health` alias)   | Returns `{ status: "ok", uptimeSeconds }` with 200 OK |
 
 ## License
 

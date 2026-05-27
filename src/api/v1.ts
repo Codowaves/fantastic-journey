@@ -53,7 +53,7 @@ export function handleRequest(request: Request): Response {
     (url.pathname === "/healthz" || url.pathname === "/health")
   ) {
     return Response.json(
-      { status: "ok", uptimeSeconds: Math.floor(process.uptime()) },
+      { status: "ok", uptimeSeconds: process.uptime() },
       { status: 200 },
     );
   }
