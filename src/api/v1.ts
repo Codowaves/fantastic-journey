@@ -9,7 +9,10 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
-export function createOrder(customerId: string, items: Array<{ id: string; qty: number }>): Order {
+export function createOrder(
+  customerId: string,
+  items: Array<{ id: string; qty: number }>,
+): Order {
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -22,15 +25,23 @@ export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
-export function getOrderStatus(orderId: string): Promise<Order["status"] | null> {
+export function getOrderStatus(
+  orderId: string,
+): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
 export function handleRequest(request: Request): Response {
   const url = new URL(request.url);
 
-  if (request.method === "GET" && url.pathname === "/healthz") {
-    return Response.json({ ok: true }, { status: 200 });
+  if (
+    request.method === "GET" &&
+    (url.pathname === "/healthz" || url.pathname === "/health")
+  ) {
+    return Response.json(
+      { status: "ok", uptimeSeconds: Math.floor(process.uptime()) },
+      { status: 200 },
+    );
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });

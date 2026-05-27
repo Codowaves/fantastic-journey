@@ -8,15 +8,15 @@ pair pipeline have realistic signal to act on.
 
 ## Structure
 
-| Path | What's there | Which scanner / stage exercises it |
-|------|--------------|-------------------------------------|
-| `src/payment.ts` | Money utilities, no tests | Test-coverage scanner |
-| `src/email.ts` | Email helpers, no tests | Test-coverage scanner |
-| `src/api/v1.ts` | Public Order API, no JSDoc | Documenter scanner |
-| `src/legacy/old-hash.ts` | md5 + hardcoded key + timing-unsafe compare | Security scanner |
-| `src/wip/notes.ts` | TODO / FIXME / HACK / console.log / debugger | Bug-scan |
-| Whole repo + this README | LLM-readable orientation | Feature suggestor |
-| `.github/workflows/ci.yml` | Typecheck + lint + test | PR processor, ciPoller, ciWorker |
+| Path                       | What's there                                 | Which scanner / stage exercises it |
+| -------------------------- | -------------------------------------------- | ---------------------------------- |
+| `src/payment.ts`           | Money utilities, no tests                    | Test-coverage scanner              |
+| `src/email.ts`             | Email helpers, no tests                      | Test-coverage scanner              |
+| `src/api/v1.ts`            | Public Order API, no JSDoc                   | Documenter scanner                 |
+| `src/legacy/old-hash.ts`   | md5 + hardcoded key + timing-unsafe compare  | Security scanner                   |
+| `src/wip/notes.ts`         | TODO / FIXME / HACK / console.log / debugger | Bug-scan                           |
+| Whole repo + this README   | LLM-readable orientation                     | Feature suggestor                  |
+| `.github/workflows/ci.yml` | Typecheck + lint + test                      | PR processor, ciPoller, ciWorker   |
 
 ## Running locally
 
@@ -41,6 +41,12 @@ The autonomous runner watches for issues carrying the
 `scenario/*` labels pick which subsystem each issue is meant to
 exercise — see the seed script in the dashboard's setup kit for
 the full taxonomy.
+
+## Routes
+
+| Endpoint                      | Description                                           |
+| ----------------------------- | ----------------------------------------------------- |
+| `GET /healthz`, `GET /health` | Returns `{ status: "ok", uptimeSeconds }` with 200 OK |
 
 ## License
 
