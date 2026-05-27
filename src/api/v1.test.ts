@@ -3,10 +3,13 @@ import { createSign, generateKeyPairSync } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  assertNoDuplicateCanonicalEmails,
   createMagicLinkToken,
+  listDuplicateCanonicalEmails,
   listActiveSessions,
   listAuthEvents,
   resetAuthState,
+  seedWorkspaceUserForTest,
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
 import { handleRequest } from "./v1";
@@ -64,6 +67,140 @@ describe("api v1 route handler", () => {
         uptimeSeconds: expect.any(Number),
       });
     }
+  });
+
+  it("trims and lowercases signup emails before inserting users", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/signup", {
+        method: "POST",
+        headers: {
+          "user-agent": "vitest",
+          "x-forwarded-for": "203.0.113.25",
+        },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: " Alice@Example.COM ",
+        }),
+      }),
+    );
+    const body = (await response.json()) as {
+      user: { email: string; userId: string };
+    };
+
+    expect(response.status).toBe(201);
+    expect(body.user.email).toBe("alice@example.com");
+    expect(listDuplicateCanonicalEmails("ws_1")).toEqual([]);
+    expect(listAuthEvents()).toContainEqual(
+      expect.objectContaining({
+        workspace_id: "ws_1",
+        user_id: body.user.userId,
+        kind: "password",
+        reason: "signup",
+        ip: "203.0.113.25",
+        user_agent: "vitest",
+      }),
+    );
+
+    const loginResponse = await handleRequest(
+      new Request("https://example.com/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          userId: body.user.userId,
+          password: "password",
+        }),
+      }),
+    );
+
+    expect(loginResponse.status).toBe(200);
+    await expect(loginResponse.json()).resolves.toMatchObject({
+      session: {
+        email: "alice@example.com",
+        userId: body.user.userId,
+      },
+    });
+  });
+
+  it("accepts browser form signup submissions", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/signup", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          workspaceId: "ws_1",
+          email: " FormUser@Example.COM ",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      user: {
+        workspaceId: "ws_1",
+        email: "formuser@example.com",
+        role: "member",
+      },
+    });
+  });
+
+  it("rejects signup duplicates using canonical email uniqueness", async () => {
+    const firstResponse = await handleRequest(
+      new Request("https://example.com/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: " Alice@Example.COM ",
+        }),
+      }),
+    );
+    expect(firstResponse.status).toBe(201);
+
+    const duplicateResponse = await handleRequest(
+      new Request("https://example.com/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "alice@example.com",
+        }),
+      }),
+    );
+
+    expect(duplicateResponse.status).toBe(409);
+    await expect(duplicateResponse.json()).resolves.toEqual({
+      error: "email_taken",
+    });
+  });
+
+  it("blocks signup when existing canonical email duplicates are detected", async () => {
+    seedWorkspaceUserForTest({
+      workspaceId: "ws_dupe",
+      userId: "legacy_upper",
+      email: "Alice@Example.com",
+      role: "member",
+    });
+    seedWorkspaceUserForTest({
+      workspaceId: "ws_dupe",
+      userId: "legacy_spaced",
+      email: " alice@example.com ",
+      role: "member",
+    });
+
+    const response = await handleRequest(
+      new Request("https://example.com/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_dupe",
+          email: "new@example.com",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "duplicate_canonical_email",
+    });
   });
 
   it("accepts SAML metadata XML upload and authenticates a valid assertion", async () => {
@@ -240,6 +377,108 @@ describe("api v1 route handler", () => {
     await expect(reuseResponse.json()).resolves.toEqual({
       error: "magic_token_used",
     });
+  });
+
+  it("trims and lowercases magic-link emails before creation and reuse", async () => {
+    const firstRequestResponse = await handleRequest(
+      new Request("https://example.com/auth/magic-link", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: " Alice@Example.COM ",
+          brandName: "Acme Workspace",
+        }),
+      }),
+    );
+
+    expect(firstRequestResponse.status).toBe(202);
+    await expect(firstRequestResponse.json()).resolves.toMatchObject({
+      sent: true,
+      email: "al***@example.com",
+    });
+
+    const [firstEmail] = listSentEmails();
+    expect(firstEmail).toMatchObject({
+      to: "alice@example.com",
+    });
+
+    const firstToken = new URL(
+      firstEmail?.text.match(/https:\/\/\S+/)?.[0] ?? "",
+    ).searchParams.get("token");
+    const firstRedeemResponse = await handleRequest(
+      new Request(
+        `https://example.com/auth/magic-link/verify?token=${firstToken ?? ""}`,
+      ),
+    );
+    const firstRedeemBody = (await firstRedeemResponse.json()) as {
+      session: { email: string; userId: string };
+    };
+
+    expect(firstRedeemResponse.status).toBe(200);
+    expect(firstRedeemBody.session).toMatchObject({
+      email: "alice@example.com",
+    });
+
+    const secondRequestResponse = await handleRequest(
+      new Request("https://example.com/auth/magic-link", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "alice@example.com",
+        }),
+      }),
+    );
+
+    expect(secondRequestResponse.status).toBe(202);
+    const secondEmail = listSentEmails().at(-1);
+    expect(secondEmail).toMatchObject({
+      to: "alice@example.com",
+    });
+
+    const secondToken = new URL(
+      secondEmail?.text.match(/https:\/\/\S+/)?.[0] ?? "",
+    ).searchParams.get("token");
+    const secondRedeemResponse = await handleRequest(
+      new Request(
+        `https://example.com/auth/magic-link/verify?token=${secondToken ?? ""}`,
+      ),
+    );
+    const secondRedeemBody = (await secondRedeemResponse.json()) as {
+      session: { email: string; userId: string };
+    };
+
+    expect(secondRedeemResponse.status).toBe(200);
+    expect(secondRedeemBody.session).toMatchObject({
+      email: "alice@example.com",
+      userId: firstRedeemBody.session.userId,
+    });
+    expect(listDuplicateCanonicalEmails("ws_1")).toEqual([]);
+  });
+
+  it("reports existing duplicate canonical workspace emails", () => {
+    seedWorkspaceUserForTest({
+      workspaceId: "ws_1",
+      userId: "legacy_upper",
+      email: "Alice@Example.com",
+      role: "member",
+    });
+    seedWorkspaceUserForTest({
+      workspaceId: "ws_1",
+      userId: "legacy_spaced",
+      email: " alice@example.com ",
+      role: "member",
+    });
+
+    expect(listDuplicateCanonicalEmails("ws_1")).toEqual([
+      {
+        workspaceId: "ws_1",
+        email: "alice@example.com",
+        userIds: ["legacy_spaced", "legacy_upper"],
+      },
+    ]);
+    expect(() => assertNoDuplicateCanonicalEmails("ws_1")).toThrow(
+      "Duplicate canonical workspace emails detected",
+    );
   });
 
   it("rejects expired magic-link tokens", async () => {

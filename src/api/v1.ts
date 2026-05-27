@@ -15,6 +15,7 @@ import {
   revokeSession,
   saveSamlMetadata,
   createMagicLinkToken,
+  signupUser,
 } from "../auth";
 import { maskEmail, sendMagicLinkEmail } from "../email";
 
@@ -70,6 +71,18 @@ async function readJsonBody(request: Request): Promise<Record<string, unknown>> 
   } catch {
     return {};
   }
+}
+
+async function readSignupBody(
+  request: Request,
+): Promise<Record<string, unknown>> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.toLowerCase().includes("application/x-www-form-urlencoded")) {
+    const form = await readFormBody(request);
+    return Object.fromEntries(form);
+  }
+
+  return readJsonBody(request);
 }
 
 function requireString(
@@ -163,6 +176,43 @@ export async function handleRequest(request: Request): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/auth-events") {
     return Response.json({ items: listAuthEvents() }, { status: 200 });
+  }
+
+  if (request.method === "POST" && url.pathname === "/signup") {
+    const body = await readSignupBody(request);
+    const workspaceId = requireString(body, "workspaceId");
+    const email = requireString(body, "email");
+
+    if (!workspaceId || !email) {
+      recordAuthEvent({
+        workspaceId,
+        kind: "fail",
+        reason: "signup_request_invalid",
+        context,
+      });
+      return Response.json(
+        { error: "workspaceId and email are required" },
+        { status: 400 },
+      );
+    }
+
+    const result = signupUser({ workspaceId, email, context });
+    if (!result.ok) {
+      const status = result.reason === "email_invalid" ? 400 : 409;
+      return Response.json({ error: result.reason }, { status });
+    }
+
+    return Response.json(
+      {
+        user: {
+          workspaceId: result.user.workspaceId,
+          userId: result.user.userId,
+          email: result.user.email,
+          role: result.user.role,
+        },
+      },
+      { status: 201 },
+    );
   }
 
   if (

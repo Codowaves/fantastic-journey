@@ -54,12 +54,25 @@ export interface MagicLinkToken {
   createdAt: string;
 }
 
-interface WorkspaceUser {
+export interface WorkspaceUser {
   workspaceId: string;
   userId: string;
   email: string;
   role: "owner" | "member";
 }
+
+export interface DuplicateCanonicalEmail {
+  workspaceId: string;
+  email: string;
+  userIds: string[];
+}
+
+export type SignupResult =
+  | { ok: true; user: WorkspaceUser }
+  | {
+      ok: false;
+      reason: "duplicate_canonical_email" | "email_invalid" | "email_taken";
+    };
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const SAML_HTTP_POST_BINDING =
@@ -101,9 +114,29 @@ function emailKey(workspaceId: string, email: string): string {
   return `${workspaceId}:email:${normalizeEmail(email)}`;
 }
 
-function addWorkspaceUser(user: WorkspaceUser): void {
-  workspaceUsers.set(userKey(user.workspaceId, user.userId), user);
-  workspaceUsers.set(emailKey(user.workspaceId, user.email), user);
+function addWorkspaceUser(user: WorkspaceUser): WorkspaceUser {
+  const canonicalUser = { ...user, email: normalizeEmail(user.email) };
+  assertNoDuplicateCanonicalEmails(canonicalUser.workspaceId);
+
+  const existingByEmail = workspaceUsers.get(
+    emailKey(canonicalUser.workspaceId, canonicalUser.email),
+  );
+  if (existingByEmail && existingByEmail.userId !== canonicalUser.userId) {
+    throw new Error(
+      `Duplicate canonical workspace emails detected: ${canonicalUser.workspaceId}:${canonicalUser.email} (${existingByEmail.userId}, ${canonicalUser.userId})`,
+    );
+  }
+
+  workspaceUsers.set(
+    userKey(canonicalUser.workspaceId, canonicalUser.userId),
+    canonicalUser,
+  );
+  workspaceUsers.set(
+    emailKey(canonicalUser.workspaceId, canonicalUser.email),
+    canonicalUser,
+  );
+  assertNoDuplicateCanonicalEmails(canonicalUser.workspaceId);
+  return canonicalUser;
 }
 
 function getOrCreateUser(
@@ -123,6 +156,112 @@ function getOrCreateUser(
   };
   addWorkspaceUser(user);
   return user;
+}
+
+function listWorkspaceUserRecords(): WorkspaceUser[] {
+  return Array.from(workspaceUsers)
+    .filter(([key, user]) => key === userKey(user.workspaceId, user.userId))
+    .map(([, user]) => user);
+}
+
+export function listDuplicateCanonicalEmails(
+  workspaceId?: string,
+): DuplicateCanonicalEmail[] {
+  const usersByCanonicalEmail = new Map<string, WorkspaceUser[]>();
+  for (const user of listWorkspaceUserRecords()) {
+    if (workspaceId && user.workspaceId !== workspaceId) continue;
+
+    const key = `${user.workspaceId}:${normalizeEmail(user.email)}`;
+    const users = usersByCanonicalEmail.get(key) ?? [];
+    users.push(user);
+    usersByCanonicalEmail.set(key, users);
+  }
+
+  return Array.from(usersByCanonicalEmail.values())
+    .filter((users) => users.length > 1)
+    .map((users) => ({
+      workspaceId: users[0]?.workspaceId ?? "",
+      email: normalizeEmail(users[0]?.email ?? ""),
+      userIds: users.map((user) => user.userId).sort(),
+    }))
+    .sort((a, b) =>
+      a.workspaceId === b.workspaceId
+        ? a.email.localeCompare(b.email)
+        : a.workspaceId.localeCompare(b.workspaceId),
+    );
+}
+
+export function assertNoDuplicateCanonicalEmails(workspaceId?: string): void {
+  const duplicates = listDuplicateCanonicalEmails(workspaceId);
+  if (duplicates.length === 0) return;
+
+  const detail = duplicates
+    .map(
+      (duplicate) =>
+        `${duplicate.workspaceId}:${duplicate.email} (${duplicate.userIds.join(
+          ", ",
+        )})`,
+    )
+    .join("; ");
+  throw new Error(`Duplicate canonical workspace emails detected: ${detail}`);
+}
+
+export function seedWorkspaceUserForTest(user: WorkspaceUser): void {
+  workspaceUsers.set(userKey(user.workspaceId, user.userId), user);
+  workspaceUsers.set(emailKey(user.workspaceId, user.email), user);
+}
+
+export function signupUser(params: {
+  workspaceId: string;
+  email: string;
+  context: AuthRequestContext;
+}): SignupResult {
+  const email = normalizeEmail(params.email);
+
+  if (!isValidEmail(email)) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "signup_email_invalid",
+      context: params.context,
+    });
+    return { ok: false, reason: "email_invalid" };
+  }
+
+  if (listDuplicateCanonicalEmails(params.workspaceId).length > 0) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "signup_duplicate_canonical_email",
+      context: params.context,
+    });
+    return { ok: false, reason: "duplicate_canonical_email" };
+  }
+
+  if (workspaceUsers.has(emailKey(params.workspaceId, email))) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "signup_email_taken",
+      context: params.context,
+    });
+    return { ok: false, reason: "email_taken" };
+  }
+
+  const user = addWorkspaceUser({
+    workspaceId: params.workspaceId,
+    userId: `usr_${randomUUID()}`,
+    email,
+    role: "member",
+  });
+  recordAuthEvent({
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    kind: "password",
+    reason: "signup",
+    context: params.context,
+  });
+  return { ok: true, user };
 }
 
 function getUser(workspaceId: string, userId: string): WorkspaceUser | null {
