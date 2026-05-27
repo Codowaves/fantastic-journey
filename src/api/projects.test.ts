@@ -4,7 +4,7 @@ import { handleRequest } from "./v1";
 
 describe("projects controller", () => {
   it("returns 200 with empty items array when no projects exist", async () => {
-    const response = handleRequest(
+    const response = await handleRequest(
       new Request("https://example.com/api/projects"),
     );
 
