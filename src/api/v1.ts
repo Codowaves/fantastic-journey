@@ -19,6 +19,11 @@ import {
 } from "../auth";
 import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
+import { logger } from "../logger";
+import {
+  createRequestContext,
+  runWithRequestContext,
+} from "../requestContext";
 
 const DB_CHECK_TIMEOUT_MS = parseInt(
   process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
@@ -216,6 +221,22 @@ async function checkDbConnection(): Promise<{
 }
 
 export async function handleRequest(request: Request): Promise<Response> {
+  const context = createRequestContext();
+  const response = await runWithRequestContext(async () => {
+    const routedResponse = await routeRequest(request);
+    const url = new URL(request.url);
+    logger.info("request handled", {
+      method: request.method,
+      path: url.pathname,
+      status: routedResponse.status,
+    });
+    return routedResponse;
+  }, context);
+  response.headers.set("X-Request-Id", context.reqId);
+  return response;
+}
+
+async function routeRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const context = contextFromRequest(request);
 
@@ -243,20 +264,6 @@ export async function handleRequest(request: Request): Promise<Response> {
 
   if (request.method === "GET" && url.pathname === "/api/projects") {
     return Response.json({ items: getProjects() }, { status: 200 });
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/version") {
-    return Response.json(
-      {
-        sha: process.env.GIT_SHA ?? "dev",
-        builtAt: process.env.BUILD_ISO ?? "dev",
-        node: process.version,
-      },
-      {
-        status: 200,
-        headers: { "Cache-Control": "no-store" },
-      },
-    );
   }
 
   if (request.method === "GET" && url.pathname === "/api/auth-events") {

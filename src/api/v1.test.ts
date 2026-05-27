@@ -1,6 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMagicLinkToken,
@@ -10,6 +10,9 @@ import {
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
 import { handleRequest } from "./v1";
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const samlKeys = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const samlPublicKey = samlKeys.publicKey.export({
@@ -75,6 +78,59 @@ describe("api v1 route handler", () => {
           db: "down",
         });
       }
+    }
+  });
+
+  it("returns a distinct request ID header for each request", async () => {
+    const firstResponse = await handleRequest(
+      new Request("https://example.com/api/projects"),
+    );
+    const secondResponse = await handleRequest(
+      new Request("https://example.com/api/projects"),
+    );
+
+    const firstReqId = firstResponse.headers.get("X-Request-Id");
+    const secondReqId = secondResponse.headers.get("X-Request-Id");
+
+    expect(firstReqId).toMatch(UUID_PATTERN);
+    expect(secondReqId).toMatch(UUID_PATTERN);
+    expect(secondReqId).not.toBe(firstReqId);
+  });
+
+  it("returns a request ID header on not found responses", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/not-found"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("X-Request-Id")).toMatch(UUID_PATTERN);
+  });
+
+  it("includes the request ID in logs emitted after async route handling", async () => {
+    const logs: string[] = [];
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation((line) => {
+      logs.push(String(line));
+    });
+
+    try {
+      const response = await handleRequest(
+        new Request("https://example.com/api/projects"),
+      );
+      const reqId = response.headers.get("X-Request-Id");
+
+      expect(reqId).toMatch(UUID_PATTERN);
+      expect(logs).toHaveLength(1);
+      expect(JSON.parse(logs[0] ?? "{}")).toMatchObject({
+        level: "info",
+        message: "request handled",
+        method: "GET",
+        path: "/api/projects",
+        status: 200,
+        reqId,
+        timestamp: expect.any(String),
+      });
+    } finally {
+      consoleSpy.mockRestore();
     }
   });
 
@@ -382,21 +438,6 @@ describe("api v1 route handler", () => {
     expect(listActiveSessions("ws_1")).not.toContainEqual(
       expect.objectContaining({ id: loginBody.session.id }),
     );
-  });
-
-  it("returns git SHA + build time + node version for GET /api/version", async () => {
-    const response = await handleRequest(
-      new Request("https://example.com/api/version"),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
-    const body = await response.json();
-    expect(body).toMatchObject({
-      sha: expect.any(String),
-      builtAt: expect.any(String),
-      node: expect.any(String),
-    });
   });
 
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
