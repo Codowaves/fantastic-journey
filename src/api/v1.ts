@@ -10,6 +10,7 @@ import {
   isWorkspaceOwner,
   listActiveSessions,
   listAuthEvents,
+  listWorkspaceUsers,
   recordAuthEvent,
   redeemMagicLinkToken,
   revokeSession,
@@ -126,6 +127,42 @@ function escapeHtml(value: string | null): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function filterWorkspaceUsers(params: {
+  users: Array<{
+    userId: string;
+    email: string;
+    plan?: string;
+    signed_up_at?: string;
+    last_active_at?: string;
+  }>;
+  plan?: string | null;
+  signUpDateFrom?: string | null;
+  signUpDateTo?: string | null;
+  status?: string | null;
+}): Array<{
+  userId: string;
+  email: string;
+  plan?: string;
+  signed_up_at?: string;
+  last_active_at?: string;
+}> {
+  return params.users.filter((user) => {
+    if (params.plan && user.plan !== params.plan) return false;
+    if (params.signUpDateFrom && user.signed_up_at) {
+      if (user.signed_up_at < params.signUpDateFrom) return false;
+    }
+    if (params.signUpDateTo && user.signed_up_at) {
+      if (user.signed_up_at > params.signUpDateTo) return false;
+    }
+    if (params.status) {
+      const isActive = !!user.last_active_at;
+      if (params.status === "active" && !isActive) return false;
+      if (params.status === "inactive" && isActive) return false;
+    }
+    return true;
+  });
 }
 
 function renderSessionsPage(workspaceId: string): string {
@@ -434,6 +471,85 @@ export async function handleRequest(request: Request): Promise<Response> {
       sessionId,
     });
     return Response.json({ revoked }, { status: revoked ? 200 : 404 });
+  }
+
+  if (request.method === "GET" && url.pathname === "/admin/users") {
+    const ownerSession = requireOwnerSession(request);
+    if (!ownerSession) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const plan = url.searchParams.get("plan");
+    const signUpDateFrom = url.searchParams.get("signUpDateFrom");
+    const signUpDateTo = url.searchParams.get("signUpDateTo");
+    const status = url.searchParams.get("status");
+
+    const users = listWorkspaceUsers(ownerSession.workspaceId);
+    const filtered = filterWorkspaceUsers({
+      users,
+      plan,
+      signUpDateFrom,
+      signUpDateTo,
+      status,
+    });
+
+    return Response.json(
+      {
+        items: filtered.map((u) => ({
+          id: u.userId,
+          email: u.email,
+          plan: u.plan ?? null,
+          signed_up_at: u.signed_up_at ?? null,
+          last_active_at: u.last_active_at ?? null,
+        })),
+      },
+      { status: 200 },
+    );
+  }
+
+  if (request.method === "GET" && url.pathname === "/admin/users/export") {
+    const ownerSession = requireOwnerSession(request);
+    if (!ownerSession) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const plan = url.searchParams.get("plan");
+    const signUpDateFrom = url.searchParams.get("signUpDateFrom");
+    const signUpDateTo = url.searchParams.get("signUpDateTo");
+    const status = url.searchParams.get("status");
+
+    const users = listWorkspaceUsers(ownerSession.workspaceId);
+    const filtered = filterWorkspaceUsers({
+      users,
+      plan,
+      signUpDateFrom,
+      signUpDateTo,
+      status,
+    });
+
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const filename = `users-${dateStr}.csv`;
+    const header = "id,email,plan,signed_up_at,last_active_at\n";
+    const csvEscape = (v: string | undefined | null) => {
+      if (v == null) return "";
+      return `"${v.replace(/"/g, '""')}"`;
+    };
+    const rows = filtered
+      .map((u) =>
+        [u.userId, u.email, u.plan, u.signed_up_at, u.last_active_at]
+          .map(csvEscape)
+          .join(","),
+      )
+      .join("\n");
+    const csv = header + rows;
+
+    return new Response(csv, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });
