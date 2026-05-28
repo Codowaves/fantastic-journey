@@ -29,6 +29,16 @@ bun run test
 
 CI runs the same three on every PR.
 
+## Development
+
+```sh
+bun install
+bun run test
+bun run lint
+```
+
+The `src/` directory contains the main modules: auth, email, logger, and payment.
+
 ## Docs
 
 - [BillingClient](docs/billing.md)
