@@ -1,5 +1,7 @@
 # fantastic-journey
 
+> A deliberately flawed sandbox for exercising Codowave's autonomous scanners and pair pipeline.
+
 A test repository for [Codowave](https://codowave.com) — the autonomous
 software-development agent. This repo intentionally contains code with
 known issues across several categories (security, missing tests,
