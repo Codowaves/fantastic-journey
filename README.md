@@ -18,16 +18,25 @@ pair pipeline have realistic signal to act on.
 | Whole repo + this README   | LLM-readable orientation                     | Feature suggestor                  |
 | `.github/workflows/ci.yml` | Typecheck + lint + test                      | PR processor, ciPoller, ciWorker   |
 
-## Running locally
+## Development
+
+The application code lives under `src/`. `auth.ts` handles workspace
+sessions and SAML / magic-link / password sign-in, `email.ts` provides
+email validation, normalization, masking, and magic-link message
+building, `logger.ts` emits structured JSON logs stamped with the active
+request ID, and `payment.ts` holds the money math (discounts, tax totals,
+and refund eligibility).
+
+Install dependencies and run the checks with [Bun](https://bun.sh):
 
 ```sh
 bun install
-bun run typecheck
-bun run lint
-bun run test
+bun run typecheck   # tsc --noEmit
+bun run lint        # eslint . --ext .ts,.tsx
+bun run test        # vitest run --passWithNoTests
 ```
 
-CI runs the same three on every PR.
+CI runs the same three checks (typecheck, lint, test) on every PR.
 
 ## Docs
 
