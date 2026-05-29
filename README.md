@@ -6,6 +6,15 @@ known issues across several categories (security, missing tests,
 undocumented APIs, TODO debt) so the various Codowave scanners and the
 pair pipeline have realistic signal to act on.
 
+## Quickstart
+
+```sh
+bun install
+bun run typecheck
+bun run lint
+bun run test
+```
+
 ## Structure
 
 | Path                       | What's there                                 | Which scanner / stage exercises it |
