@@ -1,5 +1,7 @@
 # fantastic-journey
 
+Welcome! This is a test repo for the Codowave autonomous agent platform — built for developers who lovewell-crafted tooling.
+
 A test repository for [Codowave](https://codowave.com) — the autonomous
 software-development agent. This repo intentionally contains code with
 known issues across several categories (security, missing tests,
