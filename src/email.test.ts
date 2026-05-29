@@ -13,6 +13,12 @@ describe("email helpers", () => {
       expect(isValidEmail("user@example.com")).toBe(true);
       expect(isValidEmail("first.last+tag@sub.example.co")).toBe(true);
     });
+
+    it("trims leading and trailing whitespace before validating", () => {
+      expect(isValidEmail("  user@example.com")).toBe(true);
+      expect(isValidEmail("user@example.com  ")).toBe(true);
+      expect(isValidEmail("  user@example.com  ")).toBe(true);
+    });
   });
 
   describe("normalizeEmail", () => {
@@ -44,7 +50,9 @@ describe("email helpers", () => {
       });
       expect(email.html).toContain("Acme Workspace");
       expect(email.text).toContain("15 minutes");
-      expect(email.text).toContain("https://example.com/auth/magic-link/verify");
+      expect(email.text).toContain(
+        "https://example.com/auth/magic-link/verify",
+      );
     });
   });
 });

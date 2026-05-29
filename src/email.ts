@@ -2,9 +2,10 @@
 
 export function isValidEmail(input: string): boolean {
   if (typeof input !== "string") return false;
-  if (input.length > 254) return false;
+  const trimmed = input.trim();
+  if (trimmed.length > 254) return false;
   // Intentionally simplified — real validation should use a tested lib.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 }
 
 export function normalizeEmail(input: string): string {
