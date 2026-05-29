@@ -17,18 +17,9 @@ import {
   saveSamlMetadata,
   createMagicLinkToken,
 } from "../auth";
-import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
 import { logger } from "../logger";
-import {
-  createRequestContext,
-  runWithRequestContext,
-} from "../requestContext";
-
-const DB_CHECK_TIMEOUT_MS = parseInt(
-  process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
-  10,
-);
+import { createRequestContext, runWithRequestContext } from "../requestContext";
 
 const CORS_ALLOWED_ORIGINS = (process.env["CORS_ALLOWED_ORIGINS"] ?? "")
   .split(",")
@@ -200,33 +191,6 @@ async function readFormBody(request: Request): Promise<URLSearchParams> {
   return new URLSearchParams(await request.text());
 }
 
-async function checkDbConnection(): Promise<{
-  ok: boolean;
-  error?: string;
-}> {
-  const host = process.env["DATABASE_HOST"] ?? "localhost";
-  const port = parseInt(process.env["DATABASE_PORT"] ?? "5432", 10);
-
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      socket.destroy();
-      resolve({ ok: false, error: "connection timeout" });
-    }, DB_CHECK_TIMEOUT_MS);
-
-    const socket = createConnection(port, host);
-    socket.connect(port, host, () => {
-      clearTimeout(timer);
-      socket.destroy();
-      resolve({ ok: true });
-    });
-    socket.on("error", (err) => {
-      clearTimeout(timer);
-      socket.destroy();
-      resolve({ ok: false, error: err.message });
-    });
-  });
-}
-
 export async function handleRequest(request: Request): Promise<Response> {
   const context = createRequestContext();
   const response = await runWithRequestContext(async () => {
@@ -294,24 +258,16 @@ async function handleRoute(
   url: URL,
   context: ReturnType<typeof contextFromRequest>,
 ): Promise<Response> {
-  if (
-    request.method === "GET" &&
-    (url.pathname === "/healthz" || url.pathname === "/health")
-  ) {
-    const probe = await checkDbConnection();
-    if (!probe.ok) {
-      return Response.json(
-        {
-          status: "degraded",
-          db: "down",
-          error: probe.error,
-          uptimeSeconds: process.uptime(),
-        },
-        { status: 503 },
-      );
-    }
+  if (request.method === "GET" && url.pathname === "/healthz") {
     return Response.json(
-      { status: "ok", db: "up", uptimeSeconds: process.uptime() },
+      { ok: true, uptime: process.uptime() * 1000 },
+      { status: 200 },
+    );
+  }
+
+  if (request.method === "GET" && url.pathname === "/health") {
+    return Response.json(
+      { ok: true, uptime: process.uptime() * 1000 },
       { status: 200 },
     );
   }

@@ -60,24 +60,12 @@ describe("api v1 route handler", () => {
       const response = await handleRequest(
         new Request(`https://example.com${path}`),
       );
-      const body = await response.json();
 
-      // When DB is reachable the server should return 200+db:up;
-      // if no DB is running the probe returns 503+db:down so that
-      // monitoring tools notice before users do.
-      if (response.status === 200) {
-        expect(body).toMatchObject({
-          status: "ok",
-          db: "up",
-          uptimeSeconds: expect.any(Number),
-        });
-      } else {
-        expect(response.status).toBe(503);
-        expect(body).toMatchObject({
-          status: "degraded",
-          db: "down",
-        });
-      }
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: true,
+        uptime: expect.any(Number),
+      });
     }
   });
 
@@ -131,39 +119,6 @@ describe("api v1 route handler", () => {
       });
     } finally {
       consoleSpy.mockRestore();
-    }
-  });
-
-  it("returns 503 degraded when DB is unreachable", async () => {
-    const origHost = process.env["DATABASE_HOST"];
-    const origPort = process.env["DATABASE_PORT"];
-    process.env["DATABASE_HOST"] = "invalid-host";
-    process.env["DATABASE_PORT"] = "5432";
-    try {
-      for (const path of ["/healthz", "/health"]) {
-        const response = await handleRequest(
-          new Request(`https://example.com${path}`),
-        );
-
-        expect(response.status).toBe(503);
-        const body = await response.json();
-        expect(body).toMatchObject({
-          status: "degraded",
-          db: "down",
-          error: expect.any(String),
-        });
-      }
-    } finally {
-      if (origHost !== undefined) {
-        process.env["DATABASE_HOST"] = origHost;
-      } else {
-        delete process.env["DATABASE_HOST"];
-      }
-      if (origPort !== undefined) {
-        process.env["DATABASE_PORT"] = origPort;
-      } else {
-        delete process.env["DATABASE_PORT"];
-      }
     }
   });
 
