@@ -1,5 +1,7 @@
 # fantastic-journey
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 A test repository for [Codowave](https://codowave.com) — the autonomous
 software-development agent. This repo intentionally contains code with
 known issues across several categories (security, missing tests,
