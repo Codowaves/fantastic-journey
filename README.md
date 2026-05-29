@@ -1,3 +1,4 @@
+<!-- TODO: keep this README in sync with features -->
 # fantastic-journey
 
 A test repository for [Codowave](https://codowave.com) — the autonomous
