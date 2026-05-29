@@ -29,6 +29,17 @@ bun run test
 
 CI runs the same three on every PR.
 
+## Scripts
+
+The scripts defined in `package.json`, runnable with `bun run <name>` (or `npm run <name>`):
+
+| Script       | Command                        | What it does                                          |
+| ------------ | ------------------------------ | ----------------------------------------------------- |
+| `typecheck`  | `tsc --noEmit`                 | Type-check the project with `tsc`, emitting no output |
+| `lint`       | `eslint . --ext .ts,.tsx`      | Lint all `.ts` and `.tsx` files with ESLint           |
+| `test`       | `vitest run --passWithNoTests` | Run the Vitest suite once (passes if there are none)  |
+| `test:watch` | `vitest`                       | Run Vitest in watch mode for local development        |
+
 ## Docs
 
 - [BillingClient](docs/billing.md)
