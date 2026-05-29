@@ -18,16 +18,18 @@ pair pipeline have realistic signal to act on.
 | Whole repo + this README   | LLM-readable orientation                     | Feature suggestor                  |
 | `.github/workflows/ci.yml` | Typecheck + lint + test                      | PR processor, ciPoller, ciWorker   |
 
-## Running locally
+## Development
 
 ```sh
-bun install
-bun run typecheck
-bun run lint
-bun run test
+pnpm install
+pnpm run typecheck
+pnpm run lint
+pnpm run test
 ```
 
-CI runs the same three on every PR.
+The `src/` directory contains the core modules: `auth.ts` (authentication helpers), `email.ts` (email utilities), `logger.ts` (structured logging), and `payment.ts` (money utilities).
+
+CI runs typecheck, lint, and test on every PR.
 
 ## Docs
 
