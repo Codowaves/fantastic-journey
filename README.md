@@ -6,6 +6,14 @@ known issues across several categories (security, missing tests,
 undocumented APIs, TODO debt) so the various Codowave scanners and the
 pair pipeline have realistic signal to act on.
 
+## Project Structure
+
+| Directory      | Contents                                                                |
+| -------------- | ----------------------------------------------------------------------- |
+| `src/`         | Application source — `auth.ts`, `payment.ts`, `email.ts`, `logger.ts`, `requestContext.ts`, plus `api/`, `legacy/`, and `wip/` subfolders |
+| `docs/`        | Project documentation (e.g. `billing.md`)                                |
+| `migrations/`  | Versioned SQL migrations (e.g. `202605270001_create_auth_events.sql`)   |
+
 ## Structure
 
 | Path                       | What's there                                 | Which scanner / stage exercises it |
