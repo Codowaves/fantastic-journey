@@ -1,8 +1,8 @@
-import { createVerify, randomUUID } from "node:crypto";
+import { createVerify, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 
 import { isValidEmail, normalizeEmail } from "./email";
 
-export type AuthEventKind = "sso" | "magic" | "password" | "fail";
+export type AuthEventKind = "sso" | "magic" | "password" | "fail" | "signup" | "reset";
 
 export interface AuthEvent {
   id: string;
@@ -54,6 +54,16 @@ export interface MagicLinkToken {
   createdAt: string;
 }
 
+export interface PasswordResetToken {
+  token: string;
+  workspaceId: string;
+  email: string;
+  userId: string;
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+}
+
 export interface WorkspaceUser {
   workspaceId: string;
   userId: string;
@@ -62,6 +72,8 @@ export interface WorkspaceUser {
   plan?: string;
   signed_up_at?: string;
   last_active_at?: string;
+  passwordHash?: string;
+  passwordSalt?: string;
 }
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -71,6 +83,8 @@ const authEvents: AuthEvent[] = [];
 const samlMetadataByWorkspace = new Map<string, SamlMetadata>();
 const sessionsById = new Map<string, Session>();
 const magicTokensByToken = new Map<string, MagicLinkToken>();
+const passwordResetTokensByToken = new Map<string, PasswordResetToken>();
+const passwordHashesByEmailKey = new Map<string, { hash: string; salt: string }>();
 const workspaceUsers = new Map<string, WorkspaceUser>();
 
 seedDefaultUsers();
@@ -144,6 +158,30 @@ export function getUser(
   userId: string,
 ): WorkspaceUser | null {
   return workspaceUsers.get(userKey(workspaceId, userId)) ?? null;
+}
+
+export function getUserByEmail(
+  workspaceId: string,
+  email: string,
+): WorkspaceUser | null {
+  return workspaceUsers.get(emailKey(workspaceId, normalizeEmail(email))) ?? null;
+}
+
+function hashPassword(password: string): { hash: string; salt: string } {
+  const salt = randomUUID().replaceAll("-", "");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return { hash, salt };
+}
+
+function verifyPasswordHash(
+  password: string,
+  storedHash: string,
+  salt: string,
+): boolean {
+  const candidate = scryptSync(password, salt, 64);
+  const stored = Buffer.from(storedHash, "hex");
+  if (candidate.length !== stored.length) return false;
+  return timingSafeEqual(candidate, stored);
 }
 
 function getHeader(request: Request, name: string): string | null {
@@ -623,7 +661,20 @@ export function authenticatePassword(params: {
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
   const user = getUser(params.workspaceId, params.userId);
-  if (!user || params.password !== "password") {
+  let passwordOk = false;
+
+  if (user?.passwordHash && user.passwordSalt) {
+    passwordOk = verifyPasswordHash(
+      params.password,
+      user.passwordHash,
+      user.passwordSalt,
+    );
+  } else if (user) {
+    // Legacy/back-compat: seed users authenticate with the literal "password".
+    passwordOk = params.password === "password";
+  }
+
+  if (!user || !passwordOk) {
     recordAuthEvent({
       workspaceId: params.workspaceId,
       userId: params.userId,
@@ -649,6 +700,242 @@ export function authenticatePassword(params: {
     reason: "password_login",
     context: params.context,
     now: params.now,
+  });
+  return { ok: true, session };
+}
+
+export function signupUser(params: {
+  workspaceId: string;
+  email: string;
+  password: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): { ok: true; session: Session; user: WorkspaceUser } | { ok: false; reason: string } {
+  const normalized = normalizeEmail(params.email);
+  if (!isValidEmail(normalized)) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "signup_email_invalid",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "signup_email_invalid" };
+  }
+  if (params.password.length < 8) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "signup_password_too_short",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "signup_password_too_short" };
+  }
+
+  const existing = getUserByEmail(params.workspaceId, normalized);
+  if (existing) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      userId: existing.userId,
+      kind: "fail",
+      reason: "signup_email_taken",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "signup_email_taken" };
+  }
+
+  const now = params.now ?? new Date();
+  const { hash, salt } = hashPassword(params.password);
+  const user: WorkspaceUser = {
+    workspaceId: params.workspaceId,
+    userId: `usr_${randomUUID()}`,
+    email: normalized,
+    role: "member",
+    plan: "free",
+    signed_up_at: nowIso(now),
+    last_active_at: nowIso(now),
+    passwordHash: hash,
+    passwordSalt: salt,
+  };
+  addWorkspaceUser(user);
+  passwordHashesByEmailKey.set(emailKey(params.workspaceId, normalized), {
+    hash,
+    salt,
+  });
+
+  const session = createSession({
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    email: user.email,
+    context: params.context,
+    now,
+  });
+  recordAuthEvent({
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    kind: "signup",
+    reason: "signup_completed",
+    context: params.context,
+    now,
+  });
+  return { ok: true, session, user };
+}
+
+export function createPasswordResetToken(params: {
+  workspaceId: string;
+  email: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): { ok: true; token: PasswordResetToken; email: string | null } | { ok: false; reason: string } {
+  const normalized = normalizeEmail(params.email);
+  if (!isValidEmail(normalized)) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "password_reset_email_invalid",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "password_reset_email_invalid" };
+  }
+
+  const user = getUserByEmail(params.workspaceId, normalized);
+  if (!user) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "password_reset_user_not_found",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "password_reset_user_not_found" };
+  }
+
+  const now = params.now ?? new Date();
+  const token: PasswordResetToken = {
+    token: `pr_${randomUUID()}`,
+    workspaceId: params.workspaceId,
+    email: user.email,
+    userId: user.userId,
+    expiresAt: nowIso(new Date(now.getTime() + FIFTEEN_MINUTES_MS)),
+    usedAt: null,
+    createdAt: nowIso(now),
+  };
+  passwordResetTokensByToken.set(token.token, token);
+  recordAuthEvent({
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    kind: "reset",
+    reason: "password_reset_requested",
+    context: params.context,
+    now,
+  });
+  return { ok: true, token, email: user.email };
+}
+
+export function redeemPasswordResetToken(params: {
+  token: string;
+  newPassword: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): { ok: true; session: Session } | { ok: false; reason: string } {
+  if (params.newPassword.length < 8) {
+    recordAuthEvent({
+      kind: "fail",
+      reason: "password_reset_too_short",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "password_reset_too_short" };
+  }
+
+  const resetToken = passwordResetTokensByToken.get(params.token);
+  const now = params.now ?? new Date();
+
+  if (!resetToken) {
+    recordAuthEvent({
+      kind: "fail",
+      reason: "password_reset_token_not_found",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_not_found" };
+  }
+
+  if (resetToken.usedAt) {
+    recordAuthEvent({
+      workspaceId: resetToken.workspaceId,
+      userId: resetToken.userId,
+      kind: "fail",
+      reason: "password_reset_token_used",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_used" };
+  }
+
+  if (new Date(resetToken.expiresAt).getTime() <= now.getTime()) {
+    recordAuthEvent({
+      workspaceId: resetToken.workspaceId,
+      userId: resetToken.userId,
+      kind: "fail",
+      reason: "password_reset_token_expired",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_expired" };
+  }
+
+  const user = getUser(resetToken.workspaceId, resetToken.userId);
+  if (!user) {
+    recordAuthEvent({
+      workspaceId: resetToken.workspaceId,
+      kind: "fail",
+      reason: "password_reset_user_missing",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_user_missing" };
+  }
+
+  const { hash, salt } = hashPassword(params.newPassword);
+  user.passwordHash = hash;
+  user.passwordSalt = salt;
+  user.last_active_at = nowIso(now);
+  passwordHashesByEmailKey.set(
+    emailKey(resetToken.workspaceId, user.email),
+    { hash, salt },
+  );
+  resetToken.usedAt = nowIso(now);
+
+  // Revoke any other active sessions for this user, but keep the new one
+  // we'll create below valid.
+  for (const session of sessionsById.values()) {
+    if (
+      session.workspaceId === user.workspaceId &&
+      session.userId === user.userId &&
+      !session.revokedAt
+    ) {
+      session.revokedAt = nowIso(now);
+    }
+  }
+
+  const session = createSession({
+    workspaceId: user.workspaceId,
+    userId: user.userId,
+    email: user.email,
+    context: params.context,
+    now,
+  });
+  recordAuthEvent({
+    workspaceId: user.workspaceId,
+    userId: user.userId,
+    kind: "reset",
+    reason: "password_reset_completed",
+    context: params.context,
+    now,
   });
   return { ok: true, session };
 }
@@ -683,6 +970,24 @@ export function revokeSession(params: {
   return true;
 }
 
+export function logoutSession(params: {
+  sessionId: string | null;
+  now?: Date;
+}): { ok: true } | { ok: false; reason: string } {
+  if (!params.sessionId) {
+    return { ok: false, reason: "session_missing" };
+  }
+  const session = sessionsById.get(params.sessionId);
+  if (!session) {
+    return { ok: false, reason: "session_not_found" };
+  }
+  if (session.revokedAt) {
+    return { ok: true };
+  }
+  session.revokedAt = nowIso(params.now);
+  return { ok: true };
+}
+
 export function isWorkspaceOwner(
   workspaceId: string,
   userId: string | null,
@@ -696,5 +1001,7 @@ export function resetAuthState(): void {
   samlMetadataByWorkspace.clear();
   sessionsById.clear();
   magicTokensByToken.clear();
+  passwordResetTokensByToken.clear();
+  passwordHashesByEmailKey.clear();
   seedDefaultUsers();
 }

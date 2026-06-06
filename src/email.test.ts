@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildMagicLinkEmail,
+  buildPasswordResetEmail,
   isValidEmail,
   maskEmail,
   normalizeEmail,
@@ -45,6 +46,26 @@ describe("email helpers", () => {
       expect(email.html).toContain("Acme Workspace");
       expect(email.text).toContain("15 minutes");
       expect(email.text).toContain("https://example.com/auth/magic-link/verify");
+    });
+  });
+
+  describe("buildPasswordResetEmail", () => {
+    it("renders a branded 15-minute single-use reset email", () => {
+      const email = buildPasswordResetEmail({
+        to: "User@Example.com",
+        brandName: "Acme Workspace",
+        resetLink: "https://example.com/auth/password-reset/confirm?token=abc",
+      });
+
+      expect(email).toMatchObject({
+        to: "user@example.com",
+        subject: "Acme Workspace password reset",
+      });
+      expect(email.html).toContain("Acme Workspace");
+      expect(email.text).toContain("15 minutes");
+      expect(email.text).toContain(
+        "https://example.com/auth/password-reset/confirm",
+      );
     });
   });
 });

@@ -52,6 +52,31 @@ export function sendMagicLinkEmail(params: {
   return email;
 }
 
+export function buildPasswordResetEmail(params: {
+  to: string;
+  brandName: string;
+  resetLink: string;
+  expiresInMinutes?: number;
+}): SentEmail {
+  const expiresInMinutes = params.expiresInMinutes ?? 15;
+  return {
+    to: normalizeEmail(params.to),
+    subject: `${params.brandName} password reset`,
+    html: `<p>Use the secure link below to reset your ${params.brandName} password:</p><p><a href="${params.resetLink}">Reset password</a></p><p>This single-use link expires in ${expiresInMinutes} minutes.</p>`,
+    text: `Reset your ${params.brandName} password: ${params.resetLink}\n\nThis single-use link expires in ${expiresInMinutes} minutes.`,
+  };
+}
+
+export function sendPasswordResetEmail(params: {
+  to: string;
+  brandName: string;
+  resetLink: string;
+}): SentEmail {
+  const email = buildPasswordResetEmail(params);
+  sentEmails.push(email);
+  return email;
+}
+
 export function listSentEmails(): SentEmail[] {
   return [...sentEmails];
 }

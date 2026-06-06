@@ -6,19 +6,24 @@ import {
   authenticatePassword,
   authenticateSaml,
   contextFromRequest,
+  createMagicLinkToken,
+  createPasswordResetToken,
   getActiveSession,
+  getUserByEmail,
   isWorkspaceOwner,
   listActiveSessions,
   listAuthEvents,
   listWorkspaceUsers,
+  logoutSession,
   recordAuthEvent,
   redeemMagicLinkToken,
+  redeemPasswordResetToken,
   revokeSession,
   saveSamlMetadata,
-  createMagicLinkToken,
+  signupUser,
 } from "../auth";
 import { createConnection } from "node:net";
-import { maskEmail, sendMagicLinkEmail } from "../email";
+import { maskEmail, sendMagicLinkEmail, sendPasswordResetEmail } from "../email";
 import { logger } from "../logger";
 import {
   createRequestContext,
@@ -472,9 +477,10 @@ async function handleRoute(
     const body = await readJsonBody(request);
     const workspaceId = requireString(body, "workspaceId");
     const userId = requireString(body, "userId");
+    const email = requireString(body, "email");
     const password = requireString(body, "password");
 
-    if (!workspaceId || !userId || !password) {
+    if (!workspaceId || !password || (!userId && !email)) {
       recordAuthEvent({
         workspaceId,
         userId,
@@ -483,14 +489,31 @@ async function handleRoute(
         context,
       });
       return Response.json(
-        { error: "workspaceId, userId, and password are required" },
+        { error: "workspaceId, password, and (userId or email) are required" },
         { status: 400 },
       );
     }
 
+    let resolvedUserId = userId;
+    if (!resolvedUserId && email) {
+      const matched = getUserByEmail(workspaceId, email);
+      resolvedUserId = matched?.userId ?? null;
+    }
+
+    if (!resolvedUserId) {
+      recordAuthEvent({
+        workspaceId,
+        userId,
+        kind: "fail",
+        reason: "password_invalid",
+        context,
+      });
+      return Response.json({ error: "password_invalid" }, { status: 401 });
+    }
+
     const result = authenticatePassword({
       workspaceId,
-      userId,
+      userId: resolvedUserId,
       password,
       context,
     });
@@ -503,6 +526,144 @@ async function handleRoute(
       {
         status: 200,
         headers: { "set-cookie": sessionCookie(result.session.id) },
+      },
+    );
+  }
+
+  if (request.method === "POST" && url.pathname === "/auth/signup") {
+    const body = await readJsonBody(request);
+    const workspaceId = requireString(body, "workspaceId");
+    const email = requireString(body, "email");
+    const password = requireString(body, "password");
+
+    if (!workspaceId || !email || !password) {
+      recordAuthEvent({
+        workspaceId,
+        kind: "fail",
+        reason: "signup_request_invalid",
+        context,
+      });
+      return Response.json(
+        { error: "workspaceId, email, and password are required" },
+        { status: 400 },
+      );
+    }
+
+    const result = signupUser({ workspaceId, email, password, context });
+    if (!result.ok) {
+      return Response.json({ error: result.reason }, { status: 400 });
+    }
+
+    return Response.json(
+      {
+        user: {
+          id: result.user.userId,
+          email: result.user.email,
+          workspaceId: result.user.workspaceId,
+        },
+        session: result.session,
+      },
+      {
+        status: 201,
+        headers: { "set-cookie": sessionCookie(result.session.id) },
+      },
+    );
+  }
+
+  if (request.method === "POST" && url.pathname === "/auth/password-reset") {
+    const body = await readJsonBody(request);
+    const workspaceId = requireString(body, "workspaceId");
+    const email = requireString(body, "email");
+    const brandName = requireString(body, "brandName") ?? "Fantastic Journey";
+
+    if (!workspaceId || !email) {
+      recordAuthEvent({
+        workspaceId,
+        kind: "fail",
+        reason: "password_reset_request_invalid",
+        context,
+      });
+      return Response.json(
+        { error: "workspaceId and email are required" },
+        { status: 400 },
+      );
+    }
+
+    const result = createPasswordResetToken({
+      workspaceId,
+      email,
+      context,
+    });
+    if (!result.ok) {
+      return Response.json({ error: result.reason }, { status: 400 });
+    }
+
+    const resetLink = `${url.origin}/auth/password-reset/confirm?token=${encodeURIComponent(
+      result.token.token,
+    )}`;
+    sendPasswordResetEmail({
+      to: result.token.email,
+      brandName,
+      resetLink,
+    });
+
+    return Response.json(
+      {
+        sent: true,
+        email: result.email ? maskEmail(result.email) : null,
+        expiresAt: result.token.expiresAt,
+      },
+      { status: 202 },
+    );
+  }
+
+  if (
+    request.method === "POST" &&
+    url.pathname === "/auth/password-reset/confirm"
+  ) {
+    const body = await readJsonBody(request);
+    const token = requireString(body, "token");
+    const newPassword = requireString(body, "newPassword");
+
+    if (!token || !newPassword) {
+      recordAuthEvent({
+        kind: "fail",
+        reason: "password_reset_confirm_invalid",
+        context,
+      });
+      return Response.json(
+        { error: "token and newPassword are required" },
+        { status: 400 },
+      );
+    }
+
+    const result = redeemPasswordResetToken({ token, newPassword, context });
+    if (!result.ok) {
+      const status = result.reason === "password_reset_token_not_found" ? 404 : 400;
+      return Response.json({ error: result.reason }, { status });
+    }
+
+    return Response.json(
+      { session: result.session },
+      {
+        status: 200,
+        headers: { "set-cookie": sessionCookie(result.session.id) },
+      },
+    );
+  }
+
+  if (request.method === "POST" && url.pathname === "/auth/logout") {
+    const sessionId = getCookie(request, "fj_session");
+    const result = logoutSession({ sessionId });
+    if (!result.ok && result.reason !== "session_missing") {
+      return Response.json({ error: result.reason }, { status: 400 });
+    }
+
+    return Response.json(
+      { ok: true },
+      {
+        status: 200,
+        headers: { "set-cookie": "fj_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0" },
       },
     );
   }

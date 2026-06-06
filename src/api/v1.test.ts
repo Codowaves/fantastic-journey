@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createMagicLinkToken,
+  getUserByEmail,
   listActiveSessions,
   listAuthEvents,
   resetAuthState,
@@ -498,5 +499,266 @@ describe("api v1 route handler", () => {
       "password",
       "fail",
     ]);
+  });
+
+  it("signs up a new user, returns a session, and can log in with the new credentials", async () => {
+    const signupResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "newuser@example.com",
+          password: "secret-pass-1",
+        }),
+      }),
+    );
+
+    expect(signupResponse.status).toBe(201);
+    expect(signupResponse.headers.get("set-cookie")).toContain("fj_session=");
+    const signupBody = (await signupResponse.json()) as {
+      user: { id: string; email: string };
+      session: { id: string; userId: string };
+    };
+    expect(signupBody.user.email).toBe("newuser@example.com");
+    expect(signupBody.session.userId).toBe(signupBody.user.id);
+
+    const stored = getUserByEmail("ws_1", "newuser@example.com");
+    expect(stored?.passwordHash).toBeTruthy();
+    expect(stored?.signed_up_at).toBeTruthy();
+
+    const loginResponse = await handleRequest(
+      new Request("https://example.com/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "newuser@example.com",
+          password: "secret-pass-1",
+        }),
+      }),
+    );
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.headers.get("set-cookie")).toContain("fj_session=");
+  });
+
+  it("rejects signup with weak passwords and already-taken emails", async () => {
+    const weakResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "weakpw@example.com",
+          password: "short",
+        }),
+      }),
+    );
+    expect(weakResponse.status).toBe(400);
+    await expect(weakResponse.json()).resolves.toEqual({
+      error: "signup_password_too_short",
+    });
+
+    const okResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "taken@example.com",
+          password: "longenoughpw",
+        }),
+      }),
+    );
+    expect(okResponse.status).toBe(201);
+
+    const dupResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "taken@example.com",
+          password: "longenoughpw",
+        }),
+      }),
+    );
+    expect(dupResponse.status).toBe(400);
+    await expect(dupResponse.json()).resolves.toEqual({
+      error: "signup_email_taken",
+    });
+  });
+
+  it("sends a password reset email, redeems a single-use token, and revokes other sessions", async () => {
+    const signupResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "resetme@example.com",
+          password: "originalpw1",
+        }),
+      }),
+    );
+    expect(signupResponse.status).toBe(201);
+    const originalCookie = signupResponse.headers.get("set-cookie") ?? "";
+
+    const requestResetResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "ResetMe@Example.com",
+          brandName: "Acme Workspace",
+        }),
+      }),
+    );
+    expect(requestResetResponse.status).toBe(202);
+    await expect(requestResetResponse.json()).resolves.toMatchObject({
+      sent: true,
+      email: "re*****@example.com",
+    });
+
+    const [resetEmail] = listSentEmails().filter(
+      (e) => e.subject === "Acme Workspace password reset",
+    );
+    expect(resetEmail).toBeDefined();
+    expect(resetEmail?.text).toContain("15 minutes");
+    const token = new URL(
+      resetEmail?.text.match(/https:\/\/\S+/)?.[0] ?? "",
+    ).searchParams.get("token");
+    expect(token).toBeTruthy();
+
+    const tooShortResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          token,
+          newPassword: "short",
+        }),
+      }),
+    );
+    expect(tooShortResponse.status).toBe(400);
+
+    const confirmResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          token,
+          newPassword: "new-password-1",
+        }),
+      }),
+    );
+    expect(confirmResponse.status).toBe(200);
+    expect(confirmResponse.headers.get("set-cookie")).toContain("fj_session=");
+
+    // The original signup session should be revoked.
+    const originalSession = listActiveSessions("ws_1").find((s) =>
+      originalCookie.includes(s.id),
+    );
+    expect(originalSession).toBeUndefined();
+
+    // Reusing the reset token must fail.
+    const reuseResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          token,
+          newPassword: "another-password-1",
+        }),
+      }),
+    );
+    expect(reuseResponse.status).toBe(400);
+    await expect(reuseResponse.json()).resolves.toEqual({
+      error: "password_reset_token_used",
+    });
+
+    // Old password should no longer work, new password should.
+    const oldLoginResponse = await handleRequest(
+      new Request("https://example.com/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "resetme@example.com",
+          password: "originalpw1",
+        }),
+      }),
+    );
+    expect(oldLoginResponse.status).toBe(401);
+
+    const newLoginResponse = await handleRequest(
+      new Request("https://example.com/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "resetme@example.com",
+          password: "new-password-1",
+        }),
+      }),
+    );
+    expect(newLoginResponse.status).toBe(200);
+  });
+
+  it("rejects password reset requests for unknown emails and unknown tokens", async () => {
+    const unknownUserResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "ghost@example.com",
+        }),
+      }),
+    );
+    expect(unknownUserResponse.status).toBe(400);
+    await expect(unknownUserResponse.json()).resolves.toEqual({
+      error: "password_reset_user_not_found",
+    });
+
+    const unknownTokenResponse = await handleRequest(
+      new Request("https://example.com/auth/password-reset/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "pr_does-not-exist",
+          newPassword: "longenoughpw",
+        }),
+      }),
+    );
+    expect(unknownTokenResponse.status).toBe(404);
+    await expect(unknownTokenResponse.json()).resolves.toEqual({
+      error: "password_reset_token_not_found",
+    });
+  });
+
+  it("logs out the current session, clears the cookie, and rejects subsequent requests", async () => {
+    const signupResponse = await handleRequest(
+      new Request("https://example.com/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          email: "logoutme@example.com",
+          password: "logoutpw123",
+        }),
+      }),
+    );
+    expect(signupResponse.status).toBe(201);
+    const cookie = signupResponse.headers.get("set-cookie") ?? "";
+
+    const logoutResponse = await handleRequest(
+      new Request("https://example.com/auth/logout", {
+        method: "POST",
+        headers: { cookie },
+      }),
+    );
+    expect(logoutResponse.status).toBe(200);
+    expect(logoutResponse.headers.get("set-cookie")).toContain("Max-Age=0");
+    await expect(logoutResponse.json()).resolves.toEqual({ ok: true });
+
+    // Subsequent /settings/security/sessions requests with the old cookie
+    // should now be 403.
+    const protectedResponse = await handleRequest(
+      new Request("https://example.com/settings/security/sessions", {
+        headers: { cookie },
+      }),
+    );
+    expect(protectedResponse.status).toBe(403);
+
+    expect(
+      listActiveSessions("ws_1").some((s) => cookie.includes(s.id)),
+    ).toBe(false);
   });
 });
