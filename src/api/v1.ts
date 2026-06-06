@@ -37,6 +37,10 @@ const CORS_ALLOWED_ORIGINS = (process.env["CORS_ALLOWED_ORIGINS"] ?? "")
 
 const isDevOrStaging = process.env["NODE_ENV"] !== "production";
 
+/**
+ * Represents a customer order flowing through the system, from initial
+ * creation through confirmation and fulfillment.
+ */
 export interface Order {
   id: string;
   customerId: string;
@@ -44,6 +48,14 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
+/**
+ * Creates a new order in the `pending` state for the given customer.
+ *
+ * @param customerId Identifier of the customer placing the order.
+ * @param items Line items the customer is purchasing.
+ * @returns The newly created {@link Order} with a timestamp-based id and a
+ *   `total` derived from the number of items.
+ */
 export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
@@ -56,16 +68,26 @@ export function createOrder(
   };
 }
 
+/**
+ * Returns a copy of the given order with its `status` set to `confirmed`.
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
+/**
+ * Looks up the current status of an order.
+ *
+ * @param orderId Identifier of the order to look up.
+ * @returns The order's status, or `null` if no `orderId` was provided.
+ */
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/** ISO 4217 currency codes accepted by the order pipeline. */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
 
 // In-memory projects store — in production this would be a database query.
@@ -227,6 +249,11 @@ async function checkDbConnection(): Promise<{
   });
 }
 
+/**
+ * Top-level HTTP entry point. Creates a request context, dispatches the
+ * request to the appropriate route handler, logs the outcome, and attaches
+ * the `X-Request-Id` header to the response.
+ */
 export async function handleRequest(request: Request): Promise<Response> {
   const context = createRequestContext();
   const response = await runWithRequestContext(async () => {
