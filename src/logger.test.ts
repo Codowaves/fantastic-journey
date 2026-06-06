@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createLogger } from "./logger";
+import { createLogger, maskEmail } from "./logger";
 import { runWithRequestContext } from "./requestContext";
 
 describe("logger", () => {
@@ -36,5 +36,31 @@ describe("logger", () => {
       timestamp: expect.any(String),
     });
     expect(entry).not.toHaveProperty("reqId");
+  });
+
+  it("masks email addresses in log messages", () => {
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+
+    logger.info("login attempt for jane.doe@example.com from a new device");
+
+    const entry = JSON.parse(lines[0] ?? "{}") as Record<string, unknown>;
+    expect(entry.message).toBe("login attempt for j***@example.com from a new device");
+  });
+});
+
+describe("maskEmail", () => {
+  it("masks the local part of a single email", () => {
+    expect(maskEmail("contact jane.doe@example.com today")).toBe(
+      "contact j***@example.com today",
+    );
+  });
+
+  it("masks every email in a string with multiple addresses", () => {
+    expect(maskEmail("from a@b.com to c@d.org")).toBe("from a***@b.com to c***@d.org");
+  });
+
+  it("leaves text without emails unchanged", () => {
+    expect(maskEmail("no emails here at all")).toBe("no emails here at all");
   });
 });
