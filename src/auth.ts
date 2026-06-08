@@ -67,6 +67,20 @@ export interface WorkspaceUser {
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const SAML_HTTP_POST_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
 
+export class AuthError extends Error {
+  readonly code: string;
+
+  constructor(code: string, message?: string) {
+    super(message ?? code);
+    this.name = "AuthError";
+    this.code = code;
+  }
+}
+
+export function authError(code: string, message?: string): AuthError {
+  return new AuthError(code, message);
+}
+
 const authEvents: AuthEvent[] = [];
 const samlMetadataByWorkspace = new Map<string, SamlMetadata>();
 const sessionsById = new Map<string, Session>();
