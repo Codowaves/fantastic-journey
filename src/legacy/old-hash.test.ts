@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hashPassword } from "./old-hash";
+import { authenticate, hashPassword, timingUnsafeCompare } from "./old-hash";
 
 describe("hashPassword", () => {
   it("hashes a known input with SHA-256", () => {
@@ -15,5 +15,52 @@ describe("hashPassword", () => {
 
   it("produces different digests for different inputs", () => {
     expect(hashPassword("a")).not.toBe(hashPassword("b"));
+  });
+
+  it("hashes an empty string deterministically", () => {
+    const empty1 = hashPassword("");
+    const empty2 = hashPassword("");
+    expect(empty1).toBe(empty2);
+    expect(empty1).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("timingUnsafeCompare", () => {
+  it("returns true for identical strings", () => {
+    expect(timingUnsafeCompare("abc", "abc")).toBe(true);
+  });
+
+  it("returns true for two empty strings", () => {
+    expect(timingUnsafeCompare("", "")).toBe(true);
+  });
+
+  it("returns false for strings of equal length but different content", () => {
+    expect(timingUnsafeCompare("abc", "abd")).toBe(false);
+  });
+
+  it("returns false for strings of different length", () => {
+    expect(timingUnsafeCompare("short", "longer-string")).toBe(false);
+    expect(timingUnsafeCompare("longer-string", "short")).toBe(false);
+  });
+
+  it("returns false when one side is empty and the other is not", () => {
+    expect(timingUnsafeCompare("", "nonempty")).toBe(false);
+    expect(timingUnsafeCompare("nonempty", "")).toBe(false);
+  });
+});
+
+describe("authenticate", () => {
+  it("returns true for the shared key token", () => {
+    expect(authenticate("f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3")).toBe(
+      true,
+    );
+  });
+
+  it("returns false for an incorrect token", () => {
+    expect(authenticate("not-the-key")).toBe(false);
+  });
+
+  it("returns false for an empty token", () => {
+    expect(authenticate("")).toBe(false);
   });
 });
