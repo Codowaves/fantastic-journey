@@ -2,6 +2,16 @@ import { createVerify, randomUUID } from "node:crypto";
 
 import { isValidEmail, normalizeEmail } from "./email";
 
+export class AuthError extends Error {
+  readonly code: string;
+
+  constructor(code: string, message?: string) {
+    super(message ?? code);
+    this.name = "AuthError";
+    this.code = code;
+  }
+}
+
 export type AuthEventKind = "sso" | "magic" | "password" | "fail";
 
 export interface AuthEvent {
@@ -357,7 +367,10 @@ export async function saveSamlMetadata(params: {
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error(`metadata fetch failed with ${response.status}`);
+        throw new AuthError(
+          "saml_metadata_fetch_failed",
+          `metadata fetch failed with ${response.status}`,
+        );
       }
       xml = await response.text();
     } finally {
@@ -366,7 +379,10 @@ export async function saveSamlMetadata(params: {
   }
 
   if (!xml || !xml.includes("<")) {
-    throw new Error("valid SAML metadata XML is required");
+    throw new AuthError(
+      "saml_metadata_invalid",
+      "valid SAML metadata XML is required",
+    );
   }
 
   const metadata: SamlMetadata = {
@@ -383,12 +399,16 @@ export async function saveSamlMetadata(params: {
     updatedAt: nowIso(),
   };
   if (!metadata.entityId || !metadata.signingCertificate) {
-    throw new Error(
+    throw new AuthError(
+      "saml_metadata_incomplete",
       "SAML metadata must include entityID and signing certificate",
     );
   }
   if (metadata.binding !== SAML_HTTP_POST_BINDING) {
-    throw new Error("SAML metadata must use HTTP-POST binding");
+    throw new AuthError(
+      "saml_metadata_binding_invalid",
+      "SAML metadata must use HTTP-POST binding",
+    );
   }
   samlMetadataByWorkspace.set(params.workspaceId, metadata);
   return metadata;
