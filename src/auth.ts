@@ -12,8 +12,10 @@ export class AuthError extends Error {
   }
 }
 
+/** Auth event category written to the audit log. */
 export type AuthEventKind = "sso" | "magic" | "password" | "fail";
 
+/** A single row in the in-memory auth audit log. */
 export interface AuthEvent {
   id: string;
   ts: string;
@@ -26,11 +28,13 @@ export interface AuthEvent {
   created_at: string;
 }
 
+/** Caller-derived context (IP and user agent) attached to an auth attempt. */
 export interface AuthRequestContext {
   ip: string | null;
   userAgent: string | null;
 }
 
+/** Parsed SAML IdP metadata stored per workspace for SSO verification. */
 export interface SamlMetadata {
   workspaceId: string;
   xml: string;
@@ -42,6 +46,7 @@ export interface SamlMetadata {
   updatedAt: string;
 }
 
+/** An authenticated user session, from login until revocation. */
 export interface Session {
   id: string;
   workspaceId: string;
@@ -54,6 +59,7 @@ export interface Session {
   revokedAt: string | null;
 }
 
+/** Single-use passwordless login token bound to an email and workspace. */
 export interface MagicLinkToken {
   token: string;
   workspaceId: string;
@@ -64,6 +70,7 @@ export interface MagicLinkToken {
   createdAt: string;
 }
 
+/** A user's membership of a workspace, including their role. */
 export interface WorkspaceUser {
   workspaceId: string;
   userId: string;
@@ -143,12 +150,14 @@ function getOrCreateUser(
   return user;
 }
 
+/** Returns every WorkspaceUser that belongs to the given workspace. */
 export function listWorkspaceUsers(workspaceId: string): WorkspaceUser[] {
   return [...workspaceUsers.values()].filter(
     (u) => u.workspaceId === workspaceId,
   );
 }
 
+/** Looks up a WorkspaceUser by workspace + user id, or null if not found. */
 export function getUser(
   workspaceId: string,
   userId: string,
@@ -306,6 +315,7 @@ function createSession(params: {
   return session;
 }
 
+/** Extracts the caller's IP and user-agent from a Request into an AuthRequestContext. */
 export function contextFromRequest(request: Request): AuthRequestContext {
   return {
     ip:
@@ -315,6 +325,7 @@ export function contextFromRequest(request: Request): AuthRequestContext {
   };
 }
 
+/** Appends a row to the in-memory auth audit log and returns the created event. */
 export function recordAuthEvent(params: {
   workspaceId?: string | null;
   userId?: string | null;
@@ -339,14 +350,17 @@ export function recordAuthEvent(params: {
   return event;
 }
 
+/** Returns a snapshot copy of every recorded auth event. */
 export function listAuthEvents(): AuthEvent[] {
   return [...authEvents];
 }
 
+/** Returns the SAML metadata stored for a workspace, or null if none is configured. */
 export function getSamlMetadata(workspaceId: string): SamlMetadata | null {
   return samlMetadataByWorkspace.get(workspaceId) ?? null;
 }
 
+/** Stores SAML metadata for a workspace, accepting inline XML or a URL to fetch from, and parses out entity/binding/certificate fields. Throws AuthError on invalid input. */
 export async function saveSamlMetadata(params: {
   workspaceId: string;
   xml?: string;
@@ -414,6 +428,7 @@ export async function saveSamlMetadata(params: {
   return metadata;
 }
 
+/** Verifies a SAML assertion against the workspace's stored metadata, validates issuer/audience/destination/expiry, and on success provisions a Session for the asserted user. */
 export function authenticateSaml(params: {
   workspaceId: string;
   assertion: string;
@@ -546,6 +561,7 @@ export function authenticateSaml(params: {
   return { ok: true, session };
 }
 
+/** Mints a single-use 15-minute magic-link token for the given email/workspace, creating the user on first use, and records the request. */
 export function createMagicLinkToken(params: {
   workspaceId: string;
   email: string;
@@ -575,6 +591,7 @@ export function createMagicLinkToken(params: {
   return token;
 }
 
+/** Validates and consumes a magic-link token, then issues a Session. Fails if the token is unknown, already used, or expired. */
 export function redeemMagicLinkToken(params: {
   token: string;
   context: AuthRequestContext;
@@ -635,6 +652,7 @@ export function redeemMagicLinkToken(params: {
   return { ok: true, session };
 }
 
+/** Authenticates a user by workspace + userId + password (test stub: only "password" is accepted) and issues a Session on success. */
 export function authenticatePassword(params: {
   workspaceId: string;
   userId: string;
@@ -673,12 +691,14 @@ export function authenticatePassword(params: {
   return { ok: true, session };
 }
 
+/** Returns non-revoked sessions belonging to a workspace. */
 export function listActiveSessions(workspaceId: string): Session[] {
   return [...sessionsById.values()].filter(
     (session) => session.workspaceId === workspaceId && !session.revokedAt,
   );
 }
 
+/** Looks up a session by id, returning null if it is missing or revoked; bumps lastSeenAt on a hit. */
 export function getActiveSession(sessionId: string | null): Session | null {
   if (!sessionId) return null;
   const session = sessionsById.get(sessionId);
@@ -687,6 +707,7 @@ export function getActiveSession(sessionId: string | null): Session | null {
   return session;
 }
 
+/** Marks a session as revoked; only a workspace owner may do so. Returns true on success. */
 export function revokeSession(params: {
   workspaceId: string;
   sessionId: string;
@@ -703,6 +724,7 @@ export function revokeSession(params: {
   return true;
 }
 
+/** Returns true if the given user has the "owner" role in the workspace. */
 export function isWorkspaceOwner(
   workspaceId: string,
   userId: string | null,
@@ -711,6 +733,7 @@ export function isWorkspaceOwner(
   return getUser(workspaceId, userId)?.role === "owner";
 }
 
+/** Clears all in-memory auth state (events, SAML metadata, sessions, magic-link tokens, users) and re-seeds default users. Intended for tests. */
 export function resetAuthState(): void {
   authEvents.length = 0;
   samlMetadataByWorkspace.clear();
