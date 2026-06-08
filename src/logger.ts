@@ -19,6 +19,21 @@ export interface Logger {
 
 type LogSink = (line: string) => void;
 
+const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+
+export function maskEmail(email: string): string {
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0) return email;
+  const local = email.slice(0, atIndex);
+  const domain = email.slice(atIndex);
+  if (local.length <= 1) return `*${domain}`;
+  return `${local[0]}${"*".repeat(local.length - 1)}${domain}`;
+}
+
+export function maskEmails(input: string): string {
+  return input.replace(EMAIL_PATTERN, maskEmail);
+}
+
 function writeLog(
   level: LogLevel,
   message: string,
@@ -31,7 +46,7 @@ function writeLog(
   const entry: LogEntry = {
     ...extraFields,
     level,
-    message,
+    message: maskEmails(message),
     timestamp: new Date().toISOString(),
   };
 
