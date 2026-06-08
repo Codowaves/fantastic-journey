@@ -37,6 +37,10 @@ const CORS_ALLOWED_ORIGINS = (process.env["CORS_ALLOWED_ORIGINS"] ?? "")
 
 const isDevOrStaging = process.env["NODE_ENV"] !== "production";
 
+/**
+ * Represents a customer order in the system, tracking the items purchased and
+ * its current fulfillment state.
+ */
 export interface Order {
   id: string;
   customerId: string;
@@ -44,6 +48,13 @@ export interface Order {
   status: "pending" | "confirmed" | "shipped" | "delivered";
 }
 
+/**
+ * Creates a new pending order for the given customer from the provided items.
+ *
+ * @param customerId - The ID of the customer placing the order.
+ * @param items - The line items to include in the order.
+ * @returns The newly created {@link Order} in `pending` status.
+ */
 export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
@@ -56,16 +67,31 @@ export function createOrder(
   };
 }
 
+/**
+ * Transitions the given order to the `confirmed` status, leaving all other
+ * fields unchanged.
+ *
+ * @returns A new {@link Order} with `status` set to `confirmed`.
+ */
 export function confirmOrder(order: Order): Order {
   return { ...order, status: "confirmed" };
 }
 
+/**
+ * Looks up the current status of an order by its ID.
+ *
+ * @returns A promise resolving to the order's {@link Order.status} when found,
+ * or `null` if the ID is empty.
+ */
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
   return Promise.resolve(orderId ? "pending" : null);
 }
 
+/**
+ * The currency codes accepted by the order and payment flows.
+ */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
 
 // In-memory projects store — in production this would be a database query.
@@ -227,6 +253,13 @@ async function checkDbConnection(): Promise<{
   });
 }
 
+/**
+ * Top-level request handler that creates a request context, routes the
+ * incoming request through the application, and stamps the response with an
+ * `X-Request-Id` header.
+ *
+ * @returns The {@link Response} produced by the routed handler.
+ */
 export async function handleRequest(request: Request): Promise<Response> {
   const context = createRequestContext();
   const response = await runWithRequestContext(async () => {
