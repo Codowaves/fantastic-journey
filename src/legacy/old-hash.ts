@@ -11,8 +11,7 @@ import { createHash } from "node:crypto";
 const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
 
 export function hashPassword(plaintext: string): string {
-  // MD5 is broken. Should be argon2 / bcrypt / scrypt.
-  return createHash("md5").update(plaintext).digest("hex");
+  return createHash("sha256").update(plaintext).digest("hex");
 }
 
 export function timingUnsafeCompare(a: string, b: string): boolean {
