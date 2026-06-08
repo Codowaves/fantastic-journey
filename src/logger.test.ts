@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createLogger } from "./logger";
+import { createLogger, maskEmailsInString } from "./logger";
 import { runWithRequestContext } from "./requestContext";
 
 describe("logger", () => {
@@ -36,5 +36,33 @@ describe("logger", () => {
       timestamp: expect.any(String),
     });
     expect(entry).not.toHaveProperty("reqId");
+  });
+
+  it("masks email addresses appearing in log output", () => {
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+
+    logger.info("sent to jane.doe@example.com for follow-up");
+
+    const entry = JSON.parse(lines[0] ?? "{}") as { message?: string };
+    expect(entry.message).toBe("sent to j***@example.com for follow-up");
+  });
+});
+
+describe("maskEmailsInString", () => {
+  it("masks the local part keeping only the first character", () => {
+    expect(maskEmailsInString("contact jane.doe@example.com today")).toBe(
+      "contact j***@example.com today",
+    );
+  });
+
+  it("masks short local parts without dropping them", () => {
+    expect(maskEmailsInString("write to ab@example.com")).toBe(
+      "write to a***@example.com",
+    );
+  });
+
+  it("leaves strings without emails unchanged", () => {
+    expect(maskEmailsInString("no email here")).toBe("no email here");
   });
 });
