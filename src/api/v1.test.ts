@@ -106,6 +106,28 @@ describe("api v1 route handler", () => {
     expect(response.headers.get("X-Request-Id")).toMatch(UUID_PATTERN);
   });
 
+  it("returns 404 with a JSON error body for unknown routes", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/this-route-does-not-exist", {
+        method: "GET",
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual({ error: "Not found" });
+  });
+
+  it("returns 404 with a JSON error body for unknown methods on known paths", async () => {
+    const response = await handleRequest(
+      new Request("https://example.com/api/projects", { method: "DELETE" }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual({ error: "Not found" });
+  });
+
   it("includes the request ID in logs emitted after async route handling", async () => {
     const logs: string[] = [];
     const consoleSpy = vi.spyOn(console, "log").mockImplementation((line) => {
