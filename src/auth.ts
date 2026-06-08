@@ -1,8 +1,17 @@
-import { createVerify, randomUUID } from "node:crypto";
+import { createVerify, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 
 import { isValidEmail, normalizeEmail } from "./email";
 
-export type AuthEventKind = "sso" | "magic" | "password" | "fail";
+const scryptAsync = promisify(scrypt);
+
+export type AuthEventKind =
+  | "sso"
+  | "magic"
+  | "password"
+  | "signup"
+  | "reset"
+  | "fail";
 
 export interface AuthEvent {
   id: string;
@@ -64,13 +73,34 @@ export interface WorkspaceUser {
   last_active_at?: string;
 }
 
+export interface PasswordRecord {
+  userKey: string;
+  hash: string;
+  salt: string;
+  updatedAt: string;
+}
+
+export interface PasswordResetToken {
+  token: string;
+  workspaceId: string;
+  userId: string;
+  email: string;
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+}
+
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+const SCRYPT_KEYLEN = 64;
 const SAML_HTTP_POST_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
 
 const authEvents: AuthEvent[] = [];
 const samlMetadataByWorkspace = new Map<string, SamlMetadata>();
 const sessionsById = new Map<string, Session>();
 const magicTokensByToken = new Map<string, MagicLinkToken>();
+const passwordResetTokensByToken = new Map<string, PasswordResetToken>();
+const passwordRecordsByUserKey = new Map<string, PasswordRecord>();
 const workspaceUsers = new Map<string, WorkspaceUser>();
 
 seedDefaultUsers();
@@ -185,6 +215,29 @@ function decodeSamlResponse(input: string): string {
   } catch {
     return input;
   }
+}
+
+async function hashPassword(password: string): Promise<{
+  hash: string;
+  salt: string;
+}> {
+  const salt = randomUUID().replace(/-/g, "");
+  const derived = (await scryptAsync(password, salt, SCRYPT_KEYLEN)) as Buffer;
+  return { hash: derived.toString("hex"), salt };
+}
+
+async function verifyPassword(
+  password: string,
+  record: PasswordRecord,
+): Promise<boolean> {
+  const derived = (await scryptAsync(
+    password,
+    record.salt,
+    SCRYPT_KEYLEN,
+  )) as Buffer;
+  const stored = Buffer.from(record.hash, "hex");
+  if (derived.length !== stored.length) return false;
+  return timingSafeEqual(derived, stored);
 }
 
 function parseSamlAssertion(assertion: string): {
@@ -615,15 +668,37 @@ export function redeemMagicLinkToken(params: {
   return { ok: true, session };
 }
 
-export function authenticatePassword(params: {
+export async function authenticatePassword(params: {
   workspaceId: string;
   userId: string;
   password: string;
   context: AuthRequestContext;
   now?: Date;
-}): { ok: true; session: Session } | { ok: false; reason: string } {
+}): Promise<{ ok: true; session: Session } | { ok: false; reason: string }> {
   const user = getUser(params.workspaceId, params.userId);
-  if (!user || params.password !== "password") {
+  if (!user) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      userId: params.userId,
+      kind: "fail",
+      reason: "password_invalid",
+      context: params.context,
+      now: params.now,
+    });
+    return { ok: false, reason: "password_invalid" };
+  }
+
+  const record = passwordRecordsByUserKey.get(
+    userKey(params.workspaceId, user.userId),
+  );
+  let passwordOk = false;
+  if (record) {
+    passwordOk = await verifyPassword(params.password, record);
+  } else {
+    passwordOk = params.password === "password";
+  }
+
+  if (!passwordOk) {
     recordAuthEvent({
       workspaceId: params.workspaceId,
       userId: params.userId,
@@ -683,6 +758,200 @@ export function revokeSession(params: {
   return true;
 }
 
+export function logoutSession(params: {
+  workspaceId: string;
+  sessionId: string;
+  actorUserId: string;
+  now?: Date;
+}): boolean {
+  const session = sessionsById.get(params.sessionId);
+  if (!session || session.workspaceId !== params.workspaceId) return false;
+  if (session.userId !== params.actorUserId) return false;
+  if (session.revokedAt) return true;
+
+  session.revokedAt = nowIso(params.now);
+  return true;
+}
+
+export function findUserByEmail(
+  workspaceId: string,
+  email: string,
+): WorkspaceUser | null {
+  return workspaceUsers.get(emailKey(workspaceId, email)) ?? null;
+}
+
+export async function signup(params: {
+  workspaceId: string;
+  email: string;
+  password: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): Promise<
+  | { ok: true; user: WorkspaceUser; session: Session }
+  | { ok: false; reason: string }
+> {
+  const now = params.now ?? new Date();
+  if (!params.workspaceId) return { ok: false, reason: "workspace_required" };
+  if (!params.email || !isValidEmail(params.email)) {
+    return { ok: false, reason: "email_invalid" };
+  }
+  if (!params.password || params.password.length < 8) {
+    return { ok: false, reason: "password_too_short" };
+  }
+
+  const normalized = normalizeEmail(params.email);
+  if (findUserByEmail(params.workspaceId, normalized)) {
+    return { ok: false, reason: "email_taken" };
+  }
+
+  const user: WorkspaceUser = {
+    workspaceId: params.workspaceId,
+    userId: `usr_${randomUUID()}`,
+    email: normalized,
+    role: "member",
+    signed_up_at: nowIso(now),
+    last_active_at: nowIso(now),
+  };
+  addWorkspaceUser(user);
+
+  const { hash, salt } = await hashPassword(params.password);
+  passwordRecordsByUserKey.set(userKey(user.workspaceId, user.userId), {
+    userKey: userKey(user.workspaceId, user.userId),
+    hash,
+    salt,
+    updatedAt: nowIso(now),
+  });
+
+  const session = createSession({
+    workspaceId: user.workspaceId,
+    userId: user.userId,
+    email: user.email,
+    context: params.context,
+    now,
+  });
+  recordAuthEvent({
+    workspaceId: user.workspaceId,
+    userId: user.userId,
+    kind: "signup",
+    reason: "password_signup",
+    context: params.context,
+    now,
+  });
+  return { ok: true, user, session };
+}
+
+export function requestPasswordReset(params: {
+  workspaceId: string;
+  email: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): { token: string; expiresAt: string } | null {
+  const now = params.now ?? new Date();
+  const user = findUserByEmail(params.workspaceId, params.email);
+  if (!user) {
+    recordAuthEvent({
+      workspaceId: params.workspaceId,
+      kind: "fail",
+      reason: "password_reset_user_not_found",
+      context: params.context,
+      now,
+    });
+    return null;
+  }
+
+  const token: PasswordResetToken = {
+    token: `prt_${randomUUID()}`,
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    email: user.email,
+    expiresAt: nowIso(new Date(now.getTime() + PASSWORD_RESET_TTL_MS)),
+    usedAt: null,
+    createdAt: nowIso(now),
+  };
+  passwordResetTokensByToken.set(token.token, token);
+  recordAuthEvent({
+    workspaceId: params.workspaceId,
+    userId: user.userId,
+    kind: "reset",
+    reason: "password_reset_requested",
+    context: params.context,
+    now,
+  });
+  return { token: token.token, expiresAt: token.expiresAt };
+}
+
+export async function resetPassword(params: {
+  token: string;
+  newPassword: string;
+  context: AuthRequestContext;
+  now?: Date;
+}): Promise<{ ok: true; userId: string } | { ok: false; reason: string }> {
+  const now = params.now ?? new Date();
+  const record = passwordResetTokensByToken.get(params.token);
+  if (!record) {
+    recordAuthEvent({
+      kind: "fail",
+      reason: "password_reset_token_invalid",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_invalid" };
+  }
+  if (record.usedAt) {
+    recordAuthEvent({
+      workspaceId: record.workspaceId,
+      userId: record.userId,
+      kind: "fail",
+      reason: "password_reset_token_used",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_used" };
+  }
+  if (new Date(record.expiresAt).getTime() <= now.getTime()) {
+    recordAuthEvent({
+      workspaceId: record.workspaceId,
+      userId: record.userId,
+      kind: "fail",
+      reason: "password_reset_token_expired",
+      context: params.context,
+      now,
+    });
+    return { ok: false, reason: "password_reset_token_expired" };
+  }
+  if (!params.newPassword || params.newPassword.length < 8) {
+    return { ok: false, reason: "password_too_short" };
+  }
+
+  const { hash, salt } = await hashPassword(params.newPassword);
+  passwordRecordsByUserKey.set(
+    userKey(record.workspaceId, record.userId),
+    {
+      userKey: userKey(record.workspaceId, record.userId),
+      hash,
+      salt,
+      updatedAt: nowIso(now),
+    },
+  );
+  record.usedAt = nowIso(now);
+
+  for (const session of sessionsById.values()) {
+    if (session.workspaceId === record.workspaceId && session.userId === record.userId) {
+      session.revokedAt = nowIso(now);
+    }
+  }
+
+  recordAuthEvent({
+    workspaceId: record.workspaceId,
+    userId: record.userId,
+    kind: "reset",
+    reason: "password_reset_completed",
+    context: params.context,
+    now,
+  });
+  return { ok: true, userId: record.userId };
+}
+
 export function isWorkspaceOwner(
   workspaceId: string,
   userId: string | null,
@@ -696,5 +965,7 @@ export function resetAuthState(): void {
   samlMetadataByWorkspace.clear();
   sessionsById.clear();
   magicTokensByToken.clear();
+  passwordResetTokensByToken.clear();
+  passwordRecordsByUserKey.clear();
   seedDefaultUsers();
 }

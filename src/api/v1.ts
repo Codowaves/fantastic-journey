@@ -488,7 +488,7 @@ async function handleRoute(
       );
     }
 
-    const result = authenticatePassword({
+    const result = await authenticatePassword({
       workspaceId,
       userId,
       password,
