@@ -1,10 +1,24 @@
 // Second test-coverage bait — utility functions, no test file.
 
+export class InvalidEmailError extends Error {
+  constructor(input: string) {
+    super(`Invalid email address: ${JSON.stringify(input)}`);
+    this.name = "InvalidEmailError";
+  }
+}
+
 export function isValidEmail(input: string): boolean {
   if (typeof input !== "string") return false;
-  if (input.length > 254) return false;
-  // Intentionally simplified — real validation should use a tested lib.
+  if (input.length === 0 || input.length > 254) return false;
+  // RFC-ish: local part (no whitespace / @), "@", domain with at least one dot
+  // and no whitespace.
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+}
+
+export function assertValidEmail(input: string): void {
+  if (!isValidEmail(input)) {
+    throw new InvalidEmailError(input);
+  }
 }
 
 export function normalizeEmail(input: string): string {
@@ -33,6 +47,7 @@ export function buildMagicLinkEmail(params: {
   magicLink: string;
   expiresInMinutes?: number;
 }): SentEmail {
+  assertValidEmail(params.to);
   const expiresInMinutes = params.expiresInMinutes ?? 15;
   return {
     to: normalizeEmail(params.to),

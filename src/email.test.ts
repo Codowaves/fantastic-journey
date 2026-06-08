@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildMagicLinkEmail,
+  InvalidEmailError,
   isValidEmail,
   maskEmail,
   normalizeEmail,
+  sendMagicLinkEmail,
 } from "./email";
 
 describe("email helpers", () => {
@@ -12,6 +14,16 @@ describe("email helpers", () => {
     it("accepts representative valid email addresses", () => {
       expect(isValidEmail("user@example.com")).toBe(true);
       expect(isValidEmail("first.last+tag@sub.example.co")).toBe(true);
+    });
+
+    it("rejects malformed addresses", () => {
+      expect(isValidEmail("")).toBe(false);
+      expect(isValidEmail("no-at-sign")).toBe(false);
+      expect(isValidEmail("missing-domain@")).toBe(false);
+      expect(isValidEmail("missing-local@.com")).toBe(false);
+      expect(isValidEmail("no-tld@example")).toBe(false);
+      expect(isValidEmail("spaces in@addr.com")).toBe(false);
+      expect(isValidEmail("trailing@space.com ")).toBe(false);
     });
   });
 
@@ -45,6 +57,28 @@ describe("email helpers", () => {
       expect(email.html).toContain("Acme Workspace");
       expect(email.text).toContain("15 minutes");
       expect(email.text).toContain("https://example.com/auth/magic-link/verify");
+    });
+
+    it("throws InvalidEmailError for a malformed recipient", () => {
+      expect(() =>
+        buildMagicLinkEmail({
+          to: "not-an-email",
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(InvalidEmailError);
+    });
+  });
+
+  describe("sendMagicLinkEmail", () => {
+    it("throws InvalidEmailError for a malformed recipient", () => {
+      expect(() =>
+        sendMagicLinkEmail({
+          to: "bogus@",
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(InvalidEmailError);
     });
   });
 });
