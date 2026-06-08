@@ -7,6 +7,19 @@ export function isValidEmail(input: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 }
 
+export class InvalidEmailError extends Error {
+  constructor(email: string) {
+    super(`Invalid email address: ${JSON.stringify(email)}`);
+    this.name = "InvalidEmailError";
+  }
+}
+
+export function assertValidEmail(input: string): void {
+  if (!isValidEmail(input)) {
+    throw new InvalidEmailError(input);
+  }
+}
+
 export function normalizeEmail(input: string): string {
   return input.trim().toLowerCase();
 }

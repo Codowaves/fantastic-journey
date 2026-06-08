@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  InvalidEmailError,
+  assertValidEmail,
   buildMagicLinkEmail,
   isValidEmail,
   maskEmail,
@@ -12,6 +14,35 @@ describe("email helpers", () => {
     it("accepts representative valid email addresses", () => {
       expect(isValidEmail("user@example.com")).toBe(true);
       expect(isValidEmail("first.last+tag@sub.example.co")).toBe(true);
+    });
+
+    it("rejects malformed email addresses", () => {
+      expect(isValidEmail("")).toBe(false);
+      expect(isValidEmail("notanemail")).toBe(false);
+      expect(isValidEmail("missing@domain")).toBe(false);
+      expect(isValidEmail("@nodomain.com")).toBe(false);
+      expect(isValidEmail("spaces in@addr.com")).toBe(false);
+      expect(isValidEmail("user@.com")).toBe(false);
+    });
+  });
+
+  describe("assertValidEmail", () => {
+    it("does not throw for valid email addresses", () => {
+      expect(() => assertValidEmail("user@example.com")).not.toThrow();
+      expect(() =>
+        assertValidEmail("first.last+tag@sub.example.co"),
+      ).not.toThrow();
+    });
+
+    it("throws InvalidEmailError with the offending value for malformed addresses", () => {
+      expect(() => assertValidEmail("notanemail")).toThrow(InvalidEmailError);
+      expect(() => assertValidEmail("notanemail")).toThrow(
+        /Invalid email address/,
+      );
+      expect(() => assertValidEmail("missing@domain")).toThrow(
+        InvalidEmailError,
+      );
+      expect(() => assertValidEmail("")).toThrow(InvalidEmailError);
     });
   });
 
