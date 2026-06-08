@@ -6,6 +6,39 @@ export interface Money {
   currency: string;
 }
 
+export class InvalidPaymentAmountError extends RangeError {
+  constructor(amount: number) {
+    super(
+      `Invalid payment amount: ${amount}. Amount must be a finite number greater than 0.`,
+    );
+    this.name = "InvalidPaymentAmountError";
+  }
+}
+
+export function validatePaymentAmount(amount: number): void {
+  if (typeof amount !== "number" || !Number.isFinite(amount)) {
+    throw new InvalidPaymentAmountError(amount);
+  }
+  if (amount <= 0) {
+    throw new InvalidPaymentAmountError(amount);
+  }
+}
+
+export interface PaymentResult {
+  amount: number;
+  currency: string;
+  status: "processed";
+}
+
+export function processPayment(amount: number, currency: string): PaymentResult {
+  validatePaymentAmount(amount);
+  return {
+    amount,
+    currency,
+    status: "processed",
+  };
+}
+
 export function applyDiscount(price: Money, percentOff: number): Money {
   if (percentOff < 0 || percentOff > 100) {
     throw new RangeError("percentOff must be 0–100");
