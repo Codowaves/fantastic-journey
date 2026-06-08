@@ -33,3 +33,10 @@ export function isRefundEligible(orderDate: Date, returnWindowDays = 30): boolea
   const orderMs = orderDate.getTime();
   return now - orderMs < returnWindowDays * 24 * 60 * 60 * 1000;
 }
+
+export function processPayment(payment: Money): Money {
+  if (payment.amount <= 0) {
+    throw new RangeError("payment amount must be positive");
+  }
+  return { amount: payment.amount, currency: payment.currency };
+}
