@@ -7,8 +7,8 @@ export interface RequestContext {
 
 const requestContext = new AsyncLocalStorage<RequestContext>();
 
-export function createRequestContext(): RequestContext {
-  return { reqId: randomUUID() };
+export function createRequestContext(reqId?: string): RequestContext {
+  return { reqId: reqId ?? randomUUID() };
 }
 
 export function runWithRequestContext<T>(
