@@ -97,13 +97,14 @@ describe("api v1 route handler", () => {
     expect(secondReqId).not.toBe(firstReqId);
   });
 
-  it("returns a request ID header on not found responses", async () => {
+  it("returns a JSON error body for unknown routes", async () => {
     const response = await handleRequest(
       new Request("https://example.com/not-found"),
     );
 
     expect(response.status).toBe(404);
     expect(response.headers.get("X-Request-Id")).toMatch(UUID_PATTERN);
+    await expect(response.json()).resolves.toEqual({ error: "Not found" });
   });
 
   it("includes the request ID in logs emitted after async route handling", async () => {
