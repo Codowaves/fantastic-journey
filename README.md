@@ -6,6 +6,14 @@ known issues across several categories (security, missing tests,
 undocumented APIs, TODO debt) so the various Codowave scanners and the
 pair pipeline have realistic signal to act on.
 
+## Project Structure
+
+| Path            | What's there                                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/`          | Application code: payment/email utilities, public API (`src/api/`), auth context, legacy code (`src/legacy/`), WIP scratch (`src/wip/`), and colocated `*.test.ts` files |
+| `docs/`         | Markdown documentation for subsystems (e.g. `docs/billing.md` for the payment flow)                      |
+| `migrations/`   | Numbered SQL migration files applied in lexical order                                                     |
+
 ## Structure
 
 | Path                       | What's there                                 | Which scanner / stage exercises it |
