@@ -18,6 +18,14 @@ pair pipeline have realistic signal to act on.
 | Whole repo + this README   | LLM-readable orientation                     | Feature suggestor                  |
 | `.github/workflows/ci.yml` | Typecheck + lint + test                      | PR processor, ciPoller, ciWorker   |
 
+## Project Structure
+
+| Directory     | Contents                                                |
+| ------------- | ------------------------------------------------------- |
+| `src/`        | TypeScript source code — API, auth, payment, email, etc. |
+| `docs/`       | Project documentation (e.g. `billing.md`)               |
+| `migrations/` | SQL database migrations                                 |
+
 ## Running locally
 
 ```sh
