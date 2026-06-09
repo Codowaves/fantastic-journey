@@ -1,5 +1,9 @@
 // Second test-coverage bait — utility functions, no test file.
 
+/**
+ * Thrown when an input fails email validation. The offending input is included
+ * in the message via `JSON.stringify` so non-string values are represented.
+ */
 export class InvalidEmailError extends Error {
   constructor(input: string) {
     super(`Invalid email address: ${JSON.stringify(input)}`);
@@ -20,6 +24,10 @@ export function isValidEmail(input: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 }
 
+/**
+ * Asserts that `input` is a valid email address, throwing `InvalidEmailError`
+ * (with the original input) if validation fails.
+ */
 export function assertValidEmail(input: string): void {
   if (!isValidEmail(input)) {
     throw new InvalidEmailError(input);
