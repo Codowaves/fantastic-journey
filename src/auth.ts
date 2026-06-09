@@ -2,6 +2,7 @@ import { createVerify, randomUUID } from "node:crypto";
 
 import { isValidEmail, normalizeEmail } from "./email";
 
+/** Error thrown for authentication/SSO validation failures. The `code` field carries a machine-readable reason (e.g. "saml_metadata_invalid"). */
 export class AuthError extends Error {
   readonly code: string;
 
