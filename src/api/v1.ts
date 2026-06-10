@@ -20,10 +20,13 @@ import {
 import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
 import { logger } from "../logger";
+import { createRequestContext, runWithRequestContext } from "../requestContext";
 import {
-  createRequestContext,
-  runWithRequestContext,
-} from "../requestContext";
+  applyDiscount,
+  processPayment,
+  totalWithTax,
+  type Money,
+} from "../payment";
 
 const DB_CHECK_TIMEOUT_MS = parseInt(
   process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
@@ -45,7 +48,10 @@ export interface Order {
   id: string;
   customerId: string;
   total: number;
+  currency: string;
   status: "pending" | "confirmed" | "shipped" | "delivered";
+  createdAt: string;
+  items: Array<{ id: string; qty: number; unitPrice: number }>;
 }
 
 /**
@@ -63,7 +69,10 @@ export function createOrder(
     id: `ord_${Date.now()}`,
     customerId,
     total: items.length,
+    currency: "USD",
     status: "pending",
+    createdAt: new Date().toISOString(),
+    items: items.map((item) => ({ ...item, unitPrice: 0 })),
   };
 }
 
@@ -104,6 +113,69 @@ function getProjects(): Array<{
   created_at: string;
 }> {
   return projects ?? [];
+}
+
+// In-memory order store + idempotency-key map for POST /api/orders.
+const ordersById = new Map<string, Order>();
+const orderIdByIdempotencyKey = new Map<string, string>();
+
+/**
+ * Persists an order in the in-memory store and associates it with an
+ * idempotency key, if one was supplied.
+ */
+function saveOrder(order: Order, idempotencyKey?: string): void {
+  ordersById.set(order.id, order);
+  if (idempotencyKey) {
+    orderIdByIdempotencyKey.set(idempotencyKey, order.id);
+  }
+}
+
+function getOrderById(orderId: string): Order | null {
+  return ordersById.get(orderId) ?? null;
+}
+
+function isSupportedCurrency(code: unknown): code is Order["currency"] {
+  return (
+    typeof code === "string" &&
+    (SUPPORTED_CURRENCIES as readonly string[]).includes(code)
+  );
+}
+
+function parseCartItems(
+  raw: unknown,
+):
+  | { ok: true; items: Array<{ id: string; qty: number; unitPrice: number }> }
+  | { ok: false; error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { ok: false, error: "items must be a non-empty array" };
+  }
+  const parsed: Array<{ id: string; qty: number; unitPrice: number }> = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") {
+      return { ok: false, error: "each item must be an object" };
+    }
+    const id = (entry as Record<string, unknown>)["id"];
+    const qty = (entry as Record<string, unknown>)["qty"];
+    const unitPrice = (entry as Record<string, unknown>)["unitPrice"];
+    if (typeof id !== "string" || !id.trim()) {
+      return { ok: false, error: "item.id is required" };
+    }
+    if (typeof qty !== "number" || !Number.isFinite(qty) || qty <= 0) {
+      return { ok: false, error: "item.qty must be a positive number" };
+    }
+    if (
+      typeof unitPrice !== "number" ||
+      !Number.isFinite(unitPrice) ||
+      unitPrice < 0
+    ) {
+      return {
+        ok: false,
+        error: "item.unitPrice must be a non-negative number",
+      };
+    }
+    parsed.push({ id, qty, unitPrice });
+  }
+  return { ok: true, items: parsed };
 }
 
 async function readJsonBody(
@@ -658,6 +730,125 @@ async function handleRoute(
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/orders") {
+    const idempotencyKey = request.headers.get("Idempotency-Key")?.trim() || "";
+
+    if (idempotencyKey) {
+      const existingOrderId = orderIdByIdempotencyKey.get(idempotencyKey);
+      if (existingOrderId) {
+        const existing = getOrderById(existingOrderId);
+        if (existing) {
+          return Response.json({ order: existing }, { status: 200 });
+        }
+      }
+    }
+
+    const body = await readJsonBody(request);
+    const customerId = requireString(body, "customerId");
+    if (!customerId) {
+      return Response.json(
+        { error: "customerId is required" },
+        { status: 400 },
+      );
+    }
+
+    const currency = body["currency"];
+    if (!isSupportedCurrency(currency)) {
+      return Response.json(
+        {
+          error: `currency must be one of: ${SUPPORTED_CURRENCIES.join(", ")}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const taxRate = body["taxRate"];
+    if (
+      typeof taxRate !== "number" ||
+      !Number.isFinite(taxRate) ||
+      taxRate < 0
+    ) {
+      return Response.json(
+        { error: "taxRate must be a non-negative number" },
+        { status: 400 },
+      );
+    }
+
+    const discountPercent = body["discountPercent"];
+    if (
+      discountPercent !== undefined &&
+      discountPercent !== null &&
+      (typeof discountPercent !== "number" ||
+        !Number.isFinite(discountPercent) ||
+        discountPercent < 0 ||
+        discountPercent > 100)
+    ) {
+      return Response.json(
+        { error: "discountPercent must be a number between 0 and 100" },
+        { status: 400 },
+      );
+    }
+
+    const parsedItems = parseCartItems(body["items"]);
+    if (!parsedItems.ok) {
+      return Response.json({ error: parsedItems.error }, { status: 400 });
+    }
+
+    const lineItems: Money[] = parsedItems.items.map((item) => ({
+      amount: item.unitPrice * item.qty,
+      currency,
+    }));
+
+    const discounted: Money[] =
+      typeof discountPercent === "number"
+        ? lineItems.map((line) => applyDiscount(line, discountPercent))
+        : lineItems;
+
+    let total: Money;
+    try {
+      total = totalWithTax(discounted, taxRate);
+    } catch {
+      return Response.json({ error: "invalid cart" }, { status: 400 });
+    }
+
+    try {
+      processPayment(total);
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "payment failed" },
+        { status: 400 },
+      );
+    }
+
+    const baseOrder = createOrder(
+      customerId,
+      parsedItems.items.map(({ id, qty }) => ({ id, qty })),
+    );
+    const confirmed = confirmOrder(baseOrder);
+    const persisted: Order = {
+      ...confirmed,
+      total: total.amount,
+      currency: total.currency,
+      createdAt: new Date().toISOString(),
+      items: parsedItems.items,
+    };
+    saveOrder(persisted, idempotencyKey || undefined);
+
+    return Response.json({ order: persisted }, { status: 201 });
+  }
+
+  if (request.method === "GET" && url.pathname.startsWith("/api/orders/")) {
+    const orderId = url.pathname.slice("/api/orders/".length);
+    if (!orderId) {
+      return Response.json({ error: "order id is required" }, { status: 400 });
+    }
+    const order = getOrderById(orderId);
+    if (!order) {
+      return Response.json({ error: "order not found" }, { status: 404 });
+    }
+    return Response.json({ order }, { status: 200 });
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });
