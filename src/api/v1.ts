@@ -21,9 +21,12 @@ import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
 import { logger } from "../logger";
 import {
-  createRequestContext,
-  runWithRequestContext,
-} from "../requestContext";
+  createOrder as createOrderRow,
+  createProject,
+  getOrder as getOrderRow,
+  listProjects,
+} from "../db";
+import { createRequestContext, runWithRequestContext } from "../requestContext";
 
 const DB_CHECK_TIMEOUT_MS = parseInt(
   process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
@@ -59,11 +62,12 @@ export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
 ): Order {
+  const row = createOrderRow({ customerId, items });
   return {
-    id: `ord_${Date.now()}`,
-    customerId,
-    total: items.length,
-    status: "pending",
+    id: row.id,
+    customerId: row.customer_id,
+    total: row.total,
+    status: row.status,
   };
 }
 
@@ -86,7 +90,7 @@ export function confirmOrder(order: Order): Order {
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
-  return Promise.resolve(orderId ? "pending" : null);
+  return Promise.resolve(getOrderRow(orderId)?.status ?? null);
 }
 
 /**
@@ -94,17 +98,10 @@ export function getOrderStatus(
  */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP", "JPY"] as const;
 
-// In-memory projects store — in production this would be a database query.
-// Guard against undefined rows by defaulting to empty array.
-const projects: Array<{ id: string; name: string; created_at: string }> = [];
-
-function getProjects(): Array<{
-  id: string;
-  name: string;
-  created_at: string;
-}> {
-  return projects ?? [];
-}
+// Projects are persisted by `src/db/`. Reads go through `listProjects()` and
+// writes through `createProject()`, both backed by the on-disk JSON store the
+// DB module manages. No module-level in-memory cache — the disk is the
+// source of truth so restarting the process preserves customer data.
 
 async function readJsonBody(
   request: Request,
@@ -350,7 +347,17 @@ async function handleRoute(
   }
 
   if (request.method === "GET" && url.pathname === "/api/projects") {
-    return Response.json({ items: getProjects() }, { status: 200 });
+    return Response.json({ items: listProjects() }, { status: 200 });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/projects") {
+    const body = await readJsonBody(request);
+    const name = requireString(body, "name");
+    if (!name) {
+      return Response.json({ error: "name is required" }, { status: 400 });
+    }
+    const project = createProject({ name });
+    return Response.json(project, { status: 201 });
   }
 
   if (request.method === "GET" && url.pathname === "/api/auth-events") {
