@@ -20,10 +20,8 @@ import {
 import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
 import { logger } from "../logger";
-import {
-  createRequestContext,
-  runWithRequestContext,
-} from "../requestContext";
+import { createRequestContext, runWithRequestContext } from "../requestContext";
+import { consumeRateLimit } from "../rateLimit";
 
 const DB_CHECK_TIMEOUT_MS = parseInt(
   process.env["DB_CHECK_TIMEOUT_MS"] ?? "1000",
@@ -222,6 +220,38 @@ function renderSessionsPage(workspaceId: string): string {
   return `<!doctype html><html><head><title>Active sessions</title></head><body><main><h1>Active sessions</h1><table><thead><tr><th>User</th><th>IP</th><th>UA</th><th>Started</th><th>Last seen</th><th>Revoke</th></tr></thead><tbody>${rows}</tbody></table></main></body></html>`;
 }
 
+function rateLimitedResponse(params: {
+  route: import("../rateLimit").RateLimitedRoute;
+  workspaceId: string | null;
+  userId: string | null;
+  context: ReturnType<typeof contextFromRequest>;
+  reason: string;
+}): Response | null {
+  const decision = consumeRateLimit(params.route, {
+    ip: params.context.ip,
+    workspaceId: params.workspaceId,
+    userId: params.userId,
+  });
+  if (decision.allowed) return null;
+  recordAuthEvent({
+    workspaceId: params.workspaceId,
+    userId: params.userId,
+    kind: "rate_limited",
+    reason: params.reason,
+    context: params.context,
+  });
+  return Response.json(
+    {
+      error: "Too many requests",
+      retryAfterSeconds: decision.retryAfterSeconds,
+    },
+    {
+      status: 429,
+      headers: { "Retry-After": String(decision.retryAfterSeconds) },
+    },
+  );
+}
+
 async function readFormBody(request: Request): Promise<URLSearchParams> {
   return new URLSearchParams(await request.text());
 }
@@ -408,6 +438,15 @@ async function handleRoute(
       requireString(body, "samlResponse") ??
       requireString(body, "assertion");
 
+    const limited = rateLimitedResponse({
+      route: "auth_saml",
+      workspaceId,
+      userId: null,
+      context,
+      reason: "auth_saml",
+    });
+    if (limited) return limited;
+
     if (!workspaceId || !assertion) {
       recordAuthEvent({
         workspaceId,
@@ -447,6 +486,15 @@ async function handleRoute(
     const email = requireString(body, "email");
     const brandName = requireString(body, "brandName") ?? "Fantastic Journey";
 
+    const limited = rateLimitedResponse({
+      route: "auth_magic_link",
+      workspaceId,
+      userId: null,
+      context,
+      reason: "auth_magic_link",
+    });
+    if (limited) return limited;
+
     if (!workspaceId || !email) {
       recordAuthEvent({
         workspaceId,
@@ -478,6 +526,16 @@ async function handleRoute(
 
   if (request.method === "GET" && url.pathname === "/auth/magic-link/verify") {
     const token = url.searchParams.get("token");
+
+    const limited = rateLimitedResponse({
+      route: "auth_magic_link_verify",
+      workspaceId: null,
+      userId: null,
+      context,
+      reason: "auth_magic_link_verify",
+    });
+    if (limited) return limited;
+
     if (!token) {
       recordAuthEvent({
         kind: "fail",
@@ -506,6 +564,15 @@ async function handleRoute(
     const workspaceId = requireString(body, "workspaceId");
     const userId = requireString(body, "userId");
     const password = requireString(body, "password");
+
+    const limited = rateLimitedResponse({
+      route: "auth_password",
+      workspaceId,
+      userId,
+      context,
+      reason: "auth_password",
+    });
+    if (limited) return limited;
 
     if (!workspaceId || !userId || !password) {
       recordAuthEvent({

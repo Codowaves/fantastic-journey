@@ -9,6 +9,7 @@ import {
   resetAuthState,
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
+import { resetRateLimitState } from "../rateLimit";
 import { handleRequest } from "./v1";
 
 const UUID_PATTERN =
@@ -53,6 +54,7 @@ describe("api v1 route handler", () => {
   beforeEach(() => {
     resetAuthState();
     resetSentEmails();
+    resetRateLimitState();
   });
 
   it("returns healthy JSON for GET /healthz and its /health alias", async () => {
@@ -520,5 +522,113 @@ describe("api v1 route handler", () => {
       "password",
       "fail",
     ]);
+  });
+
+  it("returns 429 with a Retry-After header and a rate_limited audit event once a route limit is exceeded", async () => {
+    process.env["AUTH_PASSWORD_RPM"] = "2";
+    try {
+      const makeRequest = () =>
+        handleRequest(
+          new Request("https://example.com/auth/password", {
+            method: "POST",
+            headers: {
+              "x-forwarded-for": "203.0.113.50",
+              "user-agent": "vitest",
+            },
+            body: JSON.stringify({
+              workspaceId: "ws_1",
+              userId: "owner_1",
+              password: "password",
+            }),
+          }),
+        );
+
+      const first = await makeRequest();
+      const second = await makeRequest();
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+
+      const third = await makeRequest();
+      expect(third.status).toBe(429);
+      expect(third.headers.get("Retry-After")).toMatch(/^\d+$/);
+      await expect(third.json()).resolves.toMatchObject({
+        error: "Too many requests",
+        retryAfterSeconds: expect.any(Number),
+      });
+      expect(listAuthEvents()).toContainEqual(
+        expect.objectContaining({
+          kind: "rate_limited",
+          reason: "auth_password",
+          workspace_id: "ws_1",
+          user_id: "owner_1",
+        }),
+      );
+    } finally {
+      delete process.env["AUTH_PASSWORD_RPM"];
+    }
+  });
+
+  it("rate-limits magic-link requests independently across workspaces", async () => {
+    process.env["MAGIC_LINK_REQUEST_RPM"] = "1";
+    try {
+      const makeRequest = (workspaceId: string) =>
+        handleRequest(
+          new Request("https://example.com/auth/magic-link", {
+            method: "POST",
+            headers: { "x-forwarded-for": "203.0.113.51" },
+            body: JSON.stringify({
+              workspaceId,
+              email: "x@example.com",
+            }),
+          }),
+        );
+
+      const first = await makeRequest("ws_1");
+      expect(first.status).toBe(202);
+
+      const sameWorkspace = await makeRequest("ws_1");
+      expect(sameWorkspace.status).toBe(429);
+      expect(sameWorkspace.headers.get("Retry-After")).toMatch(/^\d+$/);
+
+      const otherWorkspace = await makeRequest("ws_2");
+      expect(otherWorkspace.status).toBe(202);
+
+      const rateLimited = listAuthEvents().filter(
+        (event) => event.kind === "rate_limited",
+      );
+      expect(rateLimited).toHaveLength(1);
+      expect(rateLimited[0]?.workspace_id).toBe("ws_1");
+    } finally {
+      delete process.env["MAGIC_LINK_REQUEST_RPM"];
+    }
+  });
+
+  it("listAuthEvents includes rate_limited events for the verify route", async () => {
+    process.env["MAGIC_LINK_VERIFY_RPM"] = "1";
+    try {
+      const first = await handleRequest(
+        new Request(
+          "https://example.com/auth/magic-link/verify?token=ml_does_not_exist",
+          { headers: { "x-forwarded-for": "203.0.113.52" } },
+        ),
+      );
+      expect(first.status).toBe(401);
+
+      const second = await handleRequest(
+        new Request(
+          "https://example.com/auth/magic-link/verify?token=ml_does_not_exist",
+          { headers: { "x-forwarded-for": "203.0.113.52" } },
+        ),
+      );
+      expect(second.status).toBe(429);
+
+      const rateLimited = listAuthEvents().filter(
+        (event) => event.kind === "rate_limited",
+      );
+      expect(rateLimited).toHaveLength(1);
+      expect(rateLimited[0]?.reason).toBe("auth_magic_link_verify");
+    } finally {
+      delete process.env["MAGIC_LINK_VERIFY_RPM"];
+    }
   });
 });

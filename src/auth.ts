@@ -14,7 +14,12 @@ export class AuthError extends Error {
 }
 
 /** Auth event category written to the audit log. */
-export type AuthEventKind = "sso" | "magic" | "password" | "fail";
+export type AuthEventKind =
+  | "sso"
+  | "magic"
+  | "password"
+  | "fail"
+  | "rate_limited";
 
 /** A single row in the in-memory auth audit log. */
 export interface AuthEvent {
