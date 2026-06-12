@@ -1,3 +1,10 @@
+/**
+ * Formats a byte count into a human-readable string with appropriate units (B, KiB, MiB, GiB, TiB).
+ * @param bytes - The number of bytes to format (must be a non-negative finite number)
+ * @param decimals - Number of decimal places to show (default: 1)
+ * @returns A formatted string like "42.5 KiB" or "1.2 GiB"
+ * @throws {RangeError} If bytes is not finite or is negative
+ */
 export function formatBytes(bytes: number, decimals: number = 1): string {
   if (!Number.isFinite(bytes)) {
     throw new RangeError("bytes must be a finite number");
