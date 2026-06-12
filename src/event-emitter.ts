@@ -1,6 +1,15 @@
+/**
+ * Type-safe event emitter that enforces event names and payload types via a generic Events map.
+ */
 export class TypedEventEmitter<Events extends Record<string, any>> {
   private listeners = new Map<keyof Events, Set<(payload: any) => void>>();
 
+  /**
+   * Registers an event listener.
+   * @param event - The event name to listen for
+   * @param listener - Callback invoked when the event is emitted
+   * @returns An unsubscribe function that removes this listener when called
+   */
   on<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -12,6 +21,12 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     return () => this.off(event, listener);
   }
 
+  /**
+   * Registers a one-time event listener that automatically unsubscribes after first invocation.
+   * @param event - The event name to listen for
+   * @param listener - Callback invoked once when the event is emitted
+   * @returns An unsubscribe function that removes this listener when called
+   */
   once<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -23,6 +38,11 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     return this.on(event, wrapper);
   }
 
+  /**
+   * Removes an event listener.
+   * @param event - The event name
+   * @param listener - The listener function to remove
+   */
   off<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -33,6 +53,12 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     }
   }
 
+  /**
+   * Emits an event to all registered listeners, invoking them synchronously in registration order.
+   * @param event - The event name to emit
+   * @param payload - The payload to pass to all listeners
+   * @throws The first error thrown by any listener (subsequent listener errors are swallowed)
+   */
   emit<K extends keyof Events>(event: K, payload: Events[K]): void {
     const eventListeners = this.listeners.get(event);
     if (!eventListeners || eventListeners.size === 0) {
@@ -55,6 +81,11 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     }
   }
 
+  /**
+   * Returns the number of listeners registered for an event.
+   * @param event - The event name
+   * @returns The count of registered listeners
+   */
   listenerCount(event: keyof Events): number {
     return this.listeners.get(event)?.size ?? 0;
   }
