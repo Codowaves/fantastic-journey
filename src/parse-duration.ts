@@ -1,3 +1,11 @@
+/**
+ * Parses a duration string into milliseconds.
+ *
+ * @param input - Duration string with numeric values and time units (e.g., "1h 30m", "5s", "2d 12h")
+ *                Supported units: ms (milliseconds), s (seconds), m (minutes), h (hours), d (days)
+ * @returns The total duration in milliseconds
+ * @throws {TypeError} If the input is empty, contains duplicate units, or has invalid format
+ */
 export function parseDuration(input: string): number {
   if (!input || input.trim() === "") {
     throw new TypeError("Duration string cannot be empty");
