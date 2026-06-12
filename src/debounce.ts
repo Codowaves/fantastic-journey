@@ -1,3 +1,12 @@
+/**
+ * Creates a debounced function that delays invoking `fn` until after `waitMs` milliseconds
+ * have elapsed since the last time the debounced function was invoked.
+ *
+ * @param fn - The function to debounce
+ * @param waitMs - The number of milliseconds to delay; must be non-negative
+ * @returns A debounced version of `fn` with a `cancel()` method to cancel pending invocations
+ * @throws {RangeError} If `waitMs` is not a non-negative finite number
+ */
 export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   waitMs: number,
