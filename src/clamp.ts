@@ -7,5 +7,8 @@
  * @returns `n` if it lies within the range, otherwise the nearest bound.
  */
 export function clamp(n: number, lo: number, hi: number): number {
+  if (lo > hi) {
+    throw new RangeError("min must be <= max");
+  }
   return Math.min(Math.max(n, lo), hi);
 }
