@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{firstDup}from"./seed-dups";describe("firstDup",()=>{it("finds",()=>expect(firstDup([1,2,3,2])).toBe(2));it("none",()=>expect(firstDup([1,2,3])).toBeUndefined());});

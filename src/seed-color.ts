@@ -1,0 +1,1 @@
+export function lighten(hex:string,amt:number){const n=parseInt(hex.slice(1),16);const r=Math.min(255,(n>>16)+amt),g=Math.min(255,((n>>8)&255)+amt),b=Math.min(255,(n&255)+amt);return"#"+((r<<16)|(g<<8)|b).toString(16).padStart(6,"0");}

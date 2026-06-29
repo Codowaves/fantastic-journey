@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{discountedPrice}from"./seed-discount2";describe("discountedPrice",()=>{it("20% off 100 = 80",()=>expect(discountedPrice(100,20)).toBe(80));it("0% = same",()=>expect(discountedPrice(40,0)).toBe(40));});

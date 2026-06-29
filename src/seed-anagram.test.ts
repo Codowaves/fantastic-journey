@@ -1,0 +1,1 @@
+import{describe,it,expect}from"vitest";import{isAnagram}from"./seed-anagram";describe("isAnagram",()=>{it("yes",()=>expect(isAnagram("listen","silent")).toBe(true));it("no",()=>expect(isAnagram("a","b")).toBe(false));});
