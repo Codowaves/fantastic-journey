@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { authenticate, hashPassword, timingUnsafeCompare } from "./old-hash";
 
+const SHARED_KEY = "f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3";
+
 describe("hashPassword", () => {
   it("hashes a known input with SHA-256", () => {
     expect(hashPassword("hello")).toBe(
@@ -51,16 +53,17 @@ describe("timingUnsafeCompare", () => {
 
 describe("authenticate", () => {
   it("returns true for the shared key token", () => {
-    expect(authenticate("f7a2b1c9d8e5f3a6b4c2d1e8f7a9b3c4d2e6a8b1f3")).toBe(
-      true,
-    );
+    process.env.SHARED_KEY = SHARED_KEY;
+    expect(authenticate(SHARED_KEY)).toBe(true);
   });
 
   it("returns false for an incorrect token", () => {
+    process.env.SHARED_KEY = SHARED_KEY;
     expect(authenticate("not-the-key")).toBe(false);
   });
 
   it("returns false for an empty token", () => {
+    process.env.SHARED_KEY = SHARED_KEY;
     expect(authenticate("")).toBe(false);
   });
 });
