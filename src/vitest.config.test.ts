@@ -25,6 +25,7 @@ describe("vitest.config.ts", () => {
       expect(config.test?.include).toEqual([
         "src/**/*.test.ts",
         "tests/**/*.test.ts",
+        "./*.test.ts",
       ]);
     });
 
