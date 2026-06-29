@@ -15,8 +15,8 @@ describe("clamp", () => {
     expect(clamp(15, 0, 10)).toBe(10);
   });
 
-  it("throws RangeError when min > max", () => {
+  it("throws RangeError when lo > hi", () => {
     expect(() => clamp(5, 10, 0)).toThrow(RangeError);
-    expect(() => clamp(5, 10, 0)).toThrow("min must be <= max");
+    expect(() => clamp(5, 10, 0)).toThrow("lo must be <= hi");
   });
 });

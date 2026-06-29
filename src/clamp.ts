@@ -8,7 +8,7 @@
  */
 export function clamp(n: number, lo: number, hi: number): number {
   if (lo > hi) {
-    throw new RangeError("min must be <= max");
+    throw new RangeError("lo must be <= hi");
   }
   return Math.min(Math.max(n, lo), hi);
 }
