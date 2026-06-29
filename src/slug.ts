@@ -5,9 +5,9 @@
  * characters with a single hyphen, and strips leading/trailing hyphens.
  *
  * @param text - The input string to slugify.
- * @returns A URL-safe slug (e.g. `slugify('  Hello, World! ')` returns `'hello-world'`).
+ * @returns A URL-safe slug (e.g. `slug('  Hello, World! ')` returns `'hello-world'`).
  */
-export function slugify(text: string): string {
+export function slug(text: string): string {
   return text
     .toLowerCase()
     .trim()
