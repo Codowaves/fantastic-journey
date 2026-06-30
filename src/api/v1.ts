@@ -19,6 +19,7 @@ import {
 } from "../auth";
 import { createConnection } from "node:net";
 import { maskEmail, sendMagicLinkEmail } from "../email";
+import { formatDate } from "../format-date";
 import { logger } from "../logger";
 import { createRequestContext, runWithRequestContext } from "../requestContext";
 import {
@@ -707,7 +708,7 @@ async function handleRoute(
       status,
     });
 
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const dateStr = formatDate(new Date());
     const filename = `users-${dateStr}.csv`;
     const header = "id,email,plan,signed_up_at,last_active_at\n";
     const csvEscape = (v: string | undefined | null) => {
