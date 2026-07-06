@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { unique } from "./array-utils";
+import { shuffle, unique } from "./array-utils";
 
 describe("unique", () => {
   it("removes duplicate values and preserves order", () => {
@@ -36,5 +36,47 @@ describe("unique", () => {
   it("works with boolean values", () => {
     const result = unique([true, false, true, true, false]);
     expect(result).toEqual([true, false]);
+  });
+});
+
+describe("shuffle", () => {
+  it("returns an array with the same elements (multiset equality)", () => {
+    const input = [1, 2, 3, 4, 5];
+    const result = shuffle(input);
+    expect(result.slice().sort((a, b) => a - b)).toEqual(input);
+  });
+
+  it("does not mutate the original array", () => {
+    const input = [1, 2, 3, 4, 5];
+    const snapshot = [...input];
+    shuffle(input);
+    expect(input).toEqual(snapshot);
+  });
+
+  it("returns an empty array when given an empty array", () => {
+    expect(shuffle([])).toEqual([]);
+  });
+
+  it("returns a single-element array unchanged", () => {
+    expect(shuffle([42])).toEqual([42]);
+  });
+
+  it("produces a different ordering at least once across many trials", () => {
+    const input = [1, 2, 3, 4, 5, 6, 7, 8];
+    let sawDifferentOrdering = false;
+    for (let i = 0; i < 50; i++) {
+      const result = shuffle(input);
+      if (result.some((v, idx) => v !== input[idx])) {
+        sawDifferentOrdering = true;
+        break;
+      }
+    }
+    expect(sawDifferentOrdering).toBe(true);
+  });
+
+  it("handles strings", () => {
+    const input = ["a", "b", "c", "d"];
+    const result = shuffle(input);
+    expect(result.slice().sort()).toEqual(input.slice().sort());
   });
 });
