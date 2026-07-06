@@ -15,8 +15,9 @@ export function invert<T extends Record<PropertyKey, PropertyKey>>(
   obj: T,
 ): Record<string, keyof T> {
   const result: Record<string, keyof T> = {};
-  for (const key of Object.keys(obj) as Array<keyof T>) {
-    const value = obj[key];
+  for (const [key, value] of Object.entries(obj) as Array<
+    [keyof T, T[keyof T]]
+  >) {
     if (typeof value === "string" || typeof value === "number") {
       result[String(value)] = key;
     }
