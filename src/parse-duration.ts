@@ -1,3 +1,13 @@
+/**
+ * Parses a human-readable duration string into milliseconds.
+ * Supports combined units such as `"1h 30m 15s"`; each unit may appear at most once.
+ *
+ * @param input - Duration string containing one or more `<value><unit>` segments
+ *   where unit is one of `ms`, `s`, `m`, `h`, `d`.
+ * @returns Total duration expressed in milliseconds.
+ * @throws {TypeError} If `input` is empty, no valid unit is present, a unit is
+ *   repeated, or trailing characters remain after parsing.
+ */
 export function parseDuration(input: string): number {
   if (!input || input.trim() === "") {
     throw new TypeError("Duration string cannot be empty");
