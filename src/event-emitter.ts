@@ -1,3 +1,7 @@
+/**
+ * A type-safe event emitter where event names and payload types are derived
+ * from a generic `Events` record, ensuring listeners receive correctly typed payloads.
+ */
 export class TypedEventEmitter<Events extends Record<string, any>> {
   private listeners = new Map<keyof Events, Set<(payload: any) => void>>();
 
