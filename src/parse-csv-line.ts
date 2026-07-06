@@ -1,3 +1,5 @@
+import { err, ok, type Result } from "./result";
+
 /**
  * Parses a single line of CSV (Comma-Separated Values) into an array of field
  * strings, respecting double-quoted fields that may contain commas.
@@ -11,10 +13,11 @@
  * - Fields are separated by commas.
  *
  * @param line - A single line of CSV text (no trailing newline).
- * @returns An array of field strings. Returns an empty array for an empty line.
- * @throws {Error} If the line ends while a quoted field is still open.
+ * @returns A `Result` carrying an array of field strings on success, or an
+ *   `Err` describing the parse failure (e.g. an unterminated quoted field).
+ *   Returns an empty array for an empty line.
  */
-export function parseCsvLine(line: string): string[] {
+export function parseCsvLine(line: string): Result<string[], Error> {
   const fields: string[] = [];
   let current = "";
   let inQuotes = false;
@@ -48,9 +51,9 @@ export function parseCsvLine(line: string): string[] {
   }
 
   if (inQuotes) {
-    throw new Error("parseCsvLine: unterminated quoted field");
+    return err(new Error("parseCsvLine: unterminated quoted field"));
   }
 
   fields.push(current);
-  return fields;
+  return ok(fields);
 }
