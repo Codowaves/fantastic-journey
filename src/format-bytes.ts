@@ -1,3 +1,10 @@
+/**
+ * Formats a byte count as a human-readable string with IEC binary units (B, KiB, MiB, GiB, TiB).
+ *
+ * @param bytes - The non-negative, finite byte count to format.
+ * @param decimals - Number of decimal places; trailing zeros are trimmed from the result.
+ * @returns A string like `"1.5 MiB"` or `"0 B"`.
+ */
 export function formatBytes(bytes: number, decimals: number = 1): string {
   if (!Number.isFinite(bytes)) {
     throw new RangeError("bytes must be a finite number");
