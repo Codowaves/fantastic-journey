@@ -18,6 +18,7 @@ export function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
   let current = "";
   let inQuotes = false;
+  let quoteStart = -1;
 
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
@@ -42,13 +43,18 @@ export function parseCsvLine(line: string): string[] {
       current = "";
     } else if (ch === '"' && current.length === 0) {
       inQuotes = true;
+      quoteStart = i;
     } else {
       current += ch;
     }
   }
 
   if (inQuotes) {
-    throw new Error("parseCsvLine: unterminated quoted field");
+    const column = quoteStart >= 0 ? quoteStart : 0;
+    const preview = line.length > 40 ? `${line.slice(0, 40)}...` : line;
+    throw new Error(
+      `parseCsvLine: unterminated quoted field at column ${column} in "${preview}"`,
+    );
   }
 
   fields.push(current);

@@ -12,9 +12,21 @@ import { err, ok, type Result } from "./result";
  *   parse failure.
  */
 export function safeInt(input: string): Result<number, Error> {
-  const parsed = Number.parseInt(input, 10);
+  if (typeof input !== "string") {
+    return err(
+      new Error(`Invalid integer: expected string, got ${typeof input}`),
+    );
+  }
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    return err(new Error(`Invalid integer: empty string`));
+  }
+  const parsed = Number.parseInt(trimmed, 10);
   if (Number.isNaN(parsed)) {
     return err(new Error(`Invalid integer: ${input}`));
+  }
+  if (String(parsed) !== trimmed) {
+    return err(new Error(`Invalid integer: trailing garbage in "${input}"`));
   }
   return ok(parsed);
 }
@@ -31,9 +43,21 @@ export function safeInt(input: string): Result<number, Error> {
  *   parse failure.
  */
 export function safeFloat(input: string): Result<number, Error> {
-  const parsed = Number.parseFloat(input);
+  if (typeof input !== "string") {
+    return err(
+      new Error(`Invalid float: expected string, got ${typeof input}`),
+    );
+  }
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    return err(new Error(`Invalid float: empty string`));
+  }
+  const parsed = Number.parseFloat(trimmed);
   if (Number.isNaN(parsed)) {
     return err(new Error(`Invalid float: ${input}`));
+  }
+  if (String(parsed) !== trimmed) {
+    return err(new Error(`Invalid float: trailing garbage in "${input}"`));
   }
   return ok(parsed);
 }

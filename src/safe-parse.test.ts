@@ -14,6 +14,28 @@ describe("safeParseInt", () => {
       expect(res.error).toBeInstanceOf(Error);
     }
   });
+
+  it("returns an Err for trailing garbage", () => {
+    const res = safeParseInt("42abc");
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+      expect(res.error.message).toMatch(/trailing garbage/);
+    }
+  });
+
+  it("returns an Err for an empty string", () => {
+    const res = safeParseInt("");
+    expect(res.ok).toBe(false);
+  });
+
+  it("returns an Err for non-string input", () => {
+    const res = safeParseInt(42 as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toMatch(/expected string/);
+    }
+  });
 });
 
 describe("safeParseFloat", () => {
@@ -27,6 +49,19 @@ describe("safeParseFloat", () => {
     if (!res.ok) {
       expect(res.error).toBeInstanceOf(Error);
     }
+  });
+
+  it("returns an Err for trailing garbage", () => {
+    const res = safeParseFloat("3.14xyz");
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toMatch(/trailing garbage/);
+    }
+  });
+
+  it("returns an Err for an empty string", () => {
+    const res = safeParseFloat("");
+    expect(res.ok).toBe(false);
   });
 });
 

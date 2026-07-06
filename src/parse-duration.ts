@@ -1,5 +1,10 @@
 export function parseDuration(input: string): number {
-  if (!input || input.trim() === "") {
+  if (typeof input !== "string") {
+    throw new TypeError(
+      `Duration must be a string, got ${typeof input}: ${String(input)}`,
+    );
+  }
+  if (input.trim() === "") {
     throw new TypeError("Duration string cannot be empty");
   }
 
@@ -26,7 +31,9 @@ export function parseDuration(input: string): number {
     }
 
     if (usedUnits.has(unit)) {
-      throw new TypeError(`Unit "${unit}" appears more than once`);
+      throw new TypeError(
+        `Unit "${unit}" appears more than once at position ${match.index}`,
+      );
     }
 
     const multiplier = unitMultipliers[unit];
@@ -41,13 +48,15 @@ export function parseDuration(input: string): number {
   }
 
   if (usedUnits.size === 0) {
-    throw new TypeError("Invalid duration format: no valid units found");
+    throw new TypeError(
+      `Invalid duration format: no valid units found in "${input}"`,
+    );
   }
 
   const remainder = input.slice(lastIndex).trim();
   if (remainder.length > 0) {
     throw new TypeError(
-      `Invalid duration format: trailing garbage "${remainder}"`,
+      `Invalid duration format: trailing garbage "${remainder}" at position ${lastIndex}`,
     );
   }
 

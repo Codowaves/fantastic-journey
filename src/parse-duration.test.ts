@@ -134,5 +134,17 @@ describe("parseDuration", () => {
       expect(() => parseDuration("1h 2x")).toThrow(TypeError);
       expect(() => parseDuration("1h 2x")).toThrow("trailing garbage");
     });
+
+    it("error message includes position info for repeated units", () => {
+      expect(() => parseDuration("1h2h")).toThrow(/position \d+/);
+    });
+
+    it("error message includes position info for trailing garbage", () => {
+      expect(() => parseDuration("1h garbage")).toThrow(/position \d+/);
+    });
+
+    it("error message includes input for unknown units", () => {
+      expect(() => parseDuration("1x")).toThrow(/no valid units found in/);
+    });
   });
 });
