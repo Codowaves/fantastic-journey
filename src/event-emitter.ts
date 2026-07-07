@@ -1,6 +1,15 @@
+/**
+ * A type-safe event emitter where event names and their payload types are
+ * declared via the `Events` generic parameter, giving compile-time guarantees
+ * on `emit` and listener callbacks.
+ */
 export class TypedEventEmitter<Events extends Record<string, any>> {
   private listeners = new Map<keyof Events, Set<(payload: any) => void>>();
 
+  /**
+   * Registers a listener for the given event and returns an unsubscribe
+   * function that removes the listener when called.
+   */
   on<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -12,6 +21,10 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     return () => this.off(event, listener);
   }
 
+  /**
+   * Registers a listener that is automatically removed after it fires once,
+   * and returns an unsubscribe function for early removal.
+   */
   once<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -23,6 +36,10 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     return this.on(event, wrapper);
   }
 
+  /**
+   * Removes a previously registered listener for the given event. No-op if
+   * the listener was not registered.
+   */
   off<K extends keyof Events>(
     event: K,
     listener: (payload: Events[K]) => void,
@@ -33,6 +50,12 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     }
   }
 
+  /**
+   * Synchronously invokes every registered listener for the event in
+   * registration order. If any listener throws, remaining listeners still
+   * run and the first collected error is re-thrown after all have been
+   * called.
+   */
   emit<K extends keyof Events>(event: K, payload: Events[K]): void {
     const eventListeners = this.listeners.get(event);
     if (!eventListeners || eventListeners.size === 0) {
@@ -55,6 +78,9 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
     }
   }
 
+  /**
+   * Returns the number of listeners currently registered for the event.
+   */
   listenerCount(event: keyof Events): number {
     return this.listeners.get(event)?.size ?? 0;
   }
