@@ -19,4 +19,26 @@ describe("clamp", () => {
     expect(() => clamp(5, 10, 0)).toThrow(RangeError);
     expect(() => clamp(5, 10, 0)).toThrow("lo must be <= hi");
   });
+
+  it("throws TypeError when n is NaN", () => {
+    expect(() => clamp(NaN, 0, 10)).toThrow(TypeError);
+    expect(() => clamp(NaN, 0, 10)).toThrow("n must be a finite number");
+  });
+
+  it("throws TypeError when n is null or undefined", () => {
+    expect(() => clamp(null as unknown as number, 0, 10)).toThrow(TypeError);
+    expect(() => clamp(undefined as unknown as number, 0, 10)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when lo is NaN", () => {
+    expect(() => clamp(5, NaN, 10)).toThrow(TypeError);
+    expect(() => clamp(5, NaN, 10)).toThrow("lo must be a finite number");
+  });
+
+  it("throws TypeError when hi is NaN", () => {
+    expect(() => clamp(5, 0, NaN)).toThrow(TypeError);
+    expect(() => clamp(5, 0, NaN)).toThrow("hi must be a finite number");
+  });
 });
