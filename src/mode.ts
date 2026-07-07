@@ -4,6 +4,11 @@
  *
  * @param nums - The numbers to scan.
  * @returns The most frequent value, or `undefined` for an empty array.
+ *
+ * @example
+ * mode([1, 2, 2, 3, 3, 3, 4]); // 3
+ * mode([1, 1, 2, 2, 3]); // 1 (first-seen wins on ties)
+ * mode([]); // undefined
  */
 export function mode(nums: number[]): number | undefined {
   const counts = new Map<number, number>();
