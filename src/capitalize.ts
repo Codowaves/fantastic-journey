@@ -1,3 +1,10 @@
+/**
+ * Capitalizes the first character of a string, leaving the rest unchanged.
+ * Returns the input verbatim if it is empty.
+ *
+ * @param str - The string to capitalize.
+ * @returns The string with its first character upper-cased.
+ */
 export function capitalize(str: string): string {
   if (str.length === 0) {
     return str;
