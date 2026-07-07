@@ -18,6 +18,30 @@ describe("euclidean", () => {
   it("is symmetric", () => {
     expect(euclidean(1, 2, 4, 6)).toBe(euclidean(4, 6, 1, 2));
   });
+
+  it("returns 0 when both points are at the origin", () => {
+    expect(euclidean(0, 0, 0, 0)).toBe(0);
+  });
+
+  it("handles very large coordinates", () => {
+    expect(euclidean(0, 0, 3e8, 4e8)).toBe(5e8);
+  });
+
+  it("handles very small (fractional) coordinates", () => {
+    expect(euclidean(0, 0, 0.3, 0.4)).toBeCloseTo(0.5);
+  });
+
+  it("returns NaN when any coordinate is NaN", () => {
+    expect(euclidean(NaN, 0, 1, 1)).toBeNaN();
+    expect(euclidean(0, NaN, 1, 1)).toBeNaN();
+    expect(euclidean(0, 0, NaN, 1)).toBeNaN();
+    expect(euclidean(0, 0, 1, NaN)).toBeNaN();
+  });
+
+  it("returns Infinity when any coordinate is Infinity", () => {
+    expect(euclidean(Infinity, 0, 1, 1)).toBe(Infinity);
+    expect(euclidean(0, 0, Infinity, 0)).toBe(Infinity);
+  });
 });
 
 describe("manhattan", () => {
@@ -35,5 +59,29 @@ describe("manhattan", () => {
 
   it("is symmetric", () => {
     expect(manhattan(1, 2, 4, 6)).toBe(manhattan(4, 6, 1, 2));
+  });
+
+  it("returns 0 when both points are at the origin", () => {
+    expect(manhattan(0, 0, 0, 0)).toBe(0);
+  });
+
+  it("handles very large coordinates", () => {
+    expect(manhattan(0, 0, 3e8, 4e8)).toBe(7e8);
+  });
+
+  it("handles very small (fractional) coordinates", () => {
+    expect(manhattan(0, 0, 0.3, 0.4)).toBeCloseTo(0.7);
+  });
+
+  it("returns NaN when any coordinate is NaN", () => {
+    expect(manhattan(NaN, 0, 1, 1)).toBeNaN();
+    expect(manhattan(0, NaN, 1, 1)).toBeNaN();
+    expect(manhattan(0, 0, NaN, 1)).toBeNaN();
+    expect(manhattan(0, 0, 1, NaN)).toBeNaN();
+  });
+
+  it("returns Infinity when any coordinate is Infinity", () => {
+    expect(manhattan(Infinity, 0, 1, 1)).toBe(Infinity);
+    expect(manhattan(0, 0, Infinity, 0)).toBe(Infinity);
   });
 });
