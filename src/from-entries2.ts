@@ -6,6 +6,10 @@
  *   a 2-element array.
  * @returns A new object with one entry for each pair. Returns `{}` when
  *   `pairs` yields nothing.
+ * @example
+ * fromEntries2([["a", 1], ["b", 2]]); // { a: 1, b: 2 }
+ * fromEntries2(new Map([["x", 10]])); // { x: 10 }
+ * fromEntries2([]); // {}
  */
 export function fromEntries2<K extends PropertyKey, V>(
   pairs: Iterable<readonly [K, V]>,
