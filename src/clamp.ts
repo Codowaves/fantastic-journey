@@ -7,6 +7,14 @@
  * @returns `n` if it lies within the range, otherwise the nearest bound.
  * @throws {TypeError} If any argument is null, undefined, or NaN.
  * @throws {RangeError} If `lo` is greater than `hi`.
+ *
+ * @example
+ * clamp(5, 0, 10);
+ * // 5
+ * clamp(-5, 0, 10);
+ * // 0
+ * clamp(15, 0, 10);
+ * // 10
  */
 export function clamp(n: number, lo: number, hi: number): number {
   if (n === null || n === undefined || Number.isNaN(n)) {
