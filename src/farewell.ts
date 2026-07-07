@@ -1,4 +1,10 @@
-/** Returns a friendly farewell greeting for the given name. */
+/**
+ * Returns a friendly farewell greeting for the given name.
+ *
+ * @example
+ * farewell("Alice");
+ * //=> "Goodbye, Alice!"
+ */
 export function farewell(name: string): string {
   return `Goodbye, ${name}!`;
 }
