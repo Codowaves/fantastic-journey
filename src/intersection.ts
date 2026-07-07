@@ -1,6 +1,12 @@
 /**
  * Returns the intersection of two arrays — the values that appear in both,
  * preserving the order of first occurrence in `a`.
+ *
+ * @param a - The first array. Its order drives the output order.
+ * @param b - The second array; values not present here are excluded.
+ * @returns A new array containing the unique values found in both `a` and
+ *   `b`, in the order they first appear in `a`. Returns `[]` when there is
+ *   no overlap or when either input is empty.
  */
 export function intersection<T>(a: T[], b: T[]): T[] {
   const set = new Set(b);
