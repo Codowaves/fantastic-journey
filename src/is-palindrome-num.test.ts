@@ -25,4 +25,13 @@ describe("isPalindromeNum", () => {
     expect(isPalindromeNum(-1)).toBe(false);
     expect(isPalindromeNum(-121)).toBe(false);
   });
+
+  it("returns false for null or undefined", () => {
+    expect(isPalindromeNum(null as unknown as number)).toBe(false);
+    expect(isPalindromeNum(undefined as unknown as number)).toBe(false);
+  });
+
+  it("returns false for NaN", () => {
+    expect(isPalindromeNum(Number.NaN)).toBe(false);
+  });
 });
