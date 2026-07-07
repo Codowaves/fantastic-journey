@@ -39,4 +39,16 @@ describe("escapeHtml", () => {
   it("escapes ampersand first so it does not double-encode entities", () => {
     expect(escapeHtml("&lt;")).toBe("&amp;lt;");
   });
+
+  it("throws TypeError when str is NaN", () => {
+    expect(() => escapeHtml(NaN as unknown as string)).toThrow(TypeError);
+    expect(() => escapeHtml(NaN as unknown as string)).toThrow(
+      "str must be a string",
+    );
+  });
+
+  it("throws TypeError when str is null or undefined", () => {
+    expect(() => escapeHtml(null as unknown as string)).toThrow(TypeError);
+    expect(() => escapeHtml(undefined as unknown as string)).toThrow(TypeError);
+  });
 });
