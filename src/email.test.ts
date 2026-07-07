@@ -4,8 +4,10 @@ import {
   buildMagicLinkEmail,
   InvalidEmailError,
   isValidEmail,
+  listSentEmails,
   maskEmail,
   normalizeEmail,
+  resetSentEmails,
   sendMagicLinkEmail,
 } from "./email";
 
@@ -40,6 +42,25 @@ describe("email helpers", () => {
       expect(maskEmail("customer@example.com")).toBe("cu******@example.com");
       expect(maskEmail("ab@example.com")).toBe("ab@example.com");
     });
+
+    it("returns input unchanged when the local part is missing", () => {
+      expect(maskEmail("@example.com")).toBe("@example.com");
+    });
+
+    it("returns input unchanged when the domain is missing", () => {
+      expect(maskEmail("user@")).toBe("user@");
+    });
+  });
+
+  describe("assertValidEmail", () => {
+    it("throws InvalidEmailError carrying the offending input", () => {
+      expect(() => {
+        throw new InvalidEmailError("bogus");
+      }).toThrow(InvalidEmailError);
+      const err = new InvalidEmailError("bogus");
+      expect(err.name).toBe("InvalidEmailError");
+      expect(err.message).toBe('Invalid email address: "bogus"');
+    });
   });
 
   describe("buildMagicLinkEmail", () => {
@@ -56,7 +77,9 @@ describe("email helpers", () => {
       });
       expect(email.html).toContain("Acme Workspace");
       expect(email.text).toContain("15 minutes");
-      expect(email.text).toContain("https://example.com/auth/magic-link/verify");
+      expect(email.text).toContain(
+        "https://example.com/auth/magic-link/verify",
+      );
     });
 
     it("throws InvalidEmailError for a malformed recipient", () => {
@@ -79,6 +102,39 @@ describe("email helpers", () => {
           magicLink: "https://example.com/m",
         }),
       ).toThrow(InvalidEmailError);
+    });
+
+    it("records the sent email in the in-memory log", () => {
+      resetSentEmails();
+      const email = sendMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/m",
+      });
+      expect(listSentEmails()).toEqual([email]);
+    });
+
+    it("resetSentEmails clears the in-memory log", () => {
+      sendMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/m",
+      });
+      expect(listSentEmails().length).toBeGreaterThan(0);
+      resetSentEmails();
+      expect(listSentEmails()).toEqual([]);
+    });
+
+    it("listSentEmails returns a copy that does not mutate the log", () => {
+      resetSentEmails();
+      sendMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/m",
+      });
+      const snapshot = listSentEmails();
+      snapshot.pop();
+      expect(listSentEmails().length).toBe(1);
     });
   });
 });
