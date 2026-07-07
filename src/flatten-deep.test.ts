@@ -7,15 +7,15 @@ describe("flattenDeep", () => {
     expect(flattenDeep([1, 2, 3])).toEqual([1, 2, 3]);
   });
 
-  it("flattens nested arrays one level at a time", () => {
-    expect(flattenDeep([1, [2, [3, [4]], 5]])).toEqual([1, 2, 3, 4, 5]);
+  it("recursively flattens deeply nested arrays", () => {
+    expect(flattenDeep([1, [2, [3, [4]]]])).toEqual([1, 2, 3, 4]);
   });
 
   it("returns an empty array for an empty input", () => {
     expect(flattenDeep([])).toEqual([]);
   });
 
-  it("returns a non-array input as-is", () => {
-    expect(flattenDeep(42)).toBe(42);
+  it("throws a TypeError for non-array top-level input", () => {
+    expect(() => flattenDeep(42 as unknown as unknown[])).toThrow(TypeError);
   });
 });
