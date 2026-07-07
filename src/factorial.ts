@@ -6,6 +6,12 @@
  * @param n - A non-negative integer.
  * @returns The factorial of `n`.
  * @throws RangeError when `n` is negative.
+ * @example
+ * factorial(0); // => 1
+ * @example
+ * factorial(5); // => 120
+ * @example
+ * factorial(-1); // throws RangeError
  */
 export function factorial(n: number): number {
   if (!Number.isInteger(n)) {
