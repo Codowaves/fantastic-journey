@@ -9,6 +9,15 @@
  * @param keyFn - Function that derives the grouping key for each item.
  * @returns A record mapping each derived key to the array of items that
  *   produced it. Returns an empty object for an empty input.
+ * @example
+ * groupBy([1, 2, 3, 4], (n) => n % 2);
+ * // { 0: [2, 4], 1: [1, 3] }
+ * groupBy(
+ *   [{ type: "a", v: 1 }, { type: "b", v: 2 }, { type: "a", v: 3 }],
+ *   (item) => item.type,
+ * );
+ * // { a: [{ type: "a", v: 1 }, { type: "a", v: 3 }], b: [{ type: "b", v: 2 }] }
+ * groupBy([], (n) => n); // {}
  */
 export function groupBy<T, K extends PropertyKey>(
   items: readonly T[],
