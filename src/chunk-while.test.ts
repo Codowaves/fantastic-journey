@@ -35,4 +35,37 @@ describe("chunkWhile", () => {
   it("returns a single-element chunk for a single-item input", () => {
     expect(chunkWhile([42], () => true)).toEqual([[42]]);
   });
+
+  it("returns two single-element chunks for a two-item input when pred is false", () => {
+    expect(chunkWhile([1, 2], (a, b) => a === b)).toEqual([[1], [2]]);
+  });
+
+  it("returns one two-element chunk for a two-item input when pred is true", () => {
+    expect(chunkWhile([1, 1], (a, b) => a === b)).toEqual([[1, 1]]);
+  });
+
+  it("chunks strings by prefix match", () => {
+    expect(
+      chunkWhile(
+        ["apple", "apricot", "banana", "blueberry", "cherry"],
+        (a, b) => a[0] === b[0],
+      ),
+    ).toEqual([["apple", "apricot"], ["banana", "blueberry"], ["cherry"]]);
+  });
+
+  it("chunks objects by reference identity, not structural equality", () => {
+    const a = { id: 1 };
+    const b = { id: 1 };
+    expect(chunkWhile([a, b], (x, y) => x === y)).toEqual([[a], [b]]);
+  });
+
+  it("handles a final chunk after a boundary at the end", () => {
+    expect(chunkWhile([1, 1, 2], (a, b) => a === b)).toEqual([[1, 1], [2]]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [1, 1, 2, 2, 3];
+    chunkWhile(input, (a, b) => a === b);
+    expect(input).toEqual([1, 1, 2, 2, 3]);
+  });
 });
