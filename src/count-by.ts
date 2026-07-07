@@ -11,6 +11,14 @@
  * @param keyFn - Function that derives the grouping key for each item.
  * @returns A record mapping each derived key to the number of items that
  *   produced it. Returns an empty object for an empty input.
+ *
+ * @example
+ * countBy([{ type: 'a' }, { type: 'b' }, { type: 'a' }], (x) => x.type);
+ * // { a: 2, b: 1 }
+ * countBy([1, 2, 3, 4, 5, 6], (n) => n % 2);
+ * // { 0: 3, 1: 3 }
+ * countBy([], (x) => x);
+ * // {}
  */
 export function countBy<T, K extends PropertyKey>(
   items: readonly T[],
