@@ -6,6 +6,11 @@
  * @param size - The maximum length of each chunk. Must be a positive integer.
  * @returns A new array of chunks. Returns an empty array if `arr` is empty.
  * @throws {RangeError} If `size` is not a positive integer.
+ *
+ * @example
+ * chunk([1, 2, 3, 4, 5], 2); // [[1, 2], [3, 4], [5]]
+ * chunk(['a', 'b', 'c', 'd'], 3); // [['a', 'b', 'c'], ['d']]
+ * chunk([], 3); // []
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
   if (!Number.isInteger(size) || size <= 0) {
