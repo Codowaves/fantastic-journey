@@ -462,6 +462,339 @@ describe("api v1 route handler", () => {
     );
   });
 
+  describe("POST /api/orders edge cases", () => {
+    function postOrder(body: unknown, headers: Record<string, string> = {}) {
+      return handleRequest(
+        new Request("https://example.com/api/orders", {
+          method: "POST",
+          headers: { "content-type": "application/json", ...headers },
+          body: JSON.stringify(body),
+        }),
+      );
+    }
+
+    function postOrderRaw(raw: string, headers: Record<string, string> = {}) {
+      return handleRequest(
+        new Request("https://example.com/api/orders", {
+          method: "POST",
+          headers: { "content-type": "application/json", ...headers },
+          body: raw,
+        }),
+      );
+    }
+
+    it("returns 400 when the body is empty JSON", async () => {
+      const response = await postOrderRaw("{}");
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
+
+    it("returns 400 when customerId is an empty string", async () => {
+      const response = await postOrder({
+        customerId: "",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
+
+    it("returns 400 when customerId is whitespace only", async () => {
+      const response = await postOrder({
+        customerId: "   ",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
+
+    it("returns 400 when customerId is a number instead of a string", async () => {
+      const response = await postOrder({
+        customerId: 42,
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
+
+    it("returns 400 for unsupported currency", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "XYZ",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.stringContaining("currency must be one of"),
+      });
+    });
+
+    it("returns 400 when currency is missing entirely", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.stringContaining("currency must be one of"),
+      });
+    });
+
+    it("accepts the boundary taxRate value of 0", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 100 }],
+      });
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toMatchObject({
+        order: { total: 100, currency: "USD" },
+      });
+    });
+
+    it("rejects negative taxRate", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: -0.01,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "taxRate must be a non-negative number",
+      });
+    });
+
+    it("rejects NaN taxRate", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: Number.NaN,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "taxRate must be a non-negative number",
+      });
+    });
+
+    it("rejects Infinity taxRate", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: Number.POSITIVE_INFINITY,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "taxRate must be a non-negative number",
+      });
+    });
+
+    it("rejects string taxRate", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: "0.08",
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "taxRate must be a non-negative number",
+      });
+    });
+
+    it("accepts the boundary discountPercent value of 0", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 200 }],
+      });
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toMatchObject({
+        order: { total: 200, currency: "USD" },
+      });
+    });
+
+    it("rejects discountPercent of 100 because the discounted total is not positive", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: 100,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 200 }],
+      });
+
+      // 100% discount → total 0, which processPayment rejects.
+      expect(response.status).toBe(400);
+    });
+
+    it("rejects discountPercent above 100", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: 100.01,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "discountPercent must be a number between 0 and 100",
+      });
+    });
+
+    it("rejects discountPercent as a string", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: "10",
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "discountPercent must be a number between 0 and 100",
+      });
+    });
+
+    it("returns 400 when items array is empty", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "items must be a non-empty array",
+      });
+    });
+
+    it("returns 400 when items is not an array", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: "sku_1",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "items must be a non-empty array",
+      });
+    });
+
+    it("returns 400 when an item is missing id", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item has a non-positive qty", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 0, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item has negative unitPrice", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: -1 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.unitPrice must be a non-negative number",
+      });
+    });
+
+    it("returns 404 when GET /api/orders/<missing> looks up a non-existent order", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/api/orders/ord_does_not_exist"),
+      );
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: "order not found",
+      });
+    });
+
+    it("returns the same order when called twice with the same idempotency key", async () => {
+      const idempotencyKey = "idem_edge_1";
+      const body = {
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 50 }],
+      };
+
+      const first = await postOrder(body, {
+        "Idempotency-Key": idempotencyKey,
+      });
+      const second = await postOrder(body, {
+        "Idempotency-Key": idempotencyKey,
+      });
+
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(200);
+
+      const firstBody = (await first.json()) as { order: { id: string } };
+      const secondBody = (await second.json()) as { order: { id: string } };
+      expect(secondBody.order.id).toBe(firstBody.order.id);
+    });
+  });
+
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
     await handleRequest(
       new Request("https://example.com/settings/security/saml/metadata", {
