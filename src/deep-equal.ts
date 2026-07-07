@@ -7,7 +7,19 @@
  * Date instances are compared by timestamp.
  * Values of different types are never equal.
  *
+ * @param a - The first value to compare.
+ * @param b - The second value to compare.
+ * @returns `true` if `a` and `b` are structurally equal, `false` otherwise.
+ *
  * Limitations: Does not handle Map, Set, or cyclic structures.
+ *
+ * @example
+ * deepEqual(1, 1); // true
+ * deepEqual([1, 2, 3], [1, 2, 3]); // true
+ * deepEqual({ a: 1, b: [2, 3] }, { a: 1, b: [2, 3] }); // true
+ * deepEqual(NaN, NaN); // true
+ * deepEqual({ a: 1 }, { a: 2 }); // false
+ * deepEqual(null, {}); // false
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
   // Use Object.is for primitive comparison (handles NaN, +0/-0 correctly)
