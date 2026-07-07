@@ -65,4 +65,70 @@ describe("dedupeAdjacent", () => {
     const result = dedupeAdjacent([{ id: 1 }, { id: 1 }]);
     expect(result.length).toBe(2);
   });
+
+  it("does not collapse consecutive NaN values", () => {
+    expect(dedupeAdjacent([NaN, NaN, 1])).toEqual([NaN, NaN, 1]);
+  });
+
+  it("collapses runs of booleans", () => {
+    expect(dedupeAdjacent([true, true, false, false, true])).toEqual([
+      true,
+      false,
+      true,
+    ]);
+  });
+
+  it("collapses runs of empty strings", () => {
+    expect(dedupeAdjacent(["", "", "x", ""])).toEqual(["", "x", ""]);
+  });
+
+  it("handles all falsy primitive values", () => {
+    expect(dedupeAdjacent([0, 0, "", "", false, false, null, null])).toEqual([
+      0,
+      "",
+      false,
+      null,
+    ]);
+  });
+
+  it("preserves the boundary between a single non-run at the start", () => {
+    expect(dedupeAdjacent([1, 2, 2, 2])).toEqual([1, 2]);
+  });
+
+  it("preserves the boundary between a single non-run at the end", () => {
+    expect(dedupeAdjacent([2, 2, 2, 3])).toEqual([2, 3]);
+  });
+
+  it("collapses runs in the middle of the array", () => {
+    expect(dedupeAdjacent([1, 2, 2, 3])).toEqual([1, 2, 3]);
+  });
+
+  it("treats two adjacent runs of the same value as one merged run", () => {
+    expect(dedupeAdjacent([1, 1, 2, 1, 1])).toEqual([1, 2, 1]);
+  });
+
+  it("handles a large alternating array without collapsing non-adjacent duplicates", () => {
+    const input: number[] = [];
+    for (let i = 0; i < 100; i++) input.push(i % 2);
+    expect(dedupeAdjacent(input)).toEqual(input);
+  });
+
+  it("collapses a long run of identical items to a single element", () => {
+    const input = new Array(100).fill("x");
+    expect(dedupeAdjacent(input)).toEqual(["x"]);
+  });
+
+  it("does not mutate the input when it contains a long run", () => {
+    const input = [1, 1, 1, 2, 3, 3];
+    const copy = [...input];
+    dedupeAdjacent(input);
+    expect(input).toEqual(copy);
+  });
+
+  it("returns a new array instance (does not return the input)", () => {
+    const input = [1, 2, 3];
+    const result = dedupeAdjacent(input);
+    expect(result).not.toBe(input);
+    expect(result).toEqual(input);
+  });
 });
