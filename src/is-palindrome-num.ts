@@ -8,6 +8,9 @@
  * @returns `true` if `n` is a palindrome, `false` otherwise.
  */
 export function isPalindromeNum(n: number): boolean {
+  if (n == null || Number.isNaN(n)) {
+    return false;
+  }
   if (n < 0) {
     return false;
   }
