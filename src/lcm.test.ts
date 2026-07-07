@@ -25,4 +25,16 @@ describe("lcm", () => {
   it("computes the lcm of two equal numbers", () => {
     expect(lcm(8, 8)).toBe(8);
   });
+
+  it("throws TypeError when either argument is null or undefined", () => {
+    expect(() => lcm(null as unknown as number, 5)).toThrow(TypeError);
+    expect(() => lcm(5, null as unknown as number)).toThrow(TypeError);
+    expect(() => lcm(undefined as unknown as number, 5)).toThrow(TypeError);
+    expect(() => lcm(5, undefined as unknown as number)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when either argument is NaN", () => {
+    expect(() => lcm(Number.NaN, 5)).toThrow(TypeError);
+    expect(() => lcm(5, Number.NaN)).toThrow(TypeError);
+  });
 });
