@@ -89,5 +89,48 @@ describe("inventory helpers", () => {
       const item: InventoryItem = { sku: "A", qty: 10 };
       expect(restock(item, -3)).toEqual({ sku: "A", qty: 7 });
     });
+
+    it("restocks with a zero amount (returns an equivalent item)", () => {
+      const item: InventoryItem = { sku: "A", qty: 4 };
+      const result = restock(item, 0);
+      expect(result).toEqual({ sku: "A", qty: 4 });
+      expect(result).not.toBe(item);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("totalQuantity ignores extra properties on items", () => {
+      const items = [
+        { sku: "A", qty: 2, location: "A1" },
+        { sku: "B", qty: 3, location: "B1" },
+      ] as unknown as InventoryItem[];
+      expect(totalQuantity(items)).toBe(5);
+    });
+
+    it("lowStock excludes items exactly at the threshold (exclusive boundary)", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 4 },
+        { sku: "B", qty: 5 },
+        { sku: "C", qty: 6 },
+      ];
+      expect(lowStock(items, 5)).toEqual([{ sku: "A", qty: 4 }]);
+    });
+
+    it("lowStock returns an empty array when given an empty input", () => {
+      expect(lowStock([])).toEqual([]);
+    });
+
+    it("lowStock with a threshold of 0 returns only items below zero", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 0 },
+        { sku: "B", qty: -1 },
+      ];
+      expect(lowStock(items, 0)).toEqual([{ sku: "B", qty: -1 }]);
+    });
+
+    it("restock handles a negative amount that results in zero quantity", () => {
+      const item: InventoryItem = { sku: "A", qty: 5 };
+      expect(restock(item, -5)).toEqual({ sku: "A", qty: 0 });
+    });
   });
 });
