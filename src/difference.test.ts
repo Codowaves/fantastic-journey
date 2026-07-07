@@ -38,4 +38,40 @@ describe("difference", () => {
     expect(a).toEqual([1, 2, 3]);
     expect(b).toEqual([2]);
   });
+
+  it("throws TypeError when a is null", () => {
+    expect(() => difference(null as unknown as number[], [1, 2])).toThrow(
+      TypeError,
+    );
+    expect(() => difference(null as unknown as number[], [1, 2])).toThrow(
+      "a must be an array",
+    );
+  });
+
+  it("throws TypeError when a is undefined", () => {
+    expect(() => difference(undefined as unknown as number[], [1, 2])).toThrow(
+      TypeError,
+    );
+    expect(() => difference(undefined as unknown as number[], [1, 2])).toThrow(
+      "a must be an array",
+    );
+  });
+
+  it("throws TypeError when b is null", () => {
+    expect(() => difference([1, 2, 3], null as unknown as number[])).toThrow(
+      TypeError,
+    );
+    expect(() => difference([1, 2, 3], null as unknown as number[])).toThrow(
+      "b must be an array",
+    );
+  });
+
+  it("throws TypeError when b is undefined", () => {
+    expect(() =>
+      difference([1, 2, 3], undefined as unknown as number[]),
+    ).toThrow(TypeError);
+    expect(() =>
+      difference([1, 2, 3], undefined as unknown as number[]),
+    ).toThrow("b must be an array");
+  });
 });
