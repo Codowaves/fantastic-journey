@@ -22,6 +22,16 @@ describe("formatEur", () => {
   it("pads single-digit cents with a leading zero", () => {
     expect(formatEur(105)).toBe("€1.05");
   });
+
+  it("throws TypeError when cents is NaN", () => {
+    expect(() => formatEur(NaN)).toThrow(TypeError);
+    expect(() => formatEur(NaN)).toThrow("cents must be a finite number");
+  });
+
+  it("throws TypeError when cents is null or undefined", () => {
+    expect(() => formatEur(null as unknown as number)).toThrow(TypeError);
+    expect(() => formatEur(undefined as unknown as number)).toThrow(TypeError);
+  });
 });
 
 describe("formatGbp", () => {
@@ -43,5 +53,15 @@ describe("formatGbp", () => {
 
   it("pads single-digit pence with a leading zero", () => {
     expect(formatGbp(105)).toBe("£1.05");
+  });
+
+  it("throws TypeError when cents is NaN", () => {
+    expect(() => formatGbp(NaN)).toThrow(TypeError);
+    expect(() => formatGbp(NaN)).toThrow("cents must be a finite number");
+  });
+
+  it("throws TypeError when cents is null or undefined", () => {
+    expect(() => formatGbp(null as unknown as number)).toThrow(TypeError);
+    expect(() => formatGbp(undefined as unknown as number)).toThrow(TypeError);
   });
 });
