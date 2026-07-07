@@ -9,6 +9,10 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
   /**
    * Registers a listener for the given event and returns an unsubscribe
    * function that removes the listener when called.
+   *
+   * @param event - The event name to listen for.
+   * @param listener - Callback invoked with the event payload when emitted.
+   * @returns A function that, when called, removes the registered listener.
    */
   on<K extends keyof Events>(
     event: K,
@@ -24,6 +28,11 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
   /**
    * Registers a listener that is automatically removed after it fires once,
    * and returns an unsubscribe function for early removal.
+   *
+   * @param event - The event name to listen for once.
+   * @param listener - Callback invoked exactly once with the event payload.
+   * @returns A function that, when called, removes the registered listener
+   *   before it has fired.
    */
   once<K extends keyof Events>(
     event: K,
@@ -39,6 +48,9 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
   /**
    * Removes a previously registered listener for the given event. No-op if
    * the listener was not registered.
+   *
+   * @param event - The event name whose listener should be removed.
+   * @param listener - The exact listener function reference to remove.
    */
   off<K extends keyof Events>(
     event: K,
@@ -55,6 +67,9 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
    * registration order. If any listener throws, remaining listeners still
    * run and the first collected error is re-thrown after all have been
    * called.
+   *
+   * @param event - The event name to emit.
+   * @param payload - The payload value matching the declared type for the event.
    */
   emit<K extends keyof Events>(event: K, payload: Events[K]): void {
     const eventListeners = this.listeners.get(event);
@@ -80,6 +95,9 @@ export class TypedEventEmitter<Events extends Record<string, any>> {
 
   /**
    * Returns the number of listeners currently registered for the event.
+   *
+   * @param event - The event name to count listeners for.
+   * @returns The number of registered listeners, or `0` if none.
    */
   listenerCount(event: keyof Events): number {
     return this.listeners.get(event)?.size ?? 0;
