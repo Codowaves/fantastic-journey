@@ -15,7 +15,15 @@ const HTML_ESCAPES: Record<string, string> = {
  *
  * @param str - The string to escape. Not mutated.
  * @returns A new string with HTML-significant characters replaced by entities.
+ * @throws {TypeError} If `str` is null, undefined, or NaN.
  */
 export function escapeHtml(str: string): string {
+  if (
+    str === null ||
+    str === undefined ||
+    (typeof str === "number" && Number.isNaN(str))
+  ) {
+    throw new TypeError("str must be a string");
+  }
   return str.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch] as string);
 }
