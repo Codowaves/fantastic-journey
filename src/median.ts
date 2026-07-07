@@ -6,6 +6,11 @@
  *
  * @param nums - The numbers to compute the median of.
  * @returns The median value, or `0` for an empty array.
+ *
+ * @example
+ * median([1, 2, 3, 4, 5]); // 3
+ * median([1, 2, 3, 4]);    // 2.5
+ * median([]);              // 0
  */
 export function median(nums: number[]): number {
   if (nums.length === 0) {
