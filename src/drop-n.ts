@@ -5,6 +5,15 @@
  * @param n - The number of leading elements to drop. Must be a non-negative integer.
  * @returns A new array containing the elements after the first `n`. Returns an empty array if `n` is greater than or equal to `arr.length`.
  * @throws {RangeError} If `n` is negative or not an integer.
+ *
+ * @example
+ * dropN([1, 2, 3, 4, 5], 2); // [3, 4, 5]
+ * dropN([1, 2, 3], 0); // [1, 2, 3]
+ * dropN([1, 2, 3], 3); // []
+ * dropN([1, 2, 3], 10); // []
+ * dropN([], 0); // []
+ * dropN([1, 2, 3], -1); // throws RangeError
+ * dropN([1, 2, 3], 1.5); // throws RangeError
  */
 export function dropN<T>(arr: readonly T[], n: number): T[] {
   if (!Number.isInteger(n) || n < 0) {
