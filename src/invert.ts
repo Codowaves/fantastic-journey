@@ -10,6 +10,10 @@
  * @param obj - The source object whose keys and values should be swapped.
  * @returns A new object whose keys are the values of `obj` and whose values
  *   are the corresponding source keys.
+ * @example
+ * invert({ a: 1, b: 2, c: 3 }); // { 1: "a", 2: "b", 3: "c" }
+ * invert({ a: "x", b: "y" }); // { x: "a", y: "b" }
+ * invert({}); // {}
  */
 export function invert<T extends Record<PropertyKey, PropertyKey>>(
   obj: T,
