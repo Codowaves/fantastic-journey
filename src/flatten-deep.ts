@@ -1,21 +1,13 @@
-/**
- * Recursively flattens `arr` into a single-level array. Non-array values are
- * left untouched.
- *
- * @param arr - The (possibly nested) value to flatten.
- * @returns A new array containing every nested element in order.
- */
-export function flattenDeep<T>(arr: T): T extends Array<infer U> ? U : T;
-export function flattenDeep(arr: unknown): unknown {
-  if (!Array.isArray(arr)) {
-    return arr;
+export function flattenDeep<T>(array: unknown[]): T[] {
+  if (!Array.isArray(array)) {
+    throw new TypeError("flattenDeep expects an array");
   }
-  const out: unknown[] = [];
-  for (const item of arr) {
+  const out: T[] = [];
+  for (const item of array) {
     if (Array.isArray(item)) {
-      out.push(...(flattenDeep(item) as unknown[]));
+      out.push(...flattenDeep<T>(item));
     } else {
-      out.push(item);
+      out.push(item as T);
     }
   }
   return out;
