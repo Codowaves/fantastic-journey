@@ -1,3 +1,14 @@
+/**
+ * Returns a debounced wrapper around `fn` that delays invocation until
+ * `waitMs` milliseconds have elapsed since the most recent call. The returned
+ * function exposes a `cancel()` method to discard any pending invocation.
+ *
+ * @param fn The function to invoke after the debounce window settles.
+ * @param waitMs The debounce delay in milliseconds. Must be a non-negative
+ *   finite number.
+ * @returns A callable that forwards its arguments to `fn`, augmented with a
+ *   `cancel()` method that drops any pending invocation.
+ */
 export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   waitMs: number,
