@@ -28,7 +28,10 @@ function makeRequest(headers: Record<string, string>): Request {
   return new Request("https://example.com/", { headers });
 }
 
-function makeSamlMetadataXml(certificate: string, entityId = "https://idp.example.com/entity"): string {
+function makeSamlMetadataXml(
+  certificate: string,
+  entityId = "https://idp.example.com/entity",
+): string {
   return `<?xml version="1.0"?>
 <EntityDescriptor entityID="${entityId}">
   <IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
@@ -218,6 +221,24 @@ describe("saveSamlMetadata / getSamlMetadata", () => {
       saveSamlMetadata({ workspaceId: "ws_1", xml }),
     ).rejects.toMatchObject({ code: "saml_metadata_binding_invalid" });
   });
+
+  it("throws saml_metadata_incomplete when signing certificate is missing", async () => {
+    const xml = `<?xml version="1.0"?>
+<EntityDescriptor entityID="https://idp.example.com/entity">
+  <IDPSSODescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp.example.com/sso"/>
+  </IDPSSODescriptor>
+</EntityDescriptor>`;
+    await expect(
+      saveSamlMetadata({ workspaceId: "ws_1", xml }),
+    ).rejects.toMatchObject({ code: "saml_metadata_incomplete" });
+  });
+
+  it("throws saml_metadata_invalid when neither xml nor metadataUrl is provided", async () => {
+    await expect(
+      saveSamlMetadata({ workspaceId: "ws_1" }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
 });
 
 describe("authenticateSaml", () => {
@@ -228,7 +249,9 @@ describe("authenticateSaml", () => {
     resetAuthState();
     const kp = generateKeyPairSync("rsa", { modulusLength: 2048 });
     cert = kp.publicKey.export({ type: "spki", format: "pem" }).toString();
-    privateKey = kp.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    privateKey = kp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
   });
 
   async function setupMetadata() {
@@ -320,6 +343,182 @@ describe("authenticateSaml", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("saml_audience_invalid");
   });
+
+  it("rejects when the issuer does not match the metadata entityID", async () => {
+    await setupMetadata();
+    const assertion = makeSignedSamlAssertion({
+      privateKey,
+      email: "a@b.co",
+      userId: "u1",
+      issuer: "https://attacker.example.com/entity",
+      audience: "https://sp.example.com",
+      destination: "https://sp.example.com/acs",
+      notOnOrAfter: makeFutureExpiry(),
+    });
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_issuer_invalid");
+  });
+
+  it("rejects when the destination does not match the expected destination", async () => {
+    await setupMetadata();
+    const assertion = makeSignedSamlAssertion({
+      privateKey,
+      email: "a@b.co",
+      userId: "u1",
+      issuer: "https://idp.example.com/entity",
+      audience: "https://sp.example.com",
+      destination: "https://attacker.example.com/acs",
+      notOnOrAfter: makeFutureExpiry(),
+    });
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_destination_invalid");
+  });
+
+  it("rejects when the assertion subject email is missing or invalid", async () => {
+    await setupMetadata();
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="${makeFutureExpiry()}" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="not-an-email" userId="u1"/>
+</Assertion>`;
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_subject_invalid");
+  });
+
+  it("rejects when the assertion has no expiry", async () => {
+    await setupMetadata();
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Subject>
+    <NameID>a@b.co</NameID>
+  </Subject>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="a@b.co" userId="u1"/>
+</Assertion>`;
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_assertion_expiry_missing");
+  });
+
+  it("rejects when the signature payload is missing", async () => {
+    await setupMetadata();
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion: "<xml/>",
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_signature_missing");
+  });
+
+  it("rejects an unsupported signature algorithm", async () => {
+    await setupMetadata();
+    const inner = `<Assertion>payload</Assertion>`;
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="hmac-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>deadbeef</SignatureValue>
+</Response>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.reason).toBe("saml_signature_algorithm_unsupported");
+  });
+
+  it("rejects when the signature does not verify", async () => {
+    await setupMetadata();
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Subject>
+    <NameID>a@b.co</NameID>
+  </Subject>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="${makeFutureExpiry()}" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="a@b.co" userId="u1"/>
+</Assertion>`;
+    // Sign with a different key than the metadata cert.
+    const otherKp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const wrongKey = otherKp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(wrongKey, "base64");
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_signature_invalid");
+  });
 });
 
 describe("createMagicLinkToken / redeemMagicLinkToken", () => {
@@ -337,7 +536,10 @@ describe("createMagicLinkToken / redeemMagicLinkToken", () => {
     expect(token.email).toBe("user@example.com");
     expect(token.usedAt).toBeNull();
 
-    const result = redeemMagicLinkToken({ token: token.token, context: CONTEXT });
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.session.workspaceId).toBe("ws_1");
@@ -351,15 +553,24 @@ describe("createMagicLinkToken / redeemMagicLinkToken", () => {
       email: "user@example.com",
       context: CONTEXT,
     });
-    const first = redeemMagicLinkToken({ token: token.token, context: CONTEXT });
+    const first = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
     expect(first.ok).toBe(true);
-    const second = redeemMagicLinkToken({ token: token.token, context: CONTEXT });
+    const second = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.reason).toBe("magic_token_used");
   });
 
   it("rejects an unknown token", () => {
-    const result = redeemMagicLinkToken({ token: "ml_unknown", context: CONTEXT });
+    const result = redeemMagicLinkToken({
+      token: "ml_unknown",
+      context: CONTEXT,
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("magic_token_not_found");
   });
@@ -374,7 +585,10 @@ describe("createMagicLinkToken / redeemMagicLinkToken", () => {
     });
     // Manually backdate expiry to simulate expiration.
     token.expiresAt = new Date(past.getTime() - 1).toISOString();
-    const result = redeemMagicLinkToken({ token: token.token, context: CONTEXT });
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("magic_token_expired");
   });
@@ -489,6 +703,15 @@ describe("listActiveSessions / getActiveSession / revokeSession", () => {
     const revoked = revokeSession({
       workspaceId: "ws_other",
       sessionId: result.session.id,
+      actorUserId: "owner_1",
+    });
+    expect(revoked).toBe(false);
+  });
+
+  it("revokeSession returns false for a non-existent session", () => {
+    const revoked = revokeSession({
+      workspaceId: "ws_1",
+      sessionId: "sess_does_not_exist",
       actorUserId: "owner_1",
     });
     expect(revoked).toBe(false);
