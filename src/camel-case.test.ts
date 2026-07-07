@@ -38,4 +38,25 @@ describe("camelCase", () => {
   it("returns an empty string for input that has no alphanumeric characters", () => {
     expect(camelCase("!!! ??? ---")).toBe("");
   });
+
+  it("throws on null input", () => {
+    expect(() => camelCase(null as unknown as string)).toThrow(TypeError);
+    expect(() => camelCase(null as unknown as string)).toThrow(
+      "cannot be null or undefined",
+    );
+  });
+
+  it("throws on undefined input", () => {
+    expect(() => camelCase(undefined as unknown as string)).toThrow(TypeError);
+    expect(() => camelCase(undefined as unknown as string)).toThrow(
+      "cannot be null or undefined",
+    );
+  });
+
+  it("throws when given a non-string type", () => {
+    expect(() => camelCase(42 as unknown as string)).toThrow(TypeError);
+    expect(() => camelCase(42 as unknown as string)).toThrow(
+      "must be a string",
+    );
+  });
 });

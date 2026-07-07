@@ -6,10 +6,19 @@
  * rest. The first character is forced to lowercase, so leading whitespace or
  * punctuation does not leave a capital first letter.
  *
+ * Throws `TypeError` if `text` is `null`, `undefined`, or not a string.
+ *
  * @param text - The input string to convert.
  * @returns The camelCased string (e.g. `camelCase('hello world')` returns `'helloWorld'`).
  */
 export function camelCase(text: string): string {
+  if (text === null || text === undefined) {
+    throw new TypeError("Input cannot be null or undefined");
+  }
+  if (typeof text !== "string") {
+    throw new TypeError(`Input must be a string, got ${typeof text}`);
+  }
+
   const parts = text
     .trim()
     .toLowerCase()
