@@ -66,4 +66,56 @@ describe("kebabCase", () => {
   it("throws when given a non-string type", () => {
     expect(() => kebabCase(42 as unknown as string)).toThrow(TypeError);
   });
+
+  it("converts an acronym followed by a word boundary to kebab-case", () => {
+    expect(kebabCase("ABCDef")).toBe("abc-def");
+  });
+
+  it("converts consecutive uppercase letters followed by a lowercase word", () => {
+    expect(kebabCase("XMLHttpRequest")).toBe("xml-http-request");
+  });
+
+  it("handles a leading digit", () => {
+    expect(kebabCase("123abc")).toBe("123abc");
+  });
+
+  it("handles digits immediately followed by uppercase letters", () => {
+    expect(kebabCase("foo2Bar")).toBe("foo2-bar");
+  });
+
+  it("normalizes tabs and newlines like other non-alphanumeric characters", () => {
+    expect(kebabCase("foo\tbar\nbaz")).toBe("foo-bar-baz");
+  });
+
+  it("strips hyphens produced by adjacent uppercase-digits-uppercase boundaries", () => {
+    expect(kebabCase("A1B")).toBe("a1-b");
+  });
+
+  it("handles mixed underscores, dashes, and spaces as a single separator", () => {
+    expect(kebabCase("foo_bar-baz qux")).toBe("foo-bar-baz-qux");
+  });
+
+  it("preserves a single alphanumeric character surrounded by separators", () => {
+    expect(kebabCase("___a___")).toBe("a");
+  });
+
+  it("handles a string containing only hyphens", () => {
+    expect(kebabCase("---")).toBe("");
+  });
+
+  it("returns an empty string for input containing only non-alphanumeric punctuation", () => {
+    expect(kebabCase("!@#$%^&*()")).toBe("");
+  });
+
+  it("throws when given an object", () => {
+    expect(() => kebabCase({} as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws when given an array", () => {
+    expect(() => kebabCase([] as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws when given a boolean", () => {
+    expect(() => kebabCase(true as unknown as string)).toThrow(TypeError);
+  });
 });
