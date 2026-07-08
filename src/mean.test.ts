@@ -18,4 +18,17 @@ describe("mean", () => {
   it("returns 0 when all values are 0", () => {
     expect(mean([0, 0, 0])).toBe(0);
   });
+
+  it("throws TypeError when nums is null or undefined", () => {
+    expect(() => mean(null as unknown as number[])).toThrow(TypeError);
+    expect(() => mean(undefined as unknown as number[])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when any value is null, undefined, or NaN", () => {
+    expect(() => mean([1, null as unknown as number, 3])).toThrow(TypeError);
+    expect(() => mean([1, undefined as unknown as number, 3])).toThrow(
+      TypeError,
+    );
+    expect(() => mean([1, Number.NaN, 3])).toThrow(TypeError);
+  });
 });
