@@ -12,9 +12,16 @@
  *
  * @param line - A single line of CSV text (no trailing newline).
  * @returns An array of field strings. Returns an empty array for an empty line.
+ * @throws {TypeError} If `line` is not a string (null, undefined, number, etc.).
  * @throws {Error} If the line ends while a quoted field is still open.
  */
 export function parseCsvLine(line: string): string[] {
+  if (typeof line !== "string") {
+    throw new TypeError(
+      `parseCsvLine: expected a string, got ${line === null ? "null" : typeof line}`,
+    );
+  }
+
   const fields: string[] = [];
   let current = "";
   let inQuotes = false;

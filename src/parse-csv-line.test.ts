@@ -87,4 +87,40 @@ describe("parseCsvLine", () => {
   it("handles numbers and special characters in unquoted fields", () => {
     expect(parseCsvLine("1,2.5,-3,#tag")).toEqual(["1", "2.5", "-3", "#tag"]);
   });
+
+  describe("input validation", () => {
+    it("throws TypeError when called with undefined", () => {
+      expect(() => parseCsvLine(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when called with null", () => {
+      expect(() => parseCsvLine(null as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when called with a number", () => {
+      expect(() => parseCsvLine(42 as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when called with NaN", () => {
+      expect(() => parseCsvLine(NaN as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when called with a boolean", () => {
+      expect(() => parseCsvLine(true as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when called with an object", () => {
+      expect(() => parseCsvLine({} as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when called with an array", () => {
+      expect(() => parseCsvLine([] as unknown as string)).toThrow(TypeError);
+    });
+
+    it("error message mentions 'string' when input is wrong type", () => {
+      expect(() => parseCsvLine(123 as unknown as string)).toThrow(/string/);
+    });
+  });
 });
