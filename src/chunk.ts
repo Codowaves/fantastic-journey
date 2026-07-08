@@ -13,6 +13,12 @@
  * chunk([], 3); // []
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("chunk: arr must be an array");
+  }
+  if (size === null || size === undefined || Number.isNaN(size)) {
+    throw new TypeError("chunk: size must be a number");
+  }
   if (!Number.isInteger(size) || size <= 0) {
     throw new RangeError(`chunk: size must be a positive integer, got ${size}`);
   }
