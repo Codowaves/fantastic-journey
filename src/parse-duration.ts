@@ -9,6 +9,16 @@
  * @returns The total duration in milliseconds.
  */
 export function parseDuration(input: string): number {
+  if (input === null || input === undefined) {
+    throw new TypeError(
+      `parseDuration: input must be a string, got ${input === null ? "null" : "undefined"}`,
+    );
+  }
+  if (typeof input !== "string") {
+    throw new TypeError(
+      `parseDuration: input must be a string, got ${typeof input}`,
+    );
+  }
   if (!input || input.trim() === "") {
     throw new TypeError("Duration string cannot be empty");
   }
@@ -59,6 +69,10 @@ export function parseDuration(input: string): number {
     throw new TypeError(
       `Invalid duration format: trailing garbage "${remainder}"`,
     );
+  }
+
+  if (Number.isNaN(totalMs)) {
+    throw new TypeError("Duration string produced NaN result");
   }
 
   return totalMs;

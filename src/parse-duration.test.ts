@@ -134,5 +134,28 @@ describe("parseDuration", () => {
       expect(() => parseDuration("1h 2x")).toThrow(TypeError);
       expect(() => parseDuration("1h 2x")).toThrow("trailing garbage");
     });
+
+    it("throws on null input", () => {
+      expect(() => parseDuration(null as unknown as string)).toThrow(TypeError);
+      expect(() => parseDuration(null as unknown as string)).toThrow(
+        "input must be a string",
+      );
+    });
+
+    it("throws on undefined input", () => {
+      expect(() => parseDuration(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => parseDuration(undefined as unknown as string)).toThrow(
+        "input must be a string",
+      );
+    });
+
+    it("throws on non-string input", () => {
+      expect(() => parseDuration(123 as unknown as string)).toThrow(TypeError);
+      expect(() => parseDuration(123 as unknown as string)).toThrow(
+        "input must be a string",
+      );
+    });
   });
 });
