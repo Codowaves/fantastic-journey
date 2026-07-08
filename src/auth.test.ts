@@ -753,3 +753,232 @@ describe("resetAuthState", () => {
     ).toEqual(["owner_1", "user_1"]);
   });
 });
+
+describe("error path fallbacks (batch2)", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("contextFromRequest returns null ip/ua when no headers are present", () => {
+    const request = makeRequest({});
+    expect(contextFromRequest(request)).toEqual({ ip: null, userAgent: null });
+  });
+
+  it("contextFromRequest treats empty string headers as absent", () => {
+    const request = makeRequest({
+      "x-forwarded-for": "",
+      "x-real-ip": "",
+      "user-agent": "",
+    });
+    expect(contextFromRequest(request)).toEqual({ ip: null, userAgent: null });
+  });
+
+  it("authenticateSaml records a fail event when metadata is missing", () => {
+    const result = authenticateSaml({
+      workspaceId: "ws_unknown",
+      assertion: "<xml/>",
+      expectedAudience: "x",
+      expectedDestination: "y",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    const ev = events[0]!;
+    expect(ev.kind).toBe("fail");
+    expect(ev.reason).toBe("saml_metadata_missing");
+    expect(ev.workspace_id).toBe("ws_unknown");
+  });
+
+  it("authenticateSaml records an issuer mismatch fail event with parsed userId", async () => {
+    const kp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const cert = kp.publicKey
+      .export({ type: "spki", format: "pem" })
+      .toString();
+    const privateKey = kp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
+    const xml = makeSamlMetadataXml(cert);
+    await saveSamlMetadata({ workspaceId: "ws_1", xml });
+    const assertion = makeSignedSamlAssertion({
+      privateKey,
+      email: "a@b.co",
+      userId: "u1",
+      issuer: "https://attacker.example.com/entity",
+      audience: "https://sp.example.com",
+      destination: "https://sp.example.com/acs",
+      notOnOrAfter: new Date(Date.now() + 60_000).toISOString(),
+    });
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    const ev = events[0]!;
+    expect(ev.kind).toBe("fail");
+    expect(ev.reason).toBe("saml_issuer_invalid");
+    expect(ev.user_id).toBe("u1");
+  });
+
+  it("authenticateSaml records a signature invalid fail event", async () => {
+    const kp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const cert = kp.publicKey
+      .export({ type: "spki", format: "pem" })
+      .toString();
+    const xml = makeSamlMetadataXml(cert);
+    await saveSamlMetadata({ workspaceId: "ws_1", xml });
+    const otherKp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const wrongKey = otherKp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Subject><NameID>a@b.co</NameID></Subject>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="${new Date(Date.now() + 60_000).toISOString()}" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="a@b.co" userId="u1"/>
+</Assertion>`;
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(wrongKey, "base64");
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion,
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_signature_invalid");
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]!.reason).toBe("saml_signature_invalid");
+  });
+
+  it("redeemMagicLinkToken records a fail event for an unknown token", () => {
+    const result = redeemMagicLinkToken({
+      token: "ml_unknown",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    const event = events[0]!;
+    expect(event.kind).toBe("fail");
+    expect(event.reason).toBe("magic_token_not_found");
+    expect(event.workspace_id).toBeNull();
+    expect(event.user_id).toBeNull();
+  });
+
+  it("redeemMagicLinkToken records a fail event for an already-used token", () => {
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "user@example.com",
+      context: CONTEXT,
+    });
+    redeemMagicLinkToken({ token: token.token, context: CONTEXT });
+
+    const second = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
+    expect(second.ok).toBe(false);
+    const failEvents = listAuthEvents().filter(
+      (e) => e.reason === "magic_token_used",
+    );
+    expect(failEvents).toHaveLength(1);
+    const failEvent = failEvents[0]!;
+    expect(failEvent.kind).toBe("fail");
+    expect(failEvent.workspace_id).toBe("ws_1");
+  });
+
+  it("redeemMagicLinkToken records a fail event for an expired token", () => {
+    const past = new Date(Date.now() - 60_000);
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "exp@example.com",
+      context: CONTEXT,
+      now: past,
+    });
+    token.expiresAt = new Date(past.getTime() - 1).toISOString();
+
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const failEvents = listAuthEvents().filter(
+      (e) => e.reason === "magic_token_expired",
+    );
+    expect(failEvents).toHaveLength(1);
+  });
+
+  it("authenticatePassword records a fail event on invalid credentials", () => {
+    const result = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "owner_1",
+      password: "wrong",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    const ev = events[0]!;
+    expect(ev.kind).toBe("fail");
+    expect(ev.reason).toBe("password_invalid");
+    expect(ev.user_id).toBe("owner_1");
+  });
+
+  it("authenticatePassword records a fail event for unknown user", () => {
+    const result = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "ghost",
+      password: "password",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    const events = listAuthEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]!.reason).toBe("password_invalid");
+  });
+
+  it("revokeSession returns false when the actor does not exist", () => {
+    const result = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "owner_1",
+      password: "password",
+      context: CONTEXT,
+    });
+    if (!result.ok) throw new Error("expected login");
+    const revoked = revokeSession({
+      workspaceId: "ws_1",
+      sessionId: result.session.id,
+      actorUserId: "missing_actor",
+    });
+    expect(revoked).toBe(false);
+    // Session should remain unrevoked.
+    expect(getActiveSession(result.session.id)).not.toBeNull();
+  });
+
+  it("saveSamlMetadata throws saml_metadata_invalid when fetched body is not XML", async () => {
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        metadataUrl: "https://idp.example.com/metadata",
+        fetcher: async () => new Response("not xml at all", { status: 200 }),
+      }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+});
