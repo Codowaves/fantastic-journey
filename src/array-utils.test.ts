@@ -37,4 +37,33 @@ describe("unique", () => {
     const result = unique([true, false, true, true, false]);
     expect(result).toEqual([true, false]);
   });
+
+  it("throws TypeError when arr is null", () => {
+    expect(() => unique(null as unknown as number[])).toThrow(TypeError);
+    expect(() => unique(null as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is undefined", () => {
+    expect(() => unique(undefined as unknown as number[])).toThrow(TypeError);
+    expect(() => unique(undefined as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is NaN", () => {
+    expect(() => unique(NaN as unknown as number[])).toThrow(TypeError);
+    expect(() => unique(NaN as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is not an array", () => {
+    expect(() => unique("foo" as unknown as number[])).toThrow(TypeError);
+    expect(() => unique(123 as unknown as number[])).toThrow(TypeError);
+    expect(() => unique({ length: 0 } as unknown as number[])).toThrow(
+      TypeError,
+    );
+  });
 });
