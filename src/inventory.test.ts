@@ -132,5 +132,44 @@ describe("inventory helpers", () => {
       const item: InventoryItem = { sku: "A", qty: 5 };
       expect(restock(item, -5)).toEqual({ sku: "A", qty: 0 });
     });
+
+    it("totalQuantity sums items with negative quantities", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 10 },
+        { sku: "B", qty: -3 },
+        { sku: "C", qty: 2 },
+      ];
+      expect(totalQuantity(items)).toBe(9);
+    });
+
+    it("lowStock preserves the original order of input items", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 10 },
+        { sku: "B", qty: 1 },
+        { sku: "C", qty: 8 },
+        { sku: "D", qty: 2 },
+      ];
+      expect(lowStock(items)).toEqual([
+        { sku: "B", qty: 1 },
+        { sku: "D", qty: 2 },
+      ]);
+    });
+
+    it("lowStock returns a new array, not the same reference", () => {
+      const items: InventoryItem[] = [{ sku: "A", qty: 1 }];
+      const result = lowStock(items);
+      expect(result).not.toBe(items);
+    });
+
+    it("restock with NaN amount produces NaN quantity", () => {
+      const item: InventoryItem = { sku: "A", qty: 5 };
+      const result = restock(item, NaN);
+      expect(Number.isNaN(result.qty)).toBe(true);
+      expect(result.sku).toBe("A");
+    });
+
+    it("totalQuantity with a single-item inventory returns that quantity", () => {
+      expect(totalQuantity([{ sku: "SOLO", qty: 42 }])).toBe(42);
+    });
   });
 });
