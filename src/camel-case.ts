@@ -10,6 +10,14 @@
  *
  * @param text - The input string to convert.
  * @returns The camelCased string (e.g. `camelCase('hello world')` returns `'helloWorld'`).
+ *
+ * @example
+ * ```ts
+ * camelCase("hello world");        // "helloWorld"
+ * camelCase("  Foo-Bar_baz  ");    // "fooBarBaz"
+ * camelCase("ALREADY-CAMEL");      // "alreadyCamel"
+ * camelCase("");                   // ""
+ * ```
  */
 export function camelCase(text: string): string {
   if (text === null || text === undefined) {
