@@ -22,4 +22,34 @@ describe("isEven", () => {
   it("returns false for negative odd integers", () => {
     expect(isEven(-7)).toBe(false);
   });
+
+  it("returns false for NaN", () => {
+    expect(isEven(NaN)).toBe(false);
+  });
+
+  it("returns false for Infinity", () => {
+    expect(isEven(Infinity)).toBe(false);
+  });
+
+  it("returns false for negative Infinity", () => {
+    expect(isEven(-Infinity)).toBe(false);
+  });
+
+  it("returns false for non-integer finite numbers", () => {
+    expect(isEven(1.5)).toBe(false);
+    expect(isEven(-2.5)).toBe(false);
+  });
+
+  it("returns true for large positive even integers and false for large odd ones", () => {
+    expect(isEven(Number.MAX_SAFE_INTEGER - 1)).toBe(true);
+    expect(isEven(Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
+
+  it("returns true for large negative even integers", () => {
+    expect(isEven(-(Number.MAX_SAFE_INTEGER - 1))).toBe(true);
+  });
+
+  it("returns false for large negative odd integers", () => {
+    expect(isEven(-Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
 });
