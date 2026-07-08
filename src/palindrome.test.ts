@@ -30,4 +30,29 @@ describe("isPalindrome", () => {
     expect(isPalindrome("12321")).toBe(true);
     expect(isPalindrome("123")).toBe(false);
   });
+
+  it("should throw TypeError on null", () => {
+    expect(() => isPalindrome(null as unknown as string)).toThrow(TypeError);
+    expect(() => isPalindrome(null as unknown as string)).toThrow(
+      "Input cannot be null or undefined",
+    );
+  });
+
+  it("should throw TypeError on undefined", () => {
+    expect(() => isPalindrome(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => isPalindrome(undefined as unknown as string)).toThrow(
+      "Input cannot be null or undefined",
+    );
+  });
+
+  it("should throw TypeError on non-string input", () => {
+    expect(() => isPalindrome(123 as unknown as string)).toThrow(TypeError);
+    expect(() => isPalindrome(123 as unknown as string)).toThrow(
+      "Input must be a string, got number",
+    );
+    expect(() => isPalindrome({} as unknown as string)).toThrow(TypeError);
+    expect(() => isPalindrome([] as unknown as string)).toThrow(TypeError);
+  });
 });
