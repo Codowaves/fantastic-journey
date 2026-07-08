@@ -42,6 +42,33 @@ describe("euclidean", () => {
     expect(euclidean(Infinity, 0, 1, 1)).toBe(Infinity);
     expect(euclidean(0, 0, Infinity, 0)).toBe(Infinity);
   });
+
+  it("measures pure x-axis movement", () => {
+    expect(euclidean(2, 5, 7, 5)).toBe(5);
+  });
+
+  it("measures pure y-axis movement", () => {
+    expect(euclidean(4, 1, 4, 9)).toBe(8);
+  });
+
+  it("handles points straddling the origin", () => {
+    expect(euclidean(-5, -5, 5, 5)).toBeCloseTo(Math.sqrt(200));
+  });
+
+  it("satisfies the triangle inequality (Euclidean <= Manhattan on the same pair)", () => {
+    const ax = -3,
+      ay = 2,
+      bx = 4,
+      by = -1;
+    expect(euclidean(ax, ay, bx, by)).toBeLessThanOrEqual(
+      manhattan(ax, ay, bx, by),
+    );
+  });
+
+  it("returns Infinity for -Infinity coordinates", () => {
+    expect(euclidean(-Infinity, 0, 1, 1)).toBe(Infinity);
+    expect(euclidean(0, 0, -Infinity, 0)).toBe(Infinity);
+  });
 });
 
 describe("manhattan", () => {
@@ -83,5 +110,32 @@ describe("manhattan", () => {
   it("returns Infinity when any coordinate is Infinity", () => {
     expect(manhattan(Infinity, 0, 1, 1)).toBe(Infinity);
     expect(manhattan(0, 0, Infinity, 0)).toBe(Infinity);
+  });
+
+  it("measures pure x-axis movement", () => {
+    expect(manhattan(2, 5, 7, 5)).toBe(5);
+  });
+
+  it("measures pure y-axis movement", () => {
+    expect(manhattan(4, 1, 4, 9)).toBe(8);
+  });
+
+  it("handles points straddling the origin", () => {
+    expect(manhattan(-5, -5, 5, 5)).toBe(20);
+  });
+
+  it("always meets or exceeds the Euclidean distance", () => {
+    const ax = -3,
+      ay = 2,
+      bx = 4,
+      by = -1;
+    expect(manhattan(ax, ay, bx, by)).toBeGreaterThanOrEqual(
+      euclidean(ax, ay, bx, by),
+    );
+  });
+
+  it("returns Infinity for -Infinity coordinates", () => {
+    expect(manhattan(-Infinity, 0, 1, 1)).toBe(Infinity);
+    expect(manhattan(0, 0, -Infinity, 0)).toBe(Infinity);
   });
 });
