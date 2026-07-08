@@ -35,4 +35,45 @@ describe("countBy", () => {
   it("handles a single-element input", () => {
     expect(countBy([42], (n) => n)).toEqual({ 42: 1 });
   });
+
+  it("propagates an error thrown by keyFn on the first item", () => {
+    const boom = () => {
+      throw new Error("boom");
+    };
+    expect(() => countBy([1], boom)).toThrow("boom");
+  });
+
+  it("propagates an error thrown by keyFn on a later item", () => {
+    const items = [1, 2, 3];
+    const boom = (n: number) => {
+      if (n === 2) {
+        throw new Error("bad key");
+      }
+      return n;
+    };
+    expect(() => countBy(items, boom)).toThrow("bad key");
+  });
+
+  it("propagates a non-Error throw value from keyFn", () => {
+    const fn = (n: number) => {
+      if (n === 1) {
+        throw "string-throw";
+      }
+      return n;
+    };
+    expect(() => countBy([1], fn)).toThrow("string-throw");
+  });
+
+  it("does not mutate the input array when keyFn throws partway", () => {
+    const items = [1, 2, 3];
+    const snapshot = [...items];
+    const boom = (n: number) => {
+      if (n === 2) {
+        throw new Error("nope");
+      }
+      return n;
+    };
+    expect(() => countBy(items, boom)).toThrow("nope");
+    expect(items).toEqual(snapshot);
+  });
 });
