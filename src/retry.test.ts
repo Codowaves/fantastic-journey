@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { retry } from "./retry";
+import type { RetryOptions } from "./retry";
 
 describe("retry", () => {
   beforeEach(() => {
@@ -150,5 +151,80 @@ describe("retry", () => {
 
     const result = await promise;
     expect(result).toBe("success");
+  });
+
+  it("throws TypeError when fn is not a function", async () => {
+    await expect(
+      retry(null as unknown as () => Promise<unknown>),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      retry(undefined as unknown as () => Promise<unknown>),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      retry(42 as unknown as () => Promise<unknown>),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      retry("not a fn" as unknown as () => Promise<unknown>),
+    ).rejects.toThrow(TypeError);
+  });
+
+  it("throws TypeError when options is not an object", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, 42 as unknown as RetryOptions)).rejects.toThrow(
+      TypeError,
+    );
+    await expect(
+      retry(mockFn, "bad" as unknown as RetryOptions),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      retry(mockFn, true as unknown as RetryOptions),
+    ).rejects.toThrow(TypeError);
+  });
+
+  it("throws TypeError when options is null", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(
+      retry(mockFn, null as unknown as RetryOptions),
+    ).rejects.toThrow(TypeError);
+  });
+
+  it("throws TypeError when attempts is NaN", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, { attempts: Number.NaN })).rejects.toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws RangeError when attempts is Infinity", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(
+      retry(mockFn, { attempts: Number.POSITIVE_INFINITY }),
+    ).rejects.toThrow(RangeError);
+  });
+
+  it("throws TypeError when baseDelayMs is NaN", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, { baseDelayMs: Number.NaN })).rejects.toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws RangeError when baseDelayMs is negative", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, { baseDelayMs: -1 })).rejects.toThrow(
+      RangeError,
+    );
+  });
+
+  it("throws TypeError when factor is NaN", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, { factor: Number.NaN })).rejects.toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws RangeError when factor is negative", async () => {
+    const mockFn = vi.fn().mockResolvedValue("ok");
+    await expect(retry(mockFn, { factor: -1 })).rejects.toThrow(RangeError);
   });
 });

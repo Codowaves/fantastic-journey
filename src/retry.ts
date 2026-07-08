@@ -26,12 +26,49 @@ export async function retry<T>(
   fn: () => Promise<T>,
   options?: RetryOptions,
 ): Promise<T> {
+  if (typeof fn !== "function") {
+    throw new TypeError("fn must be a function");
+  }
+
+  if (
+    options !== undefined &&
+    (options === null || typeof options !== "object")
+  ) {
+    throw new TypeError("options must be an object");
+  }
+
   const attempts = options?.attempts ?? 3;
   const baseDelayMs = options?.baseDelayMs ?? 100;
   const factor = options?.factor ?? 2;
 
+  if (typeof attempts !== "number" || Number.isNaN(attempts)) {
+    throw new TypeError("attempts must be a finite number");
+  }
+  if (typeof baseDelayMs !== "number" || Number.isNaN(baseDelayMs)) {
+    throw new TypeError("baseDelayMs must be a finite number");
+  }
+  if (typeof factor !== "number" || Number.isNaN(factor)) {
+    throw new TypeError("factor must be a finite number");
+  }
+
+  if (
+    !Number.isFinite(attempts) ||
+    !Number.isFinite(baseDelayMs) ||
+    !Number.isFinite(factor)
+  ) {
+    throw new RangeError(
+      "attempts, baseDelayMs, and factor must be finite numbers",
+    );
+  }
+
   if (attempts < 1) {
     throw new RangeError("attempts must be at least 1");
+  }
+  if (baseDelayMs < 0) {
+    throw new RangeError("baseDelayMs must be non-negative");
+  }
+  if (factor < 0) {
+    throw new RangeError("factor must be non-negative");
   }
 
   let lastError: unknown;
