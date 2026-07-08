@@ -37,4 +37,30 @@ describe("lcm", () => {
     expect(() => lcm(Number.NaN, 5)).toThrow(TypeError);
     expect(() => lcm(5, Number.NaN)).toThrow(TypeError);
   });
+
+  it("returns 0 when both arguments are 0", () => {
+    expect(lcm(0, 0)).toBe(0);
+  });
+
+  it("treats negative inputs via the signed Euclidean branch", () => {
+    expect(lcm(-4, 6)).toBe(-12);
+    expect(lcm(4, -6)).toBe(12);
+    expect(lcm(-4, -6)).toBe(-12);
+  });
+
+  it("handles non-integer inputs via the modulo fallback branch", () => {
+    expect(lcm(4.5, 6)).toBe(18);
+    expect(lcm(6, 4.5)).toBe(18);
+  });
+
+  it("returns 0 when either argument is negative zero", () => {
+    expect(lcm(-0, 7)).toBe(0);
+    expect(lcm(7, -0)).toBe(0);
+    expect(lcm(-0, -0)).toBe(0);
+  });
+
+  it("exercises multi-step Euclidean reductions for larger coprime-like inputs", () => {
+    expect(lcm(1071, 462)).toBe(23562);
+    expect(lcm(252, 105)).toBe(1260);
+  });
 });
