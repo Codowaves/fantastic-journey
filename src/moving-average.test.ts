@@ -23,4 +23,18 @@ describe("movingAverage", () => {
     expect(() => movingAverage([1, 2, 3], 0)).toThrow(RangeError);
     expect(() => movingAverage([1, 2, 3], -1)).toThrow(RangeError);
   });
+
+  it("throws when the window size is NaN", () => {
+    expect(() => movingAverage([1, 2, 3], Number.NaN)).toThrow(TypeError);
+  });
+
+  it("throws when the series contains NaN", () => {
+    expect(() => movingAverage([1, Number.NaN, 3], 2)).toThrow(TypeError);
+  });
+
+  it("throws when the series contains a non-number value", () => {
+    expect(() => movingAverage([1, "2" as unknown as number, 3], 2)).toThrow(
+      TypeError,
+    );
+  });
 });
