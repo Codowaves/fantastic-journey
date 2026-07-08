@@ -36,6 +36,16 @@ describe("chunkWhile", () => {
     expect(chunkWhile([42], () => true)).toEqual([[42]]);
   });
 
+  it("keeps falsy values when they appear at chunk boundaries", () => {
+    expect(
+      chunkWhile([0, 0, false, false, "", ""], (a, b) => Object.is(a, b)),
+    ).toEqual([
+      [0, 0],
+      [false, false],
+      ["", ""],
+    ]);
+  });
+
   it("returns two single-element chunks for a two-item input when pred is false", () => {
     expect(chunkWhile([1, 2], (a, b) => a === b)).toEqual([[1], [2]]);
   });
@@ -67,5 +77,20 @@ describe("chunkWhile", () => {
     const input = [1, 1, 2, 2, 3];
     chunkWhile(input, (a, b) => a === b);
     expect(input).toEqual([1, 1, 2, 2, 3]);
+  });
+
+  it("throws TypeError when the input is not array-like", () => {
+    expect(() =>
+      chunkWhile(null as unknown as readonly number[], () => true),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is not a function", () => {
+    expect(() =>
+      chunkWhile(
+        [1, 2],
+        null as unknown as (prev: number, next: number) => boolean,
+      ),
+    ).toThrow(TypeError);
   });
 });
