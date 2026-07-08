@@ -61,4 +61,66 @@ describe("rotateArray", () => {
   it("throws RangeError when n is -Infinity", () => {
     expect(() => rotateArray([1, 2, 3], -Infinity)).toThrow(RangeError);
   });
+
+  it("returns a single-element array unchanged regardless of n", () => {
+    expect(rotateArray([42], 0)).toEqual([42]);
+    expect(rotateArray([42], 1)).toEqual([42]);
+    expect(rotateArray([42], -1)).toEqual([42]);
+    expect(rotateArray([42], 999)).toEqual([42]);
+  });
+
+  it("rotates a two-element array left", () => {
+    expect(rotateArray([1, 2], 1)).toEqual([2, 1]);
+  });
+
+  it("rotates a two-element array right (n = -1)", () => {
+    expect(rotateArray([1, 2], -1)).toEqual([2, 1]);
+  });
+
+  it("handles very large n (multiple of length)", () => {
+    expect(rotateArray([1, 2, 3, 4], 8)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("handles very large negative n (multiple of length)", () => {
+    expect(rotateArray([1, 2, 3, 4], -8)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("handles very large n that is NOT a multiple of length", () => {
+    expect(rotateArray([1, 2, 3, 4], 1000003)).toEqual([4, 1, 2, 3]);
+  });
+
+  it("truncates n = 0.5 to zero (positive fraction)", () => {
+    expect(rotateArray([1, 2, 3], 0.5)).toEqual([1, 2, 3]);
+  });
+
+  it("truncates n = -0.5 to zero (negative fraction)", () => {
+    expect(rotateArray([1, 2, 3], -0.5)).toEqual([1, 2, 3]);
+  });
+
+  it("treats -0 and +0 identically", () => {
+    expect(rotateArray([1, 2, 3], -0)).toEqual([1, 2, 3]);
+    expect(rotateArray([1, 2, 3], 0)).toEqual([1, 2, 3]);
+  });
+
+  it("preserves object element references", () => {
+    const a = { id: 1 };
+    const b = { id: 2 };
+    const c = { id: 3 };
+    expect(rotateArray([a, b, c], 1)).toEqual([b, c, a]);
+  });
+
+  it("preserves null and undefined elements", () => {
+    const arr = [null, undefined, 1, null] as Array<number | null | undefined>;
+    expect(rotateArray(arr, 1)).toEqual([undefined, 1, null, null]);
+  });
+
+  it("returns an empty array for empty input regardless of n", () => {
+    expect(rotateArray<number>([], 0)).toEqual([]);
+    expect(rotateArray<number>([], 1)).toEqual([]);
+    expect(rotateArray<number>([], -1)).toEqual([]);
+  });
+
+  it("still throws for empty input when n is NaN", () => {
+    expect(() => rotateArray<number>([], NaN)).toThrow(RangeError);
+  });
 });
