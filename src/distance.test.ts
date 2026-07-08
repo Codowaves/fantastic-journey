@@ -31,11 +31,32 @@ describe("euclidean", () => {
     expect(euclidean(0, 0, 0.3, 0.4)).toBeCloseTo(0.5);
   });
 
-  it("returns NaN when any coordinate is NaN", () => {
-    expect(euclidean(NaN, 0, 1, 1)).toBeNaN();
-    expect(euclidean(0, NaN, 1, 1)).toBeNaN();
-    expect(euclidean(0, 0, NaN, 1)).toBeNaN();
-    expect(euclidean(0, 0, 1, NaN)).toBeNaN();
+  it("throws TypeError when any coordinate is null or undefined", () => {
+    expect(() => euclidean(null as unknown as number, 0, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => euclidean(0, null as unknown as number, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => euclidean(0, 0, null as unknown as number, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => euclidean(0, 0, 1, null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => euclidean(undefined as unknown as number, 0, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => euclidean(0, 0, 1, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when any coordinate is NaN", () => {
+    expect(() => euclidean(NaN, 0, 1, 1)).toThrow(TypeError);
+    expect(() => euclidean(0, NaN, 1, 1)).toThrow(TypeError);
+    expect(() => euclidean(0, 0, NaN, 1)).toThrow(TypeError);
+    expect(() => euclidean(0, 0, 1, NaN)).toThrow(TypeError);
   });
 
   it("returns Infinity when any coordinate is Infinity", () => {
@@ -73,11 +94,32 @@ describe("manhattan", () => {
     expect(manhattan(0, 0, 0.3, 0.4)).toBeCloseTo(0.7);
   });
 
-  it("returns NaN when any coordinate is NaN", () => {
-    expect(manhattan(NaN, 0, 1, 1)).toBeNaN();
-    expect(manhattan(0, NaN, 1, 1)).toBeNaN();
-    expect(manhattan(0, 0, NaN, 1)).toBeNaN();
-    expect(manhattan(0, 0, 1, NaN)).toBeNaN();
+  it("throws TypeError when any coordinate is null or undefined", () => {
+    expect(() => manhattan(null as unknown as number, 0, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => manhattan(0, null as unknown as number, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => manhattan(0, 0, null as unknown as number, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => manhattan(0, 0, 1, null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => manhattan(undefined as unknown as number, 0, 1, 1)).toThrow(
+      TypeError,
+    );
+    expect(() => manhattan(0, 0, 1, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when any coordinate is NaN", () => {
+    expect(() => manhattan(NaN, 0, 1, 1)).toThrow(TypeError);
+    expect(() => manhattan(0, NaN, 1, 1)).toThrow(TypeError);
+    expect(() => manhattan(0, 0, NaN, 1)).toThrow(TypeError);
+    expect(() => manhattan(0, 0, 1, NaN)).toThrow(TypeError);
   });
 
   it("returns Infinity when any coordinate is Infinity", () => {

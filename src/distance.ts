@@ -1,3 +1,18 @@
+function validateCoord(ax: number, ay: number, bx: number, by: number): void {
+  if (ax === null || ax === undefined || Number.isNaN(ax)) {
+    throw new TypeError("ax must be a number");
+  }
+  if (ay === null || ay === undefined || Number.isNaN(ay)) {
+    throw new TypeError("ay must be a number");
+  }
+  if (bx === null || bx === undefined || Number.isNaN(bx)) {
+    throw new TypeError("bx must be a number");
+  }
+  if (by === null || by === undefined || Number.isNaN(by)) {
+    throw new TypeError("by must be a number");
+  }
+}
+
 /**
  * Computes the Euclidean (L2) distance between two 2D points.
  *
@@ -13,6 +28,7 @@ export function euclidean(
   bx: number,
   by: number,
 ): number {
+  validateCoord(ax, ay, bx, by);
   const dx = ax - bx;
   const dy = ay - by;
   return Math.sqrt(dx * dx + dy * dy);
@@ -33,5 +49,6 @@ export function manhattan(
   bx: number,
   by: number,
 ): number {
+  validateCoord(ax, ay, bx, by);
   return Math.abs(ax - bx) + Math.abs(ay - by);
 }
