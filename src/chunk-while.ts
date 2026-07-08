@@ -11,6 +11,16 @@
  * @param pred - Predicate called on each adjacent pair `(prev, next)`. While it
  *   returns `true`, the two items are kept in the same chunk.
  * @returns A new array of chunks. Returns an empty array if `arr` is empty.
+ *
+ * @example
+ * // Group consecutive numbers that are within 2 of each other.
+ * chunkWhile([1, 2, 4, 5, 8], (a, b) => b - a <= 2);
+ * // => [[1, 2, 4, 5], [8]]
+ *
+ * @example
+ * // Split on every boundary where the predicate returns false.
+ * chunkWhile(['a', 'b', 'B', 'c'], (a, b) => a.toLowerCase() === b.toLowerCase());
+ * // => [['a'], ['b', 'B'], ['c']]
  */
 export function chunkWhile<T>(
   arr: readonly T[],
