@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createLogger, maskEmail, maskEmails } from "./logger";
+import { createLogger, logger, maskEmail, maskEmails } from "./logger";
 import { runWithRequestContext } from "./requestContext";
 
 describe("logger", () => {
@@ -49,6 +49,79 @@ describe("logger", () => {
       "sent magic link to j*******@example.com from s******@acme.io",
     );
   });
+
+  it("writes debug and error entries at the correct level", () => {
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+
+    logger.debug("dbg", { k: 1 });
+    logger.error("boom", { k: 2 });
+
+    expect(lines).toHaveLength(2);
+    expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({
+      level: "debug",
+      message: "dbg",
+      k: 1,
+    });
+    expect(JSON.parse(lines[1] ?? "{}")).toMatchObject({
+      level: "error",
+      message: "boom",
+      k: 2,
+    });
+  });
+
+  it("strips a caller-supplied reqId field and uses the ambient one", () => {
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+
+    runWithRequestContext(
+      () => logger.info("event", { reqId: "caller_supplied", accountId: "a" }),
+      { reqId: "ambient_123" },
+    );
+
+    const entry = JSON.parse(lines[0] ?? "{}") as Record<string, unknown>;
+    expect(entry.reqId).toBe("ambient_123");
+    expect(entry.accountId).toBe("a");
+  });
+
+  it("omits reqId when caller supplies one outside a request context", () => {
+    const lines: string[] = [];
+    const logger = createLogger((line) => lines.push(line));
+
+    logger.info("event", { reqId: "caller_supplied" });
+
+    const entry = JSON.parse(lines[0] ?? "{}") as Record<string, unknown>;
+    expect(entry).not.toHaveProperty("reqId");
+  });
+
+  it("propagates JSON.stringify failures for non-serializable fields", () => {
+    const logger = createLogger();
+    const circular: Record<string, unknown> = { a: 1 };
+    circular.self = circular;
+
+    expect(() => logger.info("event", circular)).toThrow(TypeError);
+  });
+
+  it("writes a JSON-formatted line through the process-wide logger", () => {
+    const originalLog = console.log;
+    const captured: string[] = [];
+    console.log = (line: string) => {
+      captured.push(line);
+    };
+    try {
+      logger.info("hello");
+    } finally {
+      console.log = originalLog;
+    }
+
+    expect(captured).toHaveLength(1);
+    const entry = JSON.parse(captured[0] ?? "{}") as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      level: "info",
+      message: "hello",
+      timestamp: expect.any(String),
+    });
+  });
 });
 
 describe("maskEmail", () => {
@@ -63,6 +136,14 @@ describe("maskEmail", () => {
   it("leaves non-email strings unchanged", () => {
     expect(maskEmail("not-an-email")).toBe("not-an-email");
   });
+
+  it("returns an empty string unchanged", () => {
+    expect(maskEmail("")).toBe("");
+  });
+
+  it("returns strings with no local part unchanged", () => {
+    expect(maskEmail("@example.com")).toBe("@example.com");
+  });
 });
 
 describe("maskEmails", () => {
@@ -74,5 +155,15 @@ describe("maskEmails", () => {
 
   it("leaves strings without emails unchanged", () => {
     expect(maskEmails("no addresses here")).toBe("no addresses here");
+  });
+
+  it("returns an empty string unchanged", () => {
+    expect(maskEmails("")).toBe("");
+  });
+
+  it("masks emails adjacent to punctuation", () => {
+    expect(maskEmails("Contact a@x.com, or b@y.com.")).toBe(
+      "Contact *@x.com, or *@y.com.",
+    );
   });
 });
