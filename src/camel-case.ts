@@ -9,7 +9,31 @@
  * Throws `TypeError` if `text` is `null`, `undefined`, or not a string.
  *
  * @param text - The input string to convert.
- * @returns The camelCased string (e.g. `camelCase('hello world')` returns `'helloWorld'`).
+ * @returns The camelCased string.
+ *
+ * @example
+ * camelCase("hello world");
+ * // "helloWorld"
+ * camelCase("HelloWorld");
+ * // "helloWorld"
+ * camelCase("foo__bar--baz qux");
+ * // "fooBarBazQux"
+ * camelCase("item 42 price");
+ * // "item42Price"
+ *
+ * @example
+ * // Edge cases: empty or non-alphanumeric inputs return "".
+ * camelCase("");
+ * // ""
+ * camelCase("!!! ??? ---");
+ * // ""
+ *
+ * @example
+ * // Throws TypeError for null, undefined, or non-string input.
+ * camelCase(null);
+ * // TypeError: Input cannot be null or undefined
+ * camelCase(42);
+ * // TypeError: Input must be a string, got number
  */
 export function camelCase(text: string): string {
   if (text === null || text === undefined) {
