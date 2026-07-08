@@ -32,4 +32,38 @@ describe("maxBy", () => {
   it("handles negative keys", () => {
     expect(maxBy([-3, -7, -1, -10], (n) => n)).toBe(-1);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() => maxBy(null as unknown as number[], (n: number) => n)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      maxBy(undefined as unknown as number[], (n: number) => n),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is not a function", () => {
+    expect(() =>
+      maxBy([1, 2, 3], null as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      maxBy([1, 2, 3], undefined as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn returns null or undefined", () => {
+    expect(() => maxBy([1, 2, 3], () => null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      maxBy([1, 2, 3], () => undefined as unknown as number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn returns NaN", () => {
+    expect(() => maxBy([1, 2, 3], () => Number.NaN)).toThrow(TypeError);
+    expect(() => maxBy([1, Number.NaN, 3], (n: number) => n)).toThrow(
+      TypeError,
+    );
+  });
 });
