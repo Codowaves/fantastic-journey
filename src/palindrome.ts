@@ -4,6 +4,19 @@
  *
  * @param str - The string to evaluate.
  * @returns `true` if `str` is a palindrome after normalization; `false` otherwise.
+ *
+ * @example
+ * isPalindrome("racecar");                          // true
+ * isPalindrome("A man, a plan, a canal: Panama");   // true
+ * isPalindrome("hello");                            // false
+ *
+ * @remarks
+ * Edge cases:
+ * - Empty string returns `true` (an empty string reads the same forwards and backwards).
+ * - Single-character strings always return `true`.
+ * - Non-alphanumeric characters (spaces, punctuation, Unicode symbols) are stripped before comparison.
+ * - Comparison is case-insensitive after lowercasing the normalized string.
+ * - Numeric-only strings are treated the same as alphabetic strings.
  */
 export function isPalindrome(str: string): boolean {
   // Normalize: remove spaces and punctuation, keep alphanumeric, convert to lowercase
