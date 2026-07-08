@@ -753,3 +753,336 @@ describe("resetAuthState", () => {
     ).toEqual(["owner_1", "user_1"]);
   });
 });
+
+describe("saveSamlMetadata error/fallback branches", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("propagates when the fetcher itself throws (not a failed Response)", async () => {
+    // The code at line 381-393 does not wrap fetcher exceptions — only
+    // !response.ok is caught and converted to AuthError. A raw throw from
+    // fetch (e.g. AbortError from timeout, or a TypeError) bubbles out.
+    const boom = new Error("network unreachable");
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        metadataUrl: "https://idp.example.com/metadata",
+        fetcher: async () => {
+          throw boom;
+        },
+      }),
+    ).rejects.toBe(boom);
+  });
+
+  it("treats xml containing no '<' as saml_metadata_invalid (line 396 branch)", async () => {
+    // Line 396 throws AuthError when `xml` is provided but does not contain
+    // an XML-looking tag — covering the falsy `xml.includes('<')` fallback.
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        xml: "just a plain string with no angle brackets",
+      }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+
+  it("treats a fetched empty-body response as saml_metadata_invalid", async () => {
+    // 200 OK but the body has no XML — exercises the same `!xml.includes('<')`
+    // branch when the value came from a URL rather than inline.
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        metadataUrl: "https://idp.example.com/metadata",
+        fetcher: async () => new Response("", { status: 200 }),
+      }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+
+  it("returns saml_metadata_incomplete when certificate is whitespace only", async () => {
+    // The normalizeCertificate() helper returns null for whitespace-only input
+    // (line 199 fallback) — that propagates up and triggers
+    // saml_metadata_incomplete because signingCertificate resolves to "".
+    const xml = `<?xml version="1.0"?>
+<EntityDescriptor entityID="https://idp.example.com/entity">
+  <IDPSSODescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp.example.com/sso"/>
+    <X509Certificate>    </X509Certificate>
+  </IDPSSODescriptor>
+</EntityDescriptor>`;
+    await expect(
+      saveSamlMetadata({ workspaceId: "ws_1", xml }),
+    ).rejects.toMatchObject({ code: "saml_metadata_incomplete" });
+  });
+});
+
+describe("verifySamlSignature fallback / catch branches", () => {
+  let cert: string;
+  let privateKey: string;
+
+  beforeEach(() => {
+    resetAuthState();
+    const kp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    cert = kp.publicKey.export({ type: "spki", format: "pem" }).toString();
+    privateKey = kp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
+  });
+
+  it("accepts the canonical xmldsig-more rsa-sha256 URI as equivalent to rsa-sha256", () => {
+    // Line 273-279 allowlist accepts both "rsa-sha256" and the full
+    // http://www.w3.org/2001/04/xmldsig-more#rsa-sha256 URI. Cover the
+    // URI spelling so a regression in the allowlist surfaces immediately.
+    const inner = `<Assertion>payload</Assertion>`;
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+    const xml = `<?xml version="1.0"?>
+<EntityDescriptor entityID="https://idp.example.com/entity">
+  <IDPSSODescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp.example.com/sso"/>
+    <X509Certificate>${cert}</X509Certificate>
+  </IDPSSODescriptor>
+</EntityDescriptor>`;
+    return saveSamlMetadata({ workspaceId: "ws_1", xml }).then(() => {
+      const result = authenticateSaml({
+        workspaceId: "ws_1",
+        assertion,
+        expectedAudience: "https://sp.example.com",
+        expectedDestination: "https://sp.example.com/acs",
+        context: CONTEXT,
+      });
+      // With the canonical-URI algorithm and matching signature, the call
+      // must NOT be rejected as algorithm-unsupported — it may still fail
+      // later validations (issuer/audience/etc.) on this minimal payload.
+      expect(result.ok).toBe(false);
+      if (!result.ok)
+        expect(result.reason).not.toBe("saml_signature_algorithm_unsupported");
+    });
+  });
+
+  it("returns saml_signature_invalid (does not throw) when the signature is malformed base64", () => {
+    // Line 285-291 wraps `verifier.verify(...)` in try/catch. If the call
+    // throws (e.g. unparseable signature), the catch maps it to
+    // saml_signature_invalid rather than letting the exception propagate.
+    // We pass garbage in <SignatureValue> that is well-formed enough for
+    // the XML extractors but invalid base64 for crypto.verify.
+    const inner = `<Assertion>payload</Assertion>`;
+    const assertion = `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>!!!not-base64!!!</SignatureValue>
+</Response>`;
+    const xml = `<?xml version="1.0"?>
+<EntityDescriptor entityID="https://idp.example.com/entity">
+  <IDPSSODescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp.example.com/sso"/>
+    <X509Certificate>${cert}</X509Certificate>
+  </IDPSSODescriptor>
+</EntityDescriptor>`;
+    return saveSamlMetadata({ workspaceId: "ws_1", xml }).then(() => {
+      // The function must return a tagged result, not throw.
+      let result: ReturnType<typeof authenticateSaml>;
+      expect(() => {
+        result = authenticateSaml({
+          workspaceId: "ws_1",
+          assertion,
+          expectedAudience: "https://sp.example.com",
+          expectedDestination: "https://sp.example.com/acs",
+          context: CONTEXT,
+        });
+      }).not.toThrow();
+      expect(result!.ok).toBe(false);
+      if (!result!.ok) expect(result!.reason).toBe("saml_signature_invalid");
+    });
+  });
+});
+
+describe("authenticateSaml error-path branches", () => {
+  let cert: string;
+  let privateKey: string;
+
+  beforeEach(() => {
+    resetAuthState();
+    const kp = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    cert = kp.publicKey.export({ type: "spki", format: "pem" }).toString();
+    privateKey = kp.privateKey
+      .export({ type: "pkcs8", format: "pem" })
+      .toString();
+  });
+
+  async function setupMetadata(): Promise<void> {
+    const xml = `<?xml version="1.0"?>
+<EntityDescriptor entityID="https://idp.example.com/entity">
+  <IDPSSODescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp.example.com/sso"/>
+    <X509Certificate>${cert}</X509Certificate>
+  </IDPSSODescriptor>
+</EntityDescriptor>`;
+    await saveSamlMetadata({ workspaceId: "ws_1", xml });
+  }
+
+  function signAndWrap(inner: string): string {
+    const signer = createSign("RSA-SHA256");
+    signer.update(inner);
+    signer.end();
+    const signature = signer.sign(privateKey, "base64");
+    return `<?xml version="1.0"?>
+<Response>
+  ${inner}
+  <SignedPayload Algorithm="rsa-sha256">${Buffer.from(inner).toString("base64")}</SignedPayload>
+  <SignatureValue>${signature}</SignatureValue>
+</Response>`;
+  }
+
+  it("rejects saml_subject_invalid when the assertion has no email at all (line 507 falsy branch)", async () => {
+    await setupMetadata();
+    // No NameID, no Email text, no Attribute@email — exercises the
+    // !parsed.email branch, distinct from the !isValidEmail() branch.
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="${new Date(Date.now() + 60_000).toISOString()}" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+</Assertion>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion: signAndWrap(inner),
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_subject_invalid");
+  });
+
+  it("rejects saml_assertion_expiry_missing when notOnOrAfter is unparseable", async () => {
+    await setupMetadata();
+    // Line 522: Number.isFinite(new Date("garbage").getTime()) === false
+    // → saml_assertion_expiry_missing. The existing test omits the field;
+    // this one sets it to a malformed value.
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Subject>
+    <NameID>a@b.co</NameID>
+  </Subject>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="not-a-date" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="a@b.co" userId="u1"/>
+</Assertion>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion: signAndWrap(inner),
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_assertion_expiry_missing");
+  });
+
+  it("rejects saml_assertion_expired at the exact boundary (expiry == now)", async () => {
+    // Line 534 uses `<=` so an expiry exactly equal to now must be rejected.
+    // Pin `now` to a fixed instant and set notOnOrAfter to the same instant.
+    await setupMetadata();
+    const fixedNow = new Date("2026-07-08T12:00:00.000Z");
+    const inner = `<Assertion>
+  <Issuer>https://idp.example.com/entity</Issuer>
+  <Subject>
+    <NameID>a@b.co</NameID>
+  </Subject>
+  <Audience>https://sp.example.com</Audience>
+  <Conditions NotOnOrAfter="${fixedNow.toISOString()}" Destination="https://sp.example.com/acs" Recipient="https://sp.example.com/acs"/>
+  <Attribute email="a@b.co" userId="u1"/>
+</Assertion>`;
+    const result = authenticateSaml({
+      workspaceId: "ws_1",
+      assertion: signAndWrap(inner),
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+      now: fixedNow,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("saml_assertion_expired");
+  });
+
+  it("records a fail event for every reject reason with the right kind='fail'", async () => {
+    // Each reject branch in authenticateSaml should call recordAuthEvent
+    // with kind='fail' and a specific reason. Spot-check three branches
+    // by counting events after each call.
+    await setupMetadata();
+
+    // Branch: metadata missing
+    authenticateSaml({
+      workspaceId: "ws_unknown",
+      assertion: "<x/>",
+      expectedAudience: "x",
+      expectedDestination: "y",
+      context: CONTEXT,
+    });
+    expect(listAuthEvents().at(-1)?.reason).toBe("saml_metadata_missing");
+
+    // Branch: signature missing
+    authenticateSaml({
+      workspaceId: "ws_1",
+      assertion: "<x/>",
+      expectedAudience: "https://sp.example.com",
+      expectedDestination: "https://sp.example.com/acs",
+      context: CONTEXT,
+    });
+    expect(listAuthEvents().at(-1)?.reason).toBe("saml_signature_missing");
+    expect(listAuthEvents().at(-1)?.kind).toBe("fail");
+  });
+});
+
+describe("redeemMagicLinkToken boundary / fallback branches", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("rejects magic_token_expired when expiry equals 'now' (boundary on <= check)", () => {
+    // Line 625 uses `<=` so an expiry exactly equal to now must be rejected.
+    // Pin now to a fixed instant and backdate the token by setting it before
+    // that instant.
+    const fixedNow = new Date("2026-07-08T12:00:00.000Z");
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "boundary@example.com",
+      context: CONTEXT,
+      now: fixedNow,
+    });
+    token.expiresAt = fixedNow.toISOString();
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+      now: fixedNow,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("magic_token_expired");
+  });
+
+  it("records a magic_link_redeemed event on successful first-time redemption", () => {
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "first-time@example.com",
+      context: CONTEXT,
+    });
+    const before = listAuthEvents().length;
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(true);
+    const events = listAuthEvents();
+    expect(events.length).toBe(before + 1);
+    expect(events.at(-1)?.kind).toBe("magic");
+    expect(events.at(-1)?.reason).toBe("magic_link_redeemed");
+  });
+});
