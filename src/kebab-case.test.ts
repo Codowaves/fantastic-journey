@@ -57,13 +57,29 @@ describe("kebabCase", () => {
 
   it("throws on null input", () => {
     expect(() => kebabCase(null as unknown as string)).toThrow(TypeError);
+    expect(() => kebabCase(null as unknown as string)).toThrow(
+      "cannot be null or undefined",
+    );
   });
 
   it("throws on undefined input", () => {
     expect(() => kebabCase(undefined as unknown as string)).toThrow(TypeError);
+    expect(() => kebabCase(undefined as unknown as string)).toThrow(
+      "cannot be null or undefined",
+    );
   });
 
   it("throws when given a non-string type", () => {
     expect(() => kebabCase(42 as unknown as string)).toThrow(TypeError);
+    expect(() => kebabCase(42 as unknown as string)).toThrow(
+      "must be a string",
+    );
+  });
+
+  it("throws when given a boolean", () => {
+    expect(() => kebabCase(true as unknown as string)).toThrow(TypeError);
+    expect(() => kebabCase(true as unknown as string)).toThrow(
+      "must be a string",
+    );
   });
 });
