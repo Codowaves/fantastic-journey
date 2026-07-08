@@ -41,4 +41,52 @@ describe("omitBy", () => {
   it("returns an empty object for an empty input", () => {
     expect(omitBy({} as Record<string, number>, () => true)).toEqual({});
   });
+
+  it("throws TypeError when obj is null or undefined", () => {
+    expect(() =>
+      omitBy(null as unknown as Record<string, number>, () => false),
+    ).toThrow(TypeError);
+    expect(() =>
+      omitBy(undefined as unknown as Record<string, number>, () => false),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when obj is NaN", () => {
+    expect(() =>
+      omitBy(Number.NaN as unknown as Record<string, number>, () => false),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when obj is not an object", () => {
+    expect(() =>
+      omitBy("not an object" as unknown as Record<string, number>, () => false),
+    ).toThrow(TypeError);
+    expect(() =>
+      omitBy(42 as unknown as Record<string, number>, () => false),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is null or undefined", () => {
+    expect(() =>
+      omitBy({ a: 1 }, null as unknown as (v: number) => boolean),
+    ).toThrow(TypeError);
+    expect(() =>
+      omitBy({ a: 1 }, undefined as unknown as (v: number) => boolean),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is NaN", () => {
+    expect(() =>
+      omitBy({ a: 1 }, Number.NaN as unknown as (v: number) => boolean),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is not a function", () => {
+    expect(() =>
+      omitBy({ a: 1 }, "not a function" as unknown as (v: number) => boolean),
+    ).toThrow(TypeError);
+    expect(() =>
+      omitBy({ a: 1 }, 42 as unknown as (v: number) => boolean),
+    ).toThrow(TypeError);
+  });
 });
