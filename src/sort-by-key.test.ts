@@ -57,4 +57,49 @@ describe("sortByKey", () => {
       "b",
     ]);
   });
+
+  it("returns a single-element array unchanged", () => {
+    const input = [{ id: 42 }];
+    expect(sortByKey(input, "id")).toEqual([{ id: 42 }]);
+  });
+
+  it("sorts negative numbers correctly", () => {
+    const input = [{ id: 1 }, { id: -5 }, { id: 0 }, { id: -1 }, { id: 3 }];
+    expect(sortByKey(input, "id").map((x) => x.id)).toEqual([-5, -1, 0, 1, 3]);
+  });
+
+  it("sorts numbers that include zero without dropping them", () => {
+    const input = [{ id: 5 }, { id: 0 }, { id: 10 }, { id: 0 }];
+    expect(sortByKey(input, "id").map((x) => x.id)).toEqual([0, 0, 5, 10]);
+  });
+
+  it("sorts mixed-case strings using localeCompare ordering", () => {
+    const input = [{ name: "banana" }, { name: "Apple" }, { name: "cherry" }];
+    expect(sortByKey(input, "name").map((x) => x.name)).toEqual([
+      "Apple",
+      "banana",
+      "cherry",
+    ]);
+  });
+
+  it("falls back to a string comparison when key values are mixed types", () => {
+    type Mixed = { id: number | string };
+    const input: Mixed[] = [{ id: 10 }, { id: "2" }, { id: "1" }];
+    const sorted = sortByKey(input, "id");
+    // The comparator is typeof-driven: when either side is not a number,
+    // both values are coerced to strings and ordered via localeCompare.
+    // That means the number 10 is stringified as "10" and the whole
+    // comparison becomes lexicographic on the string forms.
+    expect(sorted.map((x) => String(x.id))).toEqual(["1", "10", "2"]);
+  });
+
+  it("sorts objects whose key values are non-ASCII characters", () => {
+    const input = [{ name: "oso" }, { name: "águila" }, { name: "ñandú" }];
+    const sorted = sortByKey(input, "name").map((x) => x.name);
+    // Per the host's default locale, the accented "á" must come first
+    // and the resulting array must contain all the input items.
+    expect(sorted).toHaveLength(input.length);
+    expect(sorted[0]).toBe("águila");
+    expect(new Set(sorted)).toEqual(new Set(input.map((x) => x.name)));
+  });
 });
