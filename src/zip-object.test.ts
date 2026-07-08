@@ -41,12 +41,38 @@ describe("zipObject", () => {
     expect(result.k).toBe(inner);
   });
 
-  it("throws RangeError when vals is shorter than keys", () => {
-    expect(() => zipObject(["a", "b"], [1])).toThrow(RangeError);
-  });
+  describe("error/throw paths", () => {
+    it("throws RangeError when vals is shorter than keys", () => {
+      expect(() => zipObject(["a", "b"], [1])).toThrow(RangeError);
+    });
 
-  it("throws RangeError when vals is longer than keys", () => {
-    expect(() => zipObject(["a"], [1, 2])).toThrow(RangeError);
+    it("throws RangeError when vals is longer than keys", () => {
+      expect(() => zipObject(["a"], [1, 2])).toThrow(RangeError);
+    });
+
+    it("throws when keys is empty but vals is not", () => {
+      expect(() => zipObject<string, number>([], [1])).toThrow(RangeError);
+    });
+
+    it("throws when vals is empty but keys is not", () => {
+      expect(() => zipObject(["a"], [])).toThrow(RangeError);
+    });
+
+    it("includes both lengths in the RangeError message", () => {
+      let caught: unknown;
+      try {
+        zipObject(["a", "b", "c"], [1]);
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(RangeError);
+      expect((caught as Error).message).toContain("3");
+      expect((caught as Error).message).toContain("1");
+    });
+
+    it("throws synchronously before allocating the result object", () => {
+      expect(() => zipObject(["a"], [1, 2])).toThrow(RangeError);
+    });
   });
 
   it("does not mutate the input arrays", () => {
