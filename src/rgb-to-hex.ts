@@ -10,6 +10,15 @@
  * @returns A `#rrggbb` hex color string.
  */
 export function rgbToHex(r: number, g: number, b: number): string {
+  if (r === null || r === undefined || Number.isNaN(r)) {
+    throw new TypeError("r must be a number");
+  }
+  if (g === null || g === undefined || Number.isNaN(g)) {
+    throw new TypeError("g must be a number");
+  }
+  if (b === null || b === undefined || Number.isNaN(b)) {
+    throw new TypeError("b must be a number");
+  }
   const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
   const toHex = (n: number) => clamp(n).toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
