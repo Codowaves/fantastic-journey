@@ -4,8 +4,16 @@
  * @param hex - A hex color string in the form `#RRGGBB` (without alpha).
  * @param amt - Non-negative integer amount to add to each channel; values are clamped to 255.
  * @returns A `#RRGGBB` hex string representing the lightened color.
+ * @throws {TypeError} If `hex` is null or undefined.
+ * @throws {TypeError} If `amt` is null, undefined, or NaN.
  */
 export function lighten(hex: string, amt: number) {
+  if (hex === null || hex === undefined) {
+    throw new TypeError("hex must be a string");
+  }
+  if (amt === null || amt === undefined || Number.isNaN(amt)) {
+    throw new TypeError("amt must be a number");
+  }
   const n = parseInt(hex.slice(1), 16);
   const r = Math.min(255, (n >> 16) + amt),
     g = Math.min(255, ((n >> 8) & 255) + amt),
