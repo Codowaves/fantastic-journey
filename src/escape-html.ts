@@ -16,6 +16,14 @@ const HTML_ESCAPES: Record<string, string> = {
  * @param str - The string to escape. Not mutated.
  * @returns A new string with HTML-significant characters replaced by entities.
  * @throws {TypeError} If `str` is null, undefined, or NaN.
+ *
+ * @example
+ * escapeHtml("<script>alert(\"xss\")</script>");
+ * // => "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;"
+ *
+ * @example
+ * escapeHtml("Tom & Jerry");
+ * // => "Tom &amp; Jerry"
  */
 export function escapeHtml(str: string): string {
   if (
