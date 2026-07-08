@@ -67,4 +67,38 @@ describe("hasDuplicates", () => {
     expect(() => hasDuplicates(ro)).not.toThrow();
     expect(hasDuplicates(ro)).toBe(false);
   });
+
+  it("throws a TypeError when input is null", () => {
+    expect(() => hasDuplicates(null as unknown as readonly number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws a TypeError when input is undefined", () => {
+    expect(() =>
+      hasDuplicates(undefined as unknown as readonly number[]),
+    ).toThrow(TypeError);
+  });
+
+  it("throws a TypeError when input is a number", () => {
+    expect(() => hasDuplicates(42 as unknown as readonly number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws a TypeError when input is a string", () => {
+    expect(() => hasDuplicates("abc" as unknown as readonly number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws a TypeError when input is a plain object", () => {
+    expect(() =>
+      hasDuplicates({
+        length: 2,
+        0: "a",
+        1: "b",
+      } as unknown as readonly string[]),
+    ).toThrow(TypeError);
+  });
 });
