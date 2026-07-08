@@ -11,11 +11,25 @@
  * @param pred - Predicate called on each adjacent pair `(prev, next)`. While it
  *   returns `true`, the two items are kept in the same chunk.
  * @returns A new array of chunks. Returns an empty array if `arr` is empty.
+ * @throws {TypeError} If `arr` is null, undefined, or not an array.
+ * @throws {TypeError} If `pred` is null, undefined, or not a function.
  */
 export function chunkWhile<T>(
   arr: readonly T[],
   pred: (prev: T, next: T) => boolean,
 ): T[][] {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("arr must be an array");
+  }
+  if (!Array.isArray(arr)) {
+    throw new TypeError("arr must be an array");
+  }
+  if (pred === null || pred === undefined) {
+    throw new TypeError("pred must be a function");
+  }
+  if (typeof pred !== "function") {
+    throw new TypeError("pred must be a function");
+  }
   const result: T[][] = [];
   if (arr.length === 0) {
     return result;

@@ -68,4 +68,73 @@ describe("chunkWhile", () => {
     chunkWhile(input, (a, b) => a === b);
     expect(input).toEqual([1, 1, 2, 2, 3]);
   });
+
+  it("throws TypeError when arr is null", () => {
+    expect(() =>
+      chunkWhile(null as unknown as number[], (a, b) => a === b),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when arr is undefined", () => {
+    expect(() =>
+      chunkWhile(undefined as unknown as number[], (a, b) => a === b),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when arr is not an array", () => {
+    expect(() =>
+      chunkWhile("not an array" as unknown as number[], (a, b) => a === b),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when arr is a number", () => {
+    expect(() =>
+      chunkWhile(42 as unknown as number[], (a, b) => a === b),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when arr is an object", () => {
+    expect(() =>
+      chunkWhile({} as unknown as number[], (a, b) => a === b),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is null", () => {
+    expect(() =>
+      chunkWhile(
+        [1, 2, 3],
+        null as unknown as (a: number, b: number) => boolean,
+      ),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is undefined", () => {
+    expect(() =>
+      chunkWhile(
+        [1, 2, 3],
+        undefined as unknown as (a: number, b: number) => boolean,
+      ),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is not a function", () => {
+    expect(() =>
+      chunkWhile(
+        [1, 2, 3],
+        "not a function" as unknown as (a: number, b: number) => boolean,
+      ),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is a number", () => {
+    expect(() =>
+      chunkWhile([1, 2, 3], 42 as unknown as (a: number, b: number) => boolean),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pred is an object", () => {
+    expect(() =>
+      chunkWhile([1, 2, 3], {} as unknown as (a: number, b: number) => boolean),
+    ).toThrow(TypeError);
+  });
 });
