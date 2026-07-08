@@ -793,6 +793,171 @@ describe("api v1 route handler", () => {
       const secondBody = (await second.json()) as { order: { id: string } };
       expect(secondBody.order.id).toBe(firstBody.order.id);
     });
+
+    it("returns 400 when currency is null", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: null,
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.stringContaining("currency must be one of"),
+      });
+    });
+
+    it("returns 400 when currency is a number", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: 42,
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.stringContaining("currency must be one of"),
+      });
+    });
+
+    it("returns 400 when an item is null", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [null],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "each item must be an object",
+      });
+    });
+
+    it("returns 400 when an item id is empty", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item id is whitespace only", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "   ", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item id is a number instead of a string", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: 123, qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item qty is NaN", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: Number.NaN, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item qty is Infinity", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: Number.POSITIVE_INFINITY, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item qty is a string", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: "2", unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item unitPrice is NaN", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: Number.NaN }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.unitPrice must be a non-negative number",
+      });
+    });
+
+    it("rejects the boundary unitPrice value of 0 because total is zero", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 0 }],
+      });
+
+      // unitPrice 0 passes input validation, but the resulting total is 0
+      // and processPayment requires a positive amount.
+      expect(response.status).toBe(400);
+    });
+
+    it("rejects a discountPercent of exactly 100 (zero total)", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: 100,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 50 }],
+      });
+
+      expect(response.status).toBe(400);
+    });
   });
 
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
