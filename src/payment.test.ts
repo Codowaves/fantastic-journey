@@ -33,6 +33,38 @@ describe("processPayment", () => {
       RangeError,
     );
   });
+
+  it("rejects positive Infinity", () => {
+    expect(() => processPayment({ amount: Infinity, currency: "USD" })).toThrow(
+      RangeError,
+    );
+  });
+
+  it("rejects negative Infinity", () => {
+    expect(() =>
+      processPayment({ amount: -Infinity, currency: "USD" }),
+    ).toThrow(RangeError);
+  });
+
+  it("accepts fractional cents (e.g. 0.01)", () => {
+    expect(processPayment({ amount: 0.01, currency: "USD" })).toEqual({
+      amount: 0.01,
+      currency: "USD",
+    });
+  });
+
+  it("accepts very large finite amounts", () => {
+    expect(
+      processPayment({ amount: Number.MAX_SAFE_INTEGER, currency: "USD" }),
+    ).toEqual({ amount: Number.MAX_SAFE_INTEGER, currency: "USD" });
+  });
+
+  it("preserves currency even when not USD", () => {
+    expect(processPayment({ amount: 100, currency: "JPY" })).toEqual({
+      amount: 100,
+      currency: "JPY",
+    });
+  });
 });
 
 describe("applyDiscount", () => {
@@ -67,6 +99,60 @@ describe("applyDiscount", () => {
     expect(() => applyDiscount({ amount: 10, currency: "USD" }, 101)).toThrow(
       RangeError,
     );
+  });
+
+  it("discounts a zero-amount price to zero", () => {
+    expect(applyDiscount({ amount: 0, currency: "USD" }, 50)).toEqual({
+      amount: 0,
+      currency: "USD",
+    });
+  });
+
+  it("handles a 50% discount cleanly", () => {
+    expect(applyDiscount({ amount: 99.99, currency: "USD" }, 50)).toEqual({
+      amount: 50,
+      currency: "USD",
+    });
+  });
+
+  it("handles a 33% discount (rounds 33.33 * 0.67 = 22.33)", () => {
+    expect(applyDiscount({ amount: 33.33, currency: "USD" }, 33)).toEqual({
+      amount: 22.33,
+      currency: "USD",
+    });
+  });
+
+  it("rounds to cents on a sub-cent price (0.001 -> 0.00)", () => {
+    expect(applyDiscount({ amount: 0.001, currency: "USD" }, 10)).toEqual({
+      amount: 0,
+      currency: "USD",
+    });
+  });
+
+  it("preserves non-USD currency", () => {
+    expect(applyDiscount({ amount: 1000, currency: "JPY" }, 10)).toEqual({
+      amount: 900,
+      currency: "JPY",
+    });
+  });
+
+  it("rejects percentOff of negative infinity", () => {
+    expect(() =>
+      applyDiscount({ amount: 10, currency: "USD" }, -Infinity),
+    ).toThrow(RangeError);
+  });
+
+  it("rejects percentOff of positive infinity", () => {
+    expect(() =>
+      applyDiscount({ amount: 10, currency: "USD" }, Infinity),
+    ).toThrow(RangeError);
+  });
+
+  it("does not throw on NaN percentOff (current behavior: NaN comparisons are false)", () => {
+    expect(applyDiscount({ amount: 10, currency: "USD" }, NaN)).toEqual({
+      amount: NaN,
+      currency: "USD",
+    });
   });
 });
 
@@ -110,6 +196,61 @@ describe("totalWithTax", () => {
       ),
     ).toEqual({ amount: 3.33, currency: "USD" });
   });
+
+  it("handles a single-item array", () => {
+    expect(totalWithTax([{ amount: 10, currency: "USD" }], 0.1)).toEqual({
+      amount: 11,
+      currency: "USD",
+    });
+  });
+
+  it("returns zero for an empty array even with non-zero tax", () => {
+    expect(totalWithTax([], 0.0825)).toEqual({ amount: 0, currency: "USD" });
+  });
+
+  it("sums many items correctly", () => {
+    const items: Money[] = Array.from({ length: 100 }, () => ({
+      amount: 1,
+      currency: "USD",
+    }));
+    expect(totalWithTax(items, 0)).toEqual({ amount: 100, currency: "USD" });
+  });
+
+  it("treats negative amounts as subtracting from the subtotal", () => {
+    expect(
+      totalWithTax(
+        [
+          { amount: 10, currency: "USD" },
+          { amount: -3, currency: "USD" },
+        ],
+        0,
+      ),
+    ).toEqual({ amount: 7, currency: "USD" });
+  });
+
+  it("rounds half-up at the cent boundary (0.005 -> 0.01)", () => {
+    expect(
+      totalWithTax(
+        [
+          { amount: 0.01, currency: "USD" },
+          { amount: 0.01, currency: "USD" },
+        ],
+        1.5,
+      ),
+    ).toEqual({ amount: 0.05, currency: "USD" });
+  });
+
+  it("applies a negative tax rate (discount) symmetrically", () => {
+    expect(
+      totalWithTax(
+        [
+          { amount: 100, currency: "USD" },
+          { amount: 0, currency: "USD" },
+        ],
+        -0.1,
+      ),
+    ).toEqual({ amount: 90, currency: "USD" });
+  });
 });
 
 describe("isRefundEligible", () => {
@@ -133,5 +274,35 @@ describe("isRefundEligible", () => {
     const fiveDaysAgo = new Date(Date.now() - 5 * MS_PER_DAY);
     expect(isRefundEligible(fiveDaysAgo, 3)).toBe(false);
     expect(isRefundEligible(fiveDaysAgo, 7)).toBe(true);
+  });
+
+  it("returns false for a 1-day-old order with a 0-day window", () => {
+    const oneDayAgo = new Date(Date.now() - MS_PER_DAY);
+    expect(isRefundEligible(oneDayAgo, 0)).toBe(false);
+  });
+
+  it("returns false for any past order with a 0-day window", () => {
+    const justNow = new Date();
+    expect(isRefundEligible(justNow, 0)).toBe(false);
+  });
+
+  it("returns true for a future-dated order (clock skew / pre-orders)", () => {
+    const future = new Date(Date.now() + 5 * MS_PER_DAY);
+    expect(isRefundEligible(future)).toBe(true);
+  });
+
+  it("returns false for an order right at the 30-day boundary", () => {
+    const justOverBoundary = new Date(Date.now() - 30 * MS_PER_DAY - 1);
+    expect(isRefundEligible(justOverBoundary)).toBe(false);
+  });
+
+  it("returns true for an order just inside the 30-day boundary", () => {
+    const justInside = new Date(Date.now() - 29 * MS_PER_DAY);
+    expect(isRefundEligible(justInside)).toBe(true);
+  });
+
+  it("honors a fractional-day window (0.5 days ~= 12 hours)", () => {
+    const thirteenHoursAgo = new Date(Date.now() - 13 * 60 * 60 * 1000);
+    expect(isRefundEligible(thirteenHoursAgo, 0.5)).toBe(false);
   });
 });
