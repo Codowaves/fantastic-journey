@@ -11,8 +11,16 @@
  * @param arr - The array to encode. Not mutated.
  * @returns A new array of `[value, count]` tuples. Returns an empty array if
  *   `arr` is empty.
+ * @throws {TypeError} If `arr` is null, undefined, or NaN.
  */
 export function runLength<T>(arr: readonly T[]): [T, number][] {
+  if (
+    arr === null ||
+    arr === undefined ||
+    (typeof arr === "number" && Number.isNaN(arr))
+  ) {
+    throw new TypeError("arr must be an array");
+  }
   return arr.reduce<[T, number][]>((acc, value) => {
     const last = acc[acc.length - 1];
     if (last !== undefined && last[0] === value) {

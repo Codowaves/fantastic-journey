@@ -77,4 +77,27 @@ describe("runLength", () => {
     runLength(input);
     expect(input).toEqual(snapshot);
   });
+
+  it("throws TypeError when arr is null", () => {
+    expect(() => runLength(null as unknown as number[])).toThrow(TypeError);
+    expect(() => runLength(null as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is undefined", () => {
+    expect(() => runLength(undefined as unknown as number[])).toThrow(
+      TypeError,
+    );
+    expect(() => runLength(undefined as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is NaN", () => {
+    expect(() => runLength(NaN as unknown as number[])).toThrow(TypeError);
+    expect(() => runLength(NaN as unknown as number[])).toThrow(
+      "arr must be an array",
+    );
+  });
 });
