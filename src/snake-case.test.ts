@@ -26,4 +26,16 @@ describe("snakeCase", () => {
   it("strips non-alphanumeric characters", () => {
     expect(snakeCase("Hello, World!")).toBe("hello_world");
   });
+
+  it("throws TypeError on null input", () => {
+    expect(() => snakeCase(null as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError on undefined input", () => {
+    expect(() => snakeCase(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when given a non-string type", () => {
+    expect(() => snakeCase(42 as unknown as string)).toThrow(TypeError);
+  });
 });
