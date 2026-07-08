@@ -25,6 +25,24 @@ describe("subtotal", () => {
   it("handles fractional prices", () => {
     expect(subtotal([{ price: 1.99, qty: 3 }])).toBeCloseTo(5.97);
   });
+
+  it("throws TypeError when ls is null or undefined", () => {
+    expect(() => subtotal(null as unknown as Line[])).toThrow(TypeError);
+    expect(() => subtotal(undefined as unknown as Line[])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when a line has a NaN price", () => {
+    expect(() => subtotal([{ price: Number.NaN, qty: 1 }])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when a line has a NaN qty", () => {
+    expect(() => subtotal([{ price: 10, qty: Number.NaN }])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when a line is null or undefined", () => {
+    expect(() => subtotal([null as unknown as Line])).toThrow(TypeError);
+    expect(() => subtotal([undefined as unknown as Line])).toThrow(TypeError);
+  });
 });
 
 describe("applyCoupon", () => {
@@ -50,5 +68,23 @@ describe("applyCoupon", () => {
 
   it("keeps total unchanged at 0", () => {
     expect(applyCoupon(0, 50)).toBe(0);
+  });
+
+  it("throws TypeError when total is null, undefined, or NaN", () => {
+    expect(() => applyCoupon(null as unknown as number, 10)).toThrow(TypeError);
+    expect(() => applyCoupon(undefined as unknown as number, 10)).toThrow(
+      TypeError,
+    );
+    expect(() => applyCoupon(Number.NaN, 10)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when pct is null, undefined, or NaN", () => {
+    expect(() => applyCoupon(100, null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => applyCoupon(100, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => applyCoupon(100, Number.NaN)).toThrow(TypeError);
   });
 });
