@@ -48,4 +48,37 @@ describe("uniqueBy", () => {
     const result = uniqueBy(items, (item) => item.name);
     expect(result).toEqual([{ name: "alice" }, { name: "bob" }]);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() =>
+      uniqueBy(null as unknown as { id: number }[], (item) => item.id),
+    ).toThrow(TypeError);
+    expect(() =>
+      uniqueBy(undefined as unknown as { id: number }[], (item) => item.id),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when keyFn is not a function", () => {
+    expect(() =>
+      uniqueBy([1, 2, 3], null as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      uniqueBy([1, 2, 3], undefined as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when keyFn returns null, undefined, or NaN", () => {
+    const items = [{ v: null }, { v: 1 }];
+    expect(() =>
+      uniqueBy(items, (item) => item.v as unknown as number),
+    ).toThrow(TypeError);
+
+    const undefItems = [{ v: undefined }, { v: 1 }];
+    expect(() =>
+      uniqueBy(undefItems, (item) => item.v as unknown as number),
+    ).toThrow(TypeError);
+
+    const nanItems = [{ v: Number.NaN }, { v: 1 }];
+    expect(() => uniqueBy(nanItems, (item) => item.v)).toThrow(TypeError);
+  });
 });
