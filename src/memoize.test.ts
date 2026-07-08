@@ -37,4 +37,25 @@ describe("memoize", () => {
     expect(first).toBe(second);
     expect(first).toEqual({ value: 7 });
   });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() =>
+      memoize(null as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      memoize(undefined as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is not a function", () => {
+    expect(() =>
+      memoize(42 as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      memoize("not-a-fn" as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      memoize({} as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+  });
 });

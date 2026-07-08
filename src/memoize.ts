@@ -6,6 +6,15 @@
 export function memoize<A extends unknown[], R>(
   fn: (...args: A) => R,
 ): (...args: A) => R {
+  if (fn === null || fn === undefined) {
+    throw new TypeError("fn must be a function");
+  }
+  if (typeof fn !== "function") {
+    throw new TypeError("fn must be a function");
+  }
+  if (Number.isNaN(fn as unknown as number)) {
+    throw new TypeError("fn must be a function");
+  }
   const cache = new Map<string, R>();
   return (...args: A): R => {
     const key = JSON.stringify(args);
