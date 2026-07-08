@@ -27,6 +27,34 @@ describe("formatUsd", () => {
   it("pads single-digit cents with a leading zero", () => {
     expect(formatUsd(105)).toBe("$1.05");
   });
+
+  it("formats a single cent as $0.01", () => {
+    expect(formatUsd(1)).toBe("$0.01");
+  });
+
+  it("formats negative amounts with a leading minus", () => {
+    expect(formatUsd(-500)).toBe("$-5.00");
+  });
+
+  it("formats negative single cent as $-0.01", () => {
+    expect(formatUsd(-1)).toBe("$-0.01");
+  });
+
+  it("handles one cent below a round dollar", () => {
+    expect(formatUsd(99)).toBe("$0.99");
+  });
+
+  it("formats one cent above a round dollar", () => {
+    expect(formatUsd(101)).toBe("$1.01");
+  });
+
+  it("produces NaN output for NaN input", () => {
+    expect(formatUsd(Number.NaN)).toBe("$NaN");
+  });
+
+  it("produces Infinity output for Infinity input", () => {
+    expect(formatUsd(Number.POSITIVE_INFINITY)).toBe("$Infinity");
+  });
 });
 
 describe("addTax", () => {
@@ -58,5 +86,41 @@ describe("addTax", () => {
 
   it("handles a typical sales tax of 8.875%", () => {
     expect(addTax(1000, 0.08875)).toBe(1089);
+  });
+
+  it("returns a negative amount when cents is negative and rate is zero", () => {
+    expect(addTax(-1000, 0)).toBe(-1000);
+  });
+
+  it("reduces a negative amount when tax is applied (becomes less negative)", () => {
+    expect(addTax(-1000, 0.1)).toBe(-1100);
+  });
+
+  it("negates the amount when rate is negative (discount)", () => {
+    expect(addTax(1000, -0.5)).toBe(500);
+  });
+
+  it("returns 0 when rate is 0 and amount is 0", () => {
+    expect(addTax(0, 0)).toBe(0);
+  });
+
+  it("handles a single cent amount with 0% tax", () => {
+    expect(addTax(1, 0)).toBe(1);
+  });
+
+  it("handles a single cent amount with 50% tax", () => {
+    expect(addTax(1, 0.5)).toBe(2);
+  });
+
+  it("handles a rate greater than 1 (e.g. 200%)", () => {
+    expect(addTax(1000, 2)).toBe(3000);
+  });
+
+  it("returns NaN when cents is NaN", () => {
+    expect(Number.isNaN(addTax(Number.NaN, 0.1))).toBe(true);
+  });
+
+  it("returns NaN when rate is NaN", () => {
+    expect(Number.isNaN(addTax(1000, Number.NaN))).toBe(true);
   });
 });
