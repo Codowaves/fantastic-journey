@@ -133,4 +133,108 @@ describe("inventory helpers", () => {
       expect(restock(item, -5)).toEqual({ sku: "A", qty: 0 });
     });
   });
+
+  describe("additional edge cases (batch2)", () => {
+    it("totalQuantity returns the single item's quantity for a one-item list", () => {
+      expect(totalQuantity([{ sku: "only", qty: 42 }])).toBe(42);
+    });
+
+    it("totalQuantity sums an all-zero inventory to 0", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 0 },
+        { sku: "B", qty: 0 },
+        { sku: "C", qty: 0 },
+      ];
+      expect(totalQuantity(items)).toBe(0);
+    });
+
+    it("totalQuantity sums large quantities accurately", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 1_000_000 },
+        { sku: "B", qty: 2_000_000 },
+        { sku: "C", qty: 3_000_000 },
+      ];
+      expect(totalQuantity(items)).toBe(6_000_000);
+    });
+
+    it("totalQuantity handles a mix of positive, zero, and negative quantities", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 10 },
+        { sku: "B", qty: -3 },
+        { sku: "C", qty: 0 },
+        { sku: "D", qty: 5 },
+      ];
+      expect(totalQuantity(items)).toBe(12);
+    });
+
+    it("lowStock returns a single matching item when only one is below the threshold", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 0 },
+        { sku: "B", qty: 10 },
+      ];
+      expect(lowStock(items)).toEqual([{ sku: "A", qty: 0 }]);
+    });
+
+    it("lowStock with a negative threshold returns only items below that negative value", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: -10 },
+        { sku: "B", qty: -2 },
+        { sku: "C", qty: 0 },
+        { sku: "D", qty: 5 },
+      ];
+      expect(lowStock(items, -5)).toEqual([{ sku: "A", qty: -10 }]);
+    });
+
+    it("lowStock with a very large threshold returns every item", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 1 },
+        { sku: "B", qty: 2 },
+        { sku: "C", qty: 3 },
+      ];
+      expect(lowStock(items, Number.MAX_SAFE_INTEGER)).toEqual(items);
+    });
+
+    it("lowStock treats duplicate SKUs as independent items", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: 1 },
+        { sku: "A", qty: 2 },
+        { sku: "B", qty: 3 },
+      ];
+      expect(lowStock(items, 3)).toEqual([
+        { sku: "A", qty: 1 },
+        { sku: "A", qty: 2 },
+      ]);
+    });
+
+    it("lowStock includes items with negative quantities regardless of threshold", () => {
+      const items: InventoryItem[] = [
+        { sku: "A", qty: -1 },
+        { sku: "B", qty: 100 },
+      ];
+      expect(lowStock(items, 0)).toEqual([{ sku: "A", qty: -1 }]);
+    });
+
+    it("restock supports a negative amount that overshoots zero into negative territory", () => {
+      const item: InventoryItem = { sku: "A", qty: 2 };
+      expect(restock(item, -5)).toEqual({ sku: "A", qty: -3 });
+    });
+
+    it("restock from a negative starting quantity increases toward zero", () => {
+      const item: InventoryItem = { sku: "A", qty: -10 };
+      expect(restock(item, 7)).toEqual({ sku: "A", qty: -3 });
+    });
+
+    it("restock preserves the original sku and does not mutate it", () => {
+      const item: InventoryItem = { sku: "ORIGINAL-SKU", qty: 1 };
+      const result = restock(item, 4);
+      expect(item.sku).toBe("ORIGINAL-SKU");
+      expect(result.sku).toBe("ORIGINAL-SKU");
+      expect(result.qty).toBe(5);
+    });
+
+    it("restock handles large restock amounts", () => {
+      const item: InventoryItem = { sku: "A", qty: 0 };
+      expect(restock(item, 1_000_000)).toEqual({ sku: "A", qty: 1_000_000 });
+    });
+  });
 });
