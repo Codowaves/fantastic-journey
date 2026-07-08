@@ -17,6 +17,17 @@ describe("kelvinToCelsius", () => {
   it("converts body temperature", () => {
     expect(kelvinToCelsius(310.15)).toBeCloseTo(37);
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => kelvinToCelsius(null as unknown as number)).toThrow(TypeError);
+    expect(() => kelvinToCelsius(undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => kelvinToCelsius(Number.NaN)).toThrow(TypeError);
+  });
 });
 
 describe("celsiusToKelvin", () => {
@@ -34,5 +45,16 @@ describe("celsiusToKelvin", () => {
 
   it("converts body temperature", () => {
     expect(celsiusToKelvin(37)).toBeCloseTo(310.15);
+  });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => celsiusToKelvin(null as unknown as number)).toThrow(TypeError);
+    expect(() => celsiusToKelvin(undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => celsiusToKelvin(Number.NaN)).toThrow(TypeError);
   });
 });
