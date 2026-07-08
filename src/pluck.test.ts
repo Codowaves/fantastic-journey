@@ -22,4 +22,31 @@ describe("pluck", () => {
     const result: string[] = pluck(items, "v");
     expect(result).toEqual(["a", "b"]);
   });
+
+  it("throws TypeError when arr is null", () => {
+    expect(() => pluck(null as unknown as { id: number }[], "id")).toThrow(
+      TypeError,
+    );
+    expect(() => pluck(null as unknown as { id: number }[], "id")).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is undefined", () => {
+    expect(() => pluck(undefined as unknown as { id: number }[], "id")).toThrow(
+      TypeError,
+    );
+    expect(() => pluck(undefined as unknown as { id: number }[], "id")).toThrow(
+      "arr must be an array",
+    );
+  });
+
+  it("throws TypeError when arr is NaN", () => {
+    expect(() =>
+      pluck(Number.NaN as unknown as { id: number }[], "id"),
+    ).toThrow(TypeError);
+    expect(() =>
+      pluck(Number.NaN as unknown as { id: number }[], "id"),
+    ).toThrow("arr must be an array");
+  });
 });
