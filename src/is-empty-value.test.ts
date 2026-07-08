@@ -40,6 +40,17 @@ describe("isEmptyValue", () => {
     expect(isEmptyValue(42)).toBe(false);
   });
 
+  it("returns false for NaN (explicit input-validation guard)", () => {
+    expect(isEmptyValue(NaN)).toBe(false);
+    expect(Number.isNaN(isEmptyValue(NaN) as unknown as number)).toBe(false);
+  });
+
+  it("returns false for NaN-like coercion (Number.isNaN narrows before fallback)", () => {
+    const notANumber: unknown = Number("not-a-number");
+    expect(Number.isNaN(notANumber)).toBe(true);
+    expect(isEmptyValue(notANumber)).toBe(false);
+  });
+
   it("returns false for booleans", () => {
     expect(isEmptyValue(false)).toBe(false);
     expect(isEmptyValue(true)).toBe(false);
