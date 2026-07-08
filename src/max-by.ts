@@ -7,6 +7,17 @@
  * @param arr - The array to inspect.
  * @param fn - A function that derives a comparable key from each element.
  * @returns The element with the largest key, or `undefined` when `arr` is empty.
+ *
+ * @example
+ * maxBy(
+ *   [{ name: "Ada", score: 36 }, { name: "Bob", score: 24 }, { name: "Cleo", score: 51 }],
+ *   (p) => p.score,
+ * );
+ * // { name: "Cleo", score: 51 }
+ * maxBy([10, 20, 30], (n) => n);
+ * // 30
+ * maxBy([], (n: number) => n);
+ * // undefined
  */
 export function maxBy<T>(arr: T[], fn: (item: T) => number): T | undefined {
   if (arr.length === 0) {
