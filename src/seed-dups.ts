@@ -4,9 +4,17 @@
  *
  * @param a - The array to scan.
  * @returns The first duplicated element, or `undefined` when none exist.
+ * @throws {TypeError} If `a` is null, undefined, or NaN.
  */
 // O(n)
 export function firstDup<T>(a: T[]): T | undefined {
+  if (
+    a === null ||
+    a === undefined ||
+    (typeof a === "number" && Number.isNaN(a))
+  ) {
+    throw new TypeError("a must be an array");
+  }
   const s = new Set<T>();
   for (const x of a)
     if (s.has(x)) return x;
