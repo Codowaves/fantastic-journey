@@ -175,4 +175,60 @@ describe("deepEqual", () => {
       expect(deepEqual(obj1, obj3)).toBe(false);
     });
   });
+
+  describe("boundary and edge cases", () => {
+    it("handles empty string vs non-empty string", () => {
+      expect(deepEqual("", "")).toBe(true);
+      expect(deepEqual("", "a")).toBe(false);
+      expect(deepEqual("a", "")).toBe(false);
+    });
+
+    it("handles objects with explicit undefined values", () => {
+      expect(deepEqual({ a: undefined }, { a: undefined })).toBe(true);
+      expect(deepEqual({ a: undefined }, { a: undefined })).toBe(true);
+      expect(deepEqual({ a: 1 }, { a: undefined })).toBe(false);
+    });
+
+    it("handles objects with null values vs missing keys", () => {
+      expect(deepEqual({ a: null }, { a: null })).toBe(true);
+      expect(deepEqual({ a: null }, {})).toBe(false);
+    });
+
+    it("handles Infinity and -Infinity", () => {
+      expect(deepEqual(Infinity, Infinity)).toBe(true);
+      expect(deepEqual(-Infinity, -Infinity)).toBe(true);
+      expect(deepEqual(Infinity, -Infinity)).toBe(false);
+      expect(deepEqual(Infinity, 0)).toBe(false);
+      expect(deepEqual({ a: Infinity }, { a: Infinity })).toBe(true);
+    });
+
+    it("handles nested empty containers", () => {
+      expect(deepEqual([[], {}], [[], {}])).toBe(true);
+      expect(deepEqual({ a: [], b: {} }, { a: [], b: {} })).toBe(true);
+      expect(deepEqual({ a: [] }, { a: {} })).toBe(false);
+    });
+
+    it("handles arrays containing null and undefined", () => {
+      expect(deepEqual([null, undefined], [null, undefined])).toBe(true);
+      expect(deepEqual([null], [undefined])).toBe(false);
+    });
+
+    it("returns false for numeric strings vs numbers", () => {
+      expect(deepEqual("1", 1)).toBe(false);
+      expect(deepEqual(0, "0")).toBe(false);
+      expect(deepEqual(false, 0)).toBe(false);
+    });
+
+    it("handles very large and very small numbers", () => {
+      expect(deepEqual(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)).toBe(
+        true,
+      );
+      expect(deepEqual(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER)).toBe(
+        true,
+      );
+      expect(
+        deepEqual(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1),
+      ).toBe(false);
+    });
+  });
 });
