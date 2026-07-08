@@ -22,6 +22,21 @@
  * deepEqual(null, {}); // false
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
+  // Guard: null and undefined are distinct sentinel values — neither equals
+  // the other and neither equals an object. Handle them up front so they
+  // can never fall through to the object key iteration below.
+  const aIsNil = a === null || a === undefined;
+  const bIsNil = b === null || b === undefined;
+  if (aIsNil || bIsNil) {
+    return aIsNil && bIsNil && a === b;
+  }
+
+  // Guard: NaN equals NaN under Object.is semantics; NaN never equals anything
+  // else. Check explicitly so the intent is visible at the top of the function.
+  if (Number.isNaN(a) || Number.isNaN(b)) {
+    return Number.isNaN(a) && Number.isNaN(b);
+  }
+
   // Use Object.is for primitive comparison (handles NaN, +0/-0 correctly)
   if (Object.is(a, b)) {
     return true;

@@ -29,6 +29,22 @@ describe("deepEqual", () => {
       expect(deepEqual(0, 0)).toBe(true);
       expect(deepEqual(-0, -0)).toBe(true);
     });
+
+    it("guards null and undefined so they never reach object-key iteration", () => {
+      expect(deepEqual(null, undefined)).toBe(false);
+      expect(deepEqual(undefined, null)).toBe(false);
+      expect(deepEqual(null, null)).toBe(true);
+      expect(deepEqual(undefined, undefined)).toBe(true);
+      expect(deepEqual(null, 0)).toBe(false);
+      expect(deepEqual(undefined, 0)).toBe(false);
+    });
+
+    it("guards NaN so non-NaN values are never compared as equal", () => {
+      expect(deepEqual(NaN, 1)).toBe(false);
+      expect(deepEqual(1, NaN)).toBe(false);
+      expect(deepEqual(NaN, {})).toBe(false);
+      expect(deepEqual({}, NaN)).toBe(false);
+    });
   });
 
   describe("arrays", () => {
