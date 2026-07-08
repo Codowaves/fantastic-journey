@@ -25,4 +25,19 @@ describe("capitalize", () => {
   it("only capitalizes first character, leaves rest untouched", () => {
     expect(capitalize("hello world")).toBe("Hello world");
   });
+
+  it("throws on null", () => {
+    // @ts-expect-error - testing runtime guard
+    expect(() => capitalize(null)).toThrow(TypeError);
+  });
+
+  it("throws on undefined", () => {
+    // @ts-expect-error - testing runtime guard
+    expect(() => capitalize(undefined)).toThrow(TypeError);
+  });
+
+  it("throws on NaN", () => {
+    // @ts-expect-error - testing runtime guard
+    expect(() => capitalize(NaN)).toThrow(TypeError);
+  });
 });
