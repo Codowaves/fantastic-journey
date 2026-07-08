@@ -74,4 +74,99 @@ describe("fromEntries2", () => {
     expect(a).not.toBe(b);
     expect(a).toEqual(b);
   });
+
+  describe("error/throw paths", () => {
+    it("does not throw on a normal pair list", () => {
+      expect(() =>
+        fromEntries2([
+          ["a", 1],
+          ["b", 2],
+        ]),
+      ).not.toThrow();
+    });
+
+    it("does not throw on an empty input", () => {
+      expect(() => fromEntries2([])).not.toThrow();
+      expect(() =>
+        fromEntries2(
+          (function* () {})() as Iterable<readonly [string, number]>,
+        ),
+      ).not.toThrow();
+    });
+
+    it("does not throw when consuming a frozen array of pairs", () => {
+      const frozen = Object.freeze([
+        ["a", 1],
+        ["b", 2],
+      ]) as readonly (readonly [string, number])[];
+      expect(() => fromEntries2(frozen)).not.toThrow();
+      expect(fromEntries2(frozen)).toEqual({ a: 1, b: 2 });
+    });
+
+    it("does not throw when consuming a sealed array of pairs", () => {
+      const sealed = Object.seal([
+        ["x", 10],
+        ["y", 20],
+      ]) as [string, number][];
+      expect(() => fromEntries2(sealed)).not.toThrow();
+      expect(fromEntries2(sealed)).toEqual({ x: 10, y: 20 });
+    });
+
+    it("does not throw when consuming a frozen Set of tuples", () => {
+      const pairs = new Set<readonly [string, number]>([
+        ["a", 1],
+        ["b", 2],
+      ]);
+      Object.freeze(pairs);
+      expect(() => fromEntries2(pairs)).not.toThrow();
+      expect(fromEntries2(pairs)).toEqual({ a: 1, b: 2 });
+    });
+
+    it("does not throw when the iterable's iterator throws partway through", () => {
+      const throwing = {
+        *[Symbol.iterator]() {
+          yield ["a", 1] as const;
+          yield ["b", 2] as const;
+          throw new Error("boom");
+        },
+      };
+      expect(() =>
+        fromEntries2(throwing as Iterable<readonly [string, number]>),
+      ).toThrow("boom");
+    });
+
+    it("propagates errors from the underlying iterator instead of swallowing them", () => {
+      const throwing: Iterable<readonly [string, number]> = {
+        [Symbol.iterator]() {
+          throw new TypeError("not iterable enough");
+        },
+      };
+      expect(() => fromEntries2(throwing)).toThrow(TypeError);
+    });
+
+    it("does not throw on Symbol keys", () => {
+      const sym = Symbol("k");
+      const out = fromEntries2<symbol, number>([[sym, 42]]);
+      expect(out[sym]).toBe(42);
+    });
+
+    it("does not throw when values are null or undefined", () => {
+      expect(
+        fromEntries2<string, unknown>([
+          ["n", null],
+          ["u", undefined],
+        ]),
+      ).toEqual({ n: null, u: undefined });
+    });
+
+    it("does not mutate the input iterable while iterating", () => {
+      const pairs: [string, number][] = [
+        ["a", 1],
+        ["b", 2],
+      ];
+      const snapshot = JSON.stringify(pairs);
+      fromEntries2(pairs);
+      expect(JSON.stringify(pairs)).toBe(snapshot);
+    });
+  });
 });
