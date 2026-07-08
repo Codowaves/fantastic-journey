@@ -63,6 +63,18 @@ describe("maskEmail", () => {
   it("leaves non-email strings unchanged", () => {
     expect(maskEmail("not-an-email")).toBe("not-an-email");
   });
+
+  it("returns an empty string for null input", () => {
+    expect(maskEmail(null as unknown as string)).toBe("");
+  });
+
+  it("returns an empty string for undefined input", () => {
+    expect(maskEmail(undefined as unknown as string)).toBe("");
+  });
+
+  it("returns an empty string for NaN input", () => {
+    expect(maskEmail(NaN as unknown as string)).toBe("");
+  });
 });
 
 describe("maskEmails", () => {
@@ -74,5 +86,40 @@ describe("maskEmails", () => {
 
   it("leaves strings without emails unchanged", () => {
     expect(maskEmails("no addresses here")).toBe("no addresses here");
+  });
+
+  it("returns an empty string for null input", () => {
+    expect(maskEmails(null as unknown as string)).toBe("");
+  });
+
+  it("returns an empty string for undefined input", () => {
+    expect(maskEmails(undefined as unknown as string)).toBe("");
+  });
+
+  it("returns an empty string for NaN input", () => {
+    expect(maskEmails(NaN as unknown as string)).toBe("");
+  });
+});
+
+describe("logger input validation", () => {
+  it("does not throw when message is null", () => {
+    const lines: string[] = [];
+    const log = createLogger((line) => lines.push(line));
+    expect(() => log.info(null as unknown as string)).not.toThrow();
+    expect(lines).toHaveLength(1);
+  });
+
+  it("does not throw when message is undefined", () => {
+    const lines: string[] = [];
+    const log = createLogger((line) => lines.push(line));
+    expect(() => log.warn(undefined as unknown as string)).not.toThrow();
+    expect(lines).toHaveLength(1);
+  });
+
+  it("does not throw when message is NaN", () => {
+    const lines: string[] = [];
+    const log = createLogger((line) => lines.push(line));
+    expect(() => log.error(NaN as unknown as string)).not.toThrow();
+    expect(lines).toHaveLength(1);
   });
 });

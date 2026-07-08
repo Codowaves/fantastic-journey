@@ -31,6 +31,9 @@ const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
 /** Masks the local part of an email address, keeping the domain visible (e.g. `a****@example.com`). Returns the input unchanged when it contains no `@` separator. */
 export function maskEmail(email: string): string {
+  if (email == null || (typeof email === "number" && Number.isNaN(email))) {
+    return "";
+  }
   const atIndex = email.indexOf("@");
   if (atIndex <= 0) return email;
   const local = email.slice(0, atIndex);
@@ -41,6 +44,9 @@ export function maskEmail(email: string): string {
 
 /** Replaces every email address found in `input` with its [[maskEmail]] form, leaving surrounding text intact. */
 export function maskEmails(input: string): string {
+  if (input == null || (typeof input === "number" && Number.isNaN(input))) {
+    return "";
+  }
   return input.replace(EMAIL_PATTERN, maskEmail);
 }
 
@@ -50,13 +56,21 @@ function writeLog(
   fields: Record<string, unknown> = {},
   sink: LogSink = console.log,
 ): void {
+  const safeMessage =
+    message == null || (typeof message === "number" && Number.isNaN(message))
+      ? ""
+      : message;
+  const safeFields =
+    fields == null || (typeof fields === "number" && Number.isNaN(fields))
+      ? {}
+      : fields;
   const reqId = getReqId();
-  const extraFields = { ...fields };
+  const extraFields = { ...safeFields };
   delete extraFields.reqId;
   const entry: LogEntry = {
     ...extraFields,
     level,
-    message: maskEmails(message),
+    message: maskEmails(safeMessage),
     timestamp: new Date().toISOString(),
   };
 
