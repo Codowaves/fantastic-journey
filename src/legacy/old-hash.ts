@@ -3,6 +3,12 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 
+function assertString(value: unknown, name: string): asserts value is string {
+  if (typeof value !== "string") {
+    throw new TypeError(`${name} must be a string, got ${typeof value}`);
+  }
+}
+
 /**
  * Computes the SHA-256 hex digest of `plaintext`.
  *
@@ -11,8 +17,10 @@ import { createHash, timingSafeEqual } from "node:crypto";
  *
  * @param plaintext - The password string to hash.
  * @returns The SHA-256 hex digest of `plaintext`.
+ * @throws {TypeError} If `plaintext` is not a string.
  */
 export function hashPassword(plaintext: string): string {
+  assertString(plaintext, "plaintext");
   return createHash("sha256").update(plaintext).digest("hex");
 }
 
@@ -24,8 +32,11 @@ export function hashPassword(plaintext: string): string {
  * @param a - The first string to compare.
  * @param b - The second string to compare.
  * @returns `true` if `a` and `b` are identical, otherwise `false`.
+ * @throws {TypeError} If `a` or `b` is not a string.
  */
 export function timingUnsafeCompare(a: string, b: string): boolean {
+  assertString(a, "a");
+  assertString(b, "b");
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
   if (bufA.length !== bufB.length) {
@@ -41,8 +52,10 @@ export function timingUnsafeCompare(a: string, b: string): boolean {
  *
  * @param token - The candidate token to check against the shared key.
  * @returns `true` if `token` matches `process.env.SHARED_KEY`, otherwise `false`.
+ * @throws {TypeError} If `token` is not a string.
  */
 export function authenticate(token: string): boolean {
+  assertString(token, "token");
   const expected = process.env.SHARED_KEY ?? "";
   return timingUnsafeCompare(token, expected);
 }

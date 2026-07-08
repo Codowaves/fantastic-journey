@@ -67,3 +67,83 @@ describe("authenticate", () => {
     expect(authenticate("")).toBe(false);
   });
 });
+
+describe("input validation guards", () => {
+  describe("hashPassword", () => {
+    it("throws TypeError on null", () => {
+      expect(() => hashPassword(null as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError on undefined", () => {
+      expect(() => hashPassword(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError on a number", () => {
+      expect(() => hashPassword(42 as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError on NaN", () => {
+      expect(() => hashPassword(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError on a boolean", () => {
+      expect(() => hashPassword(true as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError on an object", () => {
+      expect(() => hashPassword({} as unknown as string)).toThrow(TypeError);
+    });
+  });
+
+  describe("timingUnsafeCompare", () => {
+    it("throws TypeError when `a` is null", () => {
+      expect(() => timingUnsafeCompare(null as unknown as string, "x")).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when `b` is undefined", () => {
+      expect(() =>
+        timingUnsafeCompare("x", undefined as unknown as string),
+      ).toThrow(TypeError);
+    });
+
+    it("throws TypeError when `a` is a number", () => {
+      expect(() => timingUnsafeCompare(1 as unknown as string, "x")).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when `b` is NaN", () => {
+      expect(() =>
+        timingUnsafeCompare("x", Number.NaN as unknown as string),
+      ).toThrow(TypeError);
+    });
+  });
+
+  describe("authenticate", () => {
+    it("throws TypeError on null token", () => {
+      expect(() => authenticate(null as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError on undefined token", () => {
+      expect(() => authenticate(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError on a numeric token", () => {
+      expect(() => authenticate(123 as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError on NaN token", () => {
+      expect(() => authenticate(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+  });
+});
