@@ -39,6 +39,9 @@ export function assertValidEmail(input: string): void {
  * whitespace and lowercases the entire string.
  */
 export function normalizeEmail(input: string): string {
+  if (typeof input !== "string") {
+    throw new TypeError("input must be a string");
+  }
   return input.trim().toLowerCase();
 }
 
@@ -48,6 +51,9 @@ export function normalizeEmail(input: string): string {
  * Returns `input` unchanged if it is missing a local part or domain.
  */
 export function maskEmail(input: string): string {
+  if (typeof input !== "string") {
+    throw new TypeError("input must be a string");
+  }
   const [local, domain] = input.split("@");
   if (!local || !domain) return input;
   const head = local.slice(0, 2);

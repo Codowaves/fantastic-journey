@@ -35,6 +35,24 @@ describe("email helpers", () => {
         "user.name+tag@example.com",
       );
     });
+
+    it("throws TypeError when input is null", () => {
+      expect(() => normalizeEmail(null as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when input is undefined", () => {
+      expect(() => normalizeEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when input is NaN", () => {
+      expect(() => normalizeEmail(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 
   describe("maskEmail", () => {
@@ -49,6 +67,22 @@ describe("email helpers", () => {
 
     it("returns input unchanged when the domain is missing", () => {
       expect(maskEmail("user@")).toBe("user@");
+    });
+
+    it("throws TypeError when input is null", () => {
+      expect(() => maskEmail(null as unknown as string)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when input is undefined", () => {
+      expect(() => maskEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when input is NaN", () => {
+      expect(() => maskEmail(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
     });
   });
 
