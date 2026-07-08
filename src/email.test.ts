@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertValidEmail,
   buildMagicLinkEmail,
   InvalidEmailError,
   isValidEmail,
@@ -27,6 +28,37 @@ describe("email helpers", () => {
       expect(isValidEmail("spaces in@addr.com")).toBe(false);
       expect(isValidEmail("trailing@space.com ")).toBe(false);
     });
+
+    it("enforces the 254-character length boundary", () => {
+      const build = (n: number) => {
+        const local = "a".repeat(n - 13);
+        const domain = "b".repeat(10) + ".c";
+        return `${local}@${domain}`;
+      };
+      const exactly254 = build(254);
+      expect(exactly254.length).toBe(254);
+      expect(isValidEmail(exactly254)).toBe(true);
+      const tooLong = build(255);
+      expect(tooLong.length).toBe(255);
+      expect(isValidEmail(tooLong)).toBe(false);
+    });
+
+    it("rejects non-string inputs", () => {
+      expect(isValidEmail(undefined as unknown as string)).toBe(false);
+      expect(isValidEmail(null as unknown as string)).toBe(false);
+      expect(isValidEmail(123 as unknown as string)).toBe(false);
+      expect(isValidEmail({} as unknown as string)).toBe(false);
+    });
+
+    it("rejects multiple @ signs", () => {
+      expect(isValidEmail("a@b@c.com")).toBe(false);
+    });
+
+    it("rejects whitespace-only inputs", () => {
+      expect(isValidEmail("   ")).toBe(false);
+      expect(isValidEmail("\t")).toBe(false);
+      expect(isValidEmail("\n")).toBe(false);
+    });
   });
 
   describe("normalizeEmail", () => {
@@ -34,6 +66,11 @@ describe("email helpers", () => {
       expect(normalizeEmail("  User.Name+Tag@Example.COM  ")).toBe(
         "user.name+tag@example.com",
       );
+    });
+
+    it("returns an empty string for whitespace-only input", () => {
+      expect(normalizeEmail("   ")).toBe("");
+      expect(normalizeEmail("")).toBe("");
     });
   });
 
@@ -50,6 +87,23 @@ describe("email helpers", () => {
     it("returns input unchanged when the domain is missing", () => {
       expect(maskEmail("user@")).toBe("user@");
     });
+
+    it("masks a single-character local part to zero stars", () => {
+      expect(maskEmail("a@example.com")).toBe("a@example.com");
+    });
+
+    it("masks an empty local part after the first two chars", () => {
+      expect(maskEmail("ab@example.com")).toBe("ab@example.com");
+    });
+
+    it("preserves the domain exactly", () => {
+      const result = maskEmail("user@sub.example.co");
+      expect(result.endsWith("@sub.example.co")).toBe(true);
+    });
+
+    it("returns empty string for empty input", () => {
+      expect(maskEmail("")).toBe("");
+    });
   });
 
   describe("assertValidEmail", () => {
@@ -60,6 +114,14 @@ describe("email helpers", () => {
       const err = new InvalidEmailError("bogus");
       expect(err.name).toBe("InvalidEmailError");
       expect(err.message).toBe('Invalid email address: "bogus"');
+    });
+
+    it("does not throw for a valid email", () => {
+      expect(() => assertValidEmail("user@example.com")).not.toThrow();
+    });
+
+    it("throws InvalidEmailError for an empty string", () => {
+      expect(() => assertValidEmail("")).toThrow(InvalidEmailError);
     });
   });
 
@@ -90,6 +152,37 @@ describe("email helpers", () => {
           magicLink: "https://example.com/m",
         }),
       ).toThrow(InvalidEmailError);
+    });
+
+    it("honors a custom expiresInMinutes value", () => {
+      const email = buildMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/m",
+        expiresInMinutes: 60,
+      });
+      expect(email.html).toContain("60 minutes");
+      expect(email.text).toContain("60 minutes");
+    });
+
+    it("uses 15 minutes as the default expiry", () => {
+      const email = buildMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/m",
+      });
+      expect(email.html).toContain("15 minutes");
+      expect(email.text).toContain("15 minutes");
+    });
+
+    it("embeds the magicLink URL in both html and text bodies", () => {
+      const email = buildMagicLinkEmail({
+        to: "user@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/verify?token=xyz",
+      });
+      expect(email.html).toContain("https://example.com/verify?token=xyz");
+      expect(email.text).toContain("https://example.com/verify?token=xyz");
     });
   });
 
@@ -135,6 +228,29 @@ describe("email helpers", () => {
       const snapshot = listSentEmails();
       snapshot.pop();
       expect(listSentEmails().length).toBe(1);
+    });
+
+    it("accumulates multiple sent emails in order", () => {
+      resetSentEmails();
+      const first = sendMagicLinkEmail({
+        to: "first@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/1",
+      });
+      const second = sendMagicLinkEmail({
+        to: "second@example.com",
+        brandName: "Acme",
+        magicLink: "https://example.com/2",
+      });
+      const log = listSentEmails();
+      expect(log).toHaveLength(2);
+      expect(log[0]).toEqual(first);
+      expect(log[1]).toEqual(second);
+    });
+
+    it("listSentEmails on a fresh log returns an empty array", () => {
+      resetSentEmails();
+      expect(listSentEmails()).toEqual([]);
     });
   });
 });
