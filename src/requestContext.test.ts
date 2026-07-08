@@ -29,6 +29,18 @@ describe("createRequestContext", () => {
     const ctx = createRequestContext("");
     expect(ctx.reqId).toBe("");
   });
+
+  it("falls back to a generated uuid when null is supplied", () => {
+    const ctx = createRequestContext(null as unknown as undefined);
+    expect(typeof ctx.reqId).toBe("string");
+    expect(ctx.reqId.length).toBeGreaterThan(0);
+  });
+
+  it("falls back to a generated uuid when undefined is supplied", () => {
+    const ctx = createRequestContext(undefined);
+    expect(typeof ctx.reqId).toBe("string");
+    expect(ctx.reqId.length).toBeGreaterThan(0);
+  });
 });
 
 describe("runWithRequestContext", () => {
@@ -52,6 +64,40 @@ describe("runWithRequestContext", () => {
     expect(result).toBeDefined();
     expect(typeof result?.reqId).toBe("string");
     expect(result?.reqId.length).toBeGreaterThan(0);
+  });
+
+  it("propagates errors thrown by the callback to the caller", () => {
+    const ctx = createRequestContext("err-prop");
+    const boom = new Error("boom from callback");
+
+    expect(() =>
+      runWithRequestContext(() => {
+        throw boom;
+      }, ctx),
+    ).toThrow(boom);
+  });
+
+  it("clears the active context after a thrown error", () => {
+    const ctx = createRequestContext("err-clear");
+    expect(() =>
+      runWithRequestContext(() => {
+        throw new Error("cleared after throw");
+      }, ctx),
+    ).toThrow("cleared after throw");
+
+    expect(getRequestContext()).toBeUndefined();
+    expect(getReqId()).toBeUndefined();
+  });
+
+  it("propagates rejected promises from an async callback", async () => {
+    const ctx = createRequestContext("async-err");
+    const boom = new Error("async boom");
+
+    await expect(
+      runWithRequestContext(async () => {
+        throw boom;
+      }, ctx),
+    ).rejects.toThrow(boom);
   });
 
   it("isolates context from sibling callbacks running concurrently", async () => {
