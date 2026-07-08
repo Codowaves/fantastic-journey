@@ -795,6 +795,483 @@ describe("api v1 route handler", () => {
     });
   });
 
+  describe("SAML metadata upload edge cases", () => {
+    function postMetadata(body: unknown): Promise<Response> {
+      return handleRequest(
+        new Request("https://example.com/settings/security/saml/metadata", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    }
+
+    it("returns 400 when workspaceId is missing", async () => {
+      const response = await postMetadata({ xml: samlMetadataXml() });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId is required",
+      });
+    });
+
+    it("returns 400 when workspaceId is whitespace only", async () => {
+      const response = await postMetadata({
+        workspaceId: "   ",
+        xml: samlMetadataXml(),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId is required",
+      });
+    });
+
+    it("returns 400 when the metadata XML is missing entirely", async () => {
+      const response = await postMetadata({ workspaceId: "ws_1" });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.stringContaining("metadata"),
+      });
+    });
+
+    it("returns 400 when neither xml nor metadataUrl is provided", async () => {
+      const response = await postMetadata({
+        workspaceId: "ws_1",
+        xml: undefined,
+        metadataUrl: undefined,
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: expect.any(String),
+      });
+    });
+
+    it("returns 400 when the body is empty JSON", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/saml/metadata", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId is required",
+      });
+    });
+
+    it("rejects metadata that lacks an entityID", async () => {
+      const response = await postMetadata({
+        workspaceId: "ws_1",
+        xml: `<EntityDescriptor><KeyDescriptor use="signing"><KeyInfo><X509Data><X509Certificate>MIIB</X509Certificate></X509Data></KeyInfo></KeyDescriptor></EntityDescriptor>`,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("rejects metadata that lacks a signing certificate", async () => {
+      const response = await postMetadata({
+        workspaceId: "ws_1",
+        xml: `<EntityDescriptor entityID="okta-test"></EntityDescriptor>`,
+      });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("magic-link verify edge cases", () => {
+    it("returns 400 when the token query param is missing", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link/verify"),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "token is required",
+      });
+    });
+
+    it("returns 400 when the token query param is an empty string", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link/verify?token="),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "token is required",
+      });
+    });
+
+    it("returns 401 for an unknown / fabricated token", async () => {
+      const response = await handleRequest(
+        new Request(
+          "https://example.com/auth/magic-link/verify?token=ml_does_not_exist",
+        ),
+      );
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({
+        error: "magic_token_not_found",
+      });
+    });
+
+    it("returns 401 when an empty token body is supplied", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link/verify?token=%20"),
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 401 for an empty magic-link token in the body", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link/verify?token="),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "token is required",
+      });
+    });
+  });
+
+  describe("POST /auth/magic-link request edge cases", () => {
+    it("returns 400 when workspaceId is missing", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: "x@example.com" }),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and email are required",
+      });
+    });
+
+    it("returns 400 when email is missing", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ workspaceId: "ws_1" }),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and email are required",
+      });
+    });
+
+    it("returns 400 when both fields are missing", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({}),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and email are required",
+      });
+    });
+
+    it("returns 400 when the body is not valid JSON", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{not-json",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and email are required",
+      });
+    });
+
+    it("uses the default brand name when not provided", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: "ws_1",
+            email: "default@example.com",
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(202);
+      const [email] = listSentEmails();
+      expect(email?.subject).toContain("Fantastic Journey");
+    });
+  });
+
+  describe("POST /auth/password edge cases", () => {
+    function postPassword(body: unknown): Promise<Response> {
+      return handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    }
+
+    it("returns 400 when workspaceId is missing", async () => {
+      const response = await postPassword({
+        userId: "owner_1",
+        password: "password",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId, userId, and password are required",
+      });
+    });
+
+    it("returns 400 when userId is missing", async () => {
+      const response = await postPassword({
+        workspaceId: "ws_1",
+        password: "password",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId, userId, and password are required",
+      });
+    });
+
+    it("returns 400 when password is missing", async () => {
+      const response = await postPassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId, userId, and password are required",
+      });
+    });
+
+    it("returns 400 when the body is empty JSON", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId, userId, and password are required",
+      });
+    });
+
+    it("returns 401 when the user does not exist", async () => {
+      const response = await postPassword({
+        workspaceId: "ws_1",
+        userId: "ghost_user",
+        password: "password",
+      });
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({
+        error: "password_invalid",
+      });
+    });
+
+    it("returns 401 when the password is wrong", async () => {
+      const response = await postPassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: "wrong",
+      });
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({
+        error: "password_invalid",
+      });
+    });
+  });
+
+  describe("/admin/users filter edge cases", () => {
+    async function loginOwner(): Promise<string> {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: "ws_1",
+            userId: "owner_1",
+            password: "password",
+          }),
+        }),
+      );
+      return response.headers.get("set-cookie") ?? "";
+    }
+
+    async function getUsers(
+      cookie: string,
+      query: string = "",
+    ): Promise<{ items: Array<{ id: string; email: string }> }> {
+      const response = await handleRequest(
+        new Request(`https://example.com/admin/users${query}`, {
+          headers: { cookie },
+        }),
+      );
+      expect(response.status).toBe(200);
+      return (await response.json()) as {
+        items: Array<{ id: string; email: string }>;
+      };
+    }
+
+    it("filters users by plan", async () => {
+      const cookie = await loginOwner();
+      const body = await getUsers(cookie, "?plan=free");
+      expect(body.items).toHaveLength(2);
+      expect(body.items.map((u) => u.email)).toEqual([
+        "user@example.com",
+        "user@example.com",
+      ]);
+    });
+
+    it("filters users by status=active", async () => {
+      const cookie = await loginOwner();
+      const body = await getUsers(cookie, "?status=active");
+      expect(body.items.map((u) => u.email).sort()).toEqual([
+        "owner@example.com",
+        "owner@example.com",
+        "user@example.com",
+        "user@example.com",
+      ]);
+    });
+
+    it("returns an empty list when no users match the plan", async () => {
+      const cookie = await loginOwner();
+      const body = await getUsers(cookie, "?plan=enterprise");
+      expect(body.items).toEqual([]);
+    });
+
+    it("returns no items when status=inactive (all default users are active)", async () => {
+      const cookie = await loginOwner();
+      const body = await getUsers(cookie, "?status=inactive");
+      expect(body.items).toEqual([]);
+    });
+
+    it("returns 403 when there is no owner session", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users"),
+      );
+      expect(response.status).toBe(403);
+    });
+
+    it("returns 403 when only header spoofing is supplied (no cookie)", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users?plan=free", {
+          headers: { "x-workspace-id": "ws_1", "x-user-id": "owner_1" },
+        }),
+      );
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe("sessions revoke edge cases", () => {
+    async function loginOwner(): Promise<string> {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: "ws_1",
+            userId: "owner_1",
+            password: "password",
+          }),
+        }),
+      );
+      return response.headers.get("set-cookie") ?? "";
+    }
+
+    it("returns 400 when sessionId is missing from the JSON body", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({}),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sessionId is required",
+      });
+    });
+
+    it("returns 400 when sessionId is missing from the form body", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            cookie,
+          },
+          body: "",
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sessionId is required",
+      });
+    });
+
+    it("returns 404 when revoking an unknown session id", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({ sessionId: "sess_unknown" }),
+        }),
+      );
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({ revoked: false });
+    });
+
+    it("returns 403 when no owner session is present", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId: "sess_anything" }),
+        }),
+      );
+
+      expect(response.status).toBe(403);
+    });
+  });
+
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
     await handleRequest(
       new Request("https://example.com/settings/security/saml/metadata", {
