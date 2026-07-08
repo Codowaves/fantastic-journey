@@ -41,4 +41,54 @@ describe("clamp", () => {
     expect(() => clamp(5, 0, NaN)).toThrow(TypeError);
     expect(() => clamp(5, 0, NaN)).toThrow("hi must be a finite number");
   });
+
+  it("returns lo when n equals lo (lower boundary)", () => {
+    expect(clamp(0, 0, 10)).toBe(0);
+  });
+
+  it("returns hi when n equals hi (upper boundary)", () => {
+    expect(clamp(10, 0, 10)).toBe(10);
+  });
+
+  it("returns the single point when lo equals hi", () => {
+    expect(clamp(5, 7, 7)).toBe(7);
+    expect(clamp(7, 7, 7)).toBe(7);
+    expect(clamp(0, 7, 7)).toBe(7);
+  });
+
+  it("handles negative bounds", () => {
+    expect(clamp(-15, -10, -5)).toBe(-10);
+    expect(clamp(-7, -10, -5)).toBe(-7);
+    expect(clamp(0, -10, -5)).toBe(-5);
+  });
+
+  it("handles floating-point values", () => {
+    expect(clamp(1.5, 0.1, 2.9)).toBe(1.5);
+    expect(clamp(0.05, 0.1, 2.9)).toBe(0.1);
+    expect(clamp(3.0, 0.1, 2.9)).toBe(2.9);
+  });
+
+  it("handles +Infinity and -Infinity bounds", () => {
+    expect(clamp(5, -Infinity, Infinity)).toBe(5);
+    expect(clamp(-1000, -Infinity, 0)).toBe(-1000);
+    expect(clamp(1000, 0, Infinity)).toBe(1000);
+  });
+
+  it("throws TypeError when lo is null or undefined", () => {
+    expect(() => clamp(5, null as unknown as number, 10)).toThrow(TypeError);
+    expect(() => clamp(5, undefined as unknown as number, 10)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when hi is null or undefined", () => {
+    expect(() => clamp(5, 0, null as unknown as number)).toThrow(TypeError);
+    expect(() => clamp(5, 0, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("returns 0 when value is 0 within a zero-based range", () => {
+    expect(clamp(0, 0, 0)).toBe(0);
+  });
 });
