@@ -5,6 +5,13 @@
  * @param a - The first array.
  * @param b - The second array.
  * @returns A new array of the union of the two inputs, deduplicated.
+ *
+ * @example
+ * unionOf([1, 2, 3], [3, 4, 5]); // [1, 2, 3, 4, 5]
+ * @example
+ * unionOf(['a', 'b'], ['b', 'c']); // ['a', 'b', 'c']
+ * @example
+ * unionOf([], [1, 2]); // [1, 2]
  */
 export function unionOf<T>(a: readonly T[], b: readonly T[]): T[] {
   const seen = new Set<T>();
