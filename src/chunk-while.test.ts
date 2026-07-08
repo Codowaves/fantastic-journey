@@ -68,4 +68,75 @@ describe("chunkWhile", () => {
     chunkWhile(input, (a, b) => a === b);
     expect(input).toEqual([1, 1, 2, 2, 3]);
   });
+
+  describe("error/throw paths", () => {
+    it("does not call pred for an empty array", () => {
+      const pred = (() => {
+        throw new Error("pred should not be called for empty input");
+      }) as (a: number, b: number) => boolean;
+      expect(() => chunkWhile<number>([], pred)).not.toThrow();
+      expect(chunkWhile<number>([], pred)).toEqual([]);
+    });
+
+    it("does not call pred for a single-element array", () => {
+      const calls: Array<[number, number]> = [];
+      const pred = (a: number, b: number) => {
+        calls.push([a, b]);
+        return a === b;
+      };
+      expect(() => chunkWhile([42], pred)).not.toThrow();
+      expect(calls).toEqual([]);
+    });
+
+    it("propagates an Error thrown by pred on the first adjacent pair", () => {
+      const boom = new Error("predicate failed on pair");
+      const pred = (() => {
+        throw boom;
+      }) as (a: number, b: number) => boolean;
+      expect(() => chunkWhile([1, 2, 3], pred)).toThrow(boom);
+    });
+
+    it("propagates an Error thrown by pred mid-iteration and stops processing", () => {
+      const seen: Array<[number, number]> = [];
+      const pred = (a: number, b: number) => {
+        seen.push([a, b]);
+        if (a === 1 && b === 2) {
+          throw new Error("explode on second pair");
+        }
+        return a === b;
+      };
+      expect(() => chunkWhile([1, 1, 2, 2, 3], pred)).toThrow(
+        "explode on second pair",
+      );
+      // pred was called for [1,1] and [1,2]; the loop bailed on the throw
+      // before reaching [2,2] or [2,3].
+      expect(seen).toEqual([
+        [1, 1],
+        [1, 2],
+      ]);
+    });
+
+    it("propagates a thrown non-Error value from pred", () => {
+      const pred = (() => {
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
+        throw "string-sentinel";
+      }) as (a: number, b: number) => boolean;
+      expect(() => chunkWhile([1, 2], pred)).toThrow("string-sentinel");
+    });
+
+    it("propagates a thrown TypeError from pred", () => {
+      const pred = (() => {
+        throw new TypeError("bad comparison");
+      }) as (a: number, b: number) => boolean;
+      expect(() => chunkWhile([1, 2, 3], pred)).toThrow(TypeError);
+      expect(() => chunkWhile([1, 2, 3], pred)).toThrow("bad comparison");
+    });
+
+    it("does not throw when the input is empty regardless of pred", () => {
+      const pred = (() => {
+        throw new Error("never called");
+      }) as (a: number, b: number) => boolean;
+      expect(() => chunkWhile<number>([], pred)).not.toThrow();
+    });
+  });
 });
