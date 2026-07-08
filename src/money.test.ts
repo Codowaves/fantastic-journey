@@ -60,3 +60,70 @@ describe("addTax", () => {
     expect(addTax(1000, 0.08875)).toBe(1089);
   });
 });
+
+describe("formatUsd edge cases", () => {
+  it("formats negative amounts with a leading minus", () => {
+    expect(formatUsd(-100)).toBe("$-1.00");
+  });
+
+  it("formats negative cents", () => {
+    expect(formatUsd(-199)).toBe("$-1.99");
+  });
+
+  it("formats negative one cent", () => {
+    expect(formatUsd(-1)).toBe("$-0.01");
+  });
+
+  it("formats a single cent", () => {
+    expect(formatUsd(1)).toBe("$0.01");
+  });
+
+  it("formats NaN as $NaN", () => {
+    expect(formatUsd(Number.NaN)).toBe("$NaN");
+  });
+
+  it("formats Infinity as $Infinity", () => {
+    expect(formatUsd(Number.POSITIVE_INFINITY)).toBe("$Infinity");
+  });
+
+  it("formats negative Infinity as $-Infinity", () => {
+    expect(formatUsd(Number.NEGATIVE_INFINITY)).toBe("$-Infinity");
+  });
+});
+
+describe("addTax edge cases", () => {
+  it("returns 0 when both amount and rate are 0", () => {
+    expect(addTax(0, 0)).toBe(0);
+  });
+
+  it("handles a negative tax rate (discount)", () => {
+    expect(addTax(1000, -0.1)).toBe(900);
+  });
+
+  it("clamps to 0 when rate is less than -1", () => {
+    expect(addTax(1000, -2)).toBe(-1000);
+  });
+
+  it("rounds half values correctly for addTax", () => {
+    expect(addTax(1, 0.5)).toBe(2);
+    expect(addTax(2, 0.5)).toBe(3);
+  });
+
+  it("preserves integer result for negative amounts", () => {
+    expect(addTax(-1000, 0.1)).toBe(-1100);
+  });
+
+  it("returns NaN when rate is NaN", () => {
+    expect(Number.isNaN(addTax(1000, Number.NaN))).toBe(true);
+  });
+
+  it("returns NaN when amount is NaN", () => {
+    expect(Number.isNaN(addTax(Number.NaN, 0.1))).toBe(true);
+  });
+
+  it("handles Infinity amounts", () => {
+    expect(addTax(Number.POSITIVE_INFINITY, 0.1)).toBe(
+      Number.POSITIVE_INFINITY,
+    );
+  });
+});
