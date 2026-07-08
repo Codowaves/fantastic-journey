@@ -131,3 +131,126 @@ describe("identity", () => {
     }
   });
 });
+
+describe("error/throw paths", () => {
+  describe("transpose", () => {
+    it("does not throw on an empty matrix", () => {
+      expect(() => transpose([])).not.toThrow();
+    });
+
+    it("does not throw on a 1x1 matrix", () => {
+      expect(() => transpose([[42]])).not.toThrow();
+    });
+
+    it("does not throw on a frozen matrix", () => {
+      const frozen = Object.freeze([
+        [1, 2],
+        [3, 4],
+      ]) as number[][];
+      expect(() => transpose(frozen)).not.toThrow();
+      expect(transpose(frozen)).toEqual([
+        [1, 3],
+        [2, 4],
+      ]);
+    });
+
+    it("does not throw on a sealed matrix", () => {
+      const sealed = Object.seal([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]) as number[][];
+      expect(() => transpose(sealed)).not.toThrow();
+      expect(transpose(sealed)).toEqual([
+        [1, 4],
+        [2, 5],
+        [3, 6],
+      ]);
+    });
+
+    it("does not throw when rows have different lengths (jagged input)", () => {
+      // The implementation uses `r[c] as T` which silently yields undefined
+      // for missing cells; this is the expected behavior and must not throw.
+      expect(() =>
+        transpose([
+          [1, 2, 3],
+          [4, 5],
+        ]),
+      ).not.toThrow();
+      expect(() => transpose([[1], [2, 3], [4, 5, 6]])).not.toThrow();
+    });
+
+    it("returns undefined placeholders for short rows rather than throwing", () => {
+      // r[c] is undefined when the source row is shorter than the widest row;
+      // the `as T` cast means the result type is preserved at the TS level but
+      // the runtime value is undefined.
+      const result = transpose([
+        [1, 2, 3],
+        [4, 5],
+      ]);
+      expect(result).toHaveLength(3);
+      expect(result[0]).toEqual([1, 4]);
+      expect(result[1]).toEqual([2, 5]);
+      expect(result[2]).toEqual([3, undefined]);
+    });
+
+    it("does not throw on a matrix produced by Array constructor", () => {
+      const empty = Array(0) as number[][];
+      expect(() => transpose(empty)).not.toThrow();
+      expect(transpose(empty)).toEqual([]);
+    });
+
+    it("does not throw on a matrix with explicit undefined cells", () => {
+      expect(() =>
+        transpose([
+          [1, undefined],
+          [2, 3],
+        ]),
+      ).not.toThrow();
+    });
+  });
+
+  describe("identity", () => {
+    it("does not throw for n=0", () => {
+      expect(() => identity(0)).not.toThrow();
+    });
+
+    it("does not throw for n=1", () => {
+      expect(() => identity(1)).not.toThrow();
+    });
+
+    it("does not throw for a large n", () => {
+      expect(() => identity(100)).not.toThrow();
+    });
+
+    it("does not throw for negative n (Array.from yields [])", () => {
+      // Array.from with negative length produces an empty array — this is the
+      // implicit fallback branch, not a thrown error.
+      expect(() => identity(-1)).not.toThrow();
+      expect(() => identity(-100)).not.toThrow();
+      expect(identity(-5)).toEqual([]);
+    });
+
+    it("does not throw for NaN n", () => {
+      // Array.from(NaN) — the length argument is coerced via ToLength, which
+      // produces 0; this is the empty-array fallback branch.
+      expect(() => identity(Number.NaN)).not.toThrow();
+      expect(identity(Number.NaN)).toEqual([]);
+    });
+
+    it("throws RangeError for Infinity n", () => {
+      // Array.from(Infinity) coerces Infinity via ToLength, but the resulting
+      // allocation fails with "Invalid array length" — this is the throw
+      // branch the task asks us to cover.
+      expect(() => identity(Number.POSITIVE_INFINITY)).toThrow(RangeError);
+    });
+
+    it("returns a new array each call (does not mutate frozen inputs)", () => {
+      // identity takes a number and returns a fresh array; there is no input
+      // array to freeze. Verify it returns distinct references.
+      const a = identity(3);
+      const b = identity(3);
+      expect(a).not.toBe(b);
+      expect(a).toEqual(b);
+    });
+  });
+});
