@@ -8,13 +8,21 @@
  * @param a - The array of values to filter.
  * @param b - The array of values to exclude.
  * @returns A new array containing the elements of `a` that are not in `b`.
- * @throws {TypeError} If `a` or `b` is null or undefined.
+ * @throws {TypeError} If `a` or `b` is null, undefined, or NaN.
  */
 export function difference<T>(a: readonly T[], b: readonly T[]): T[] {
-  if (a === null || a === undefined) {
+  if (
+    a === null ||
+    a === undefined ||
+    (typeof a === "number" && Number.isNaN(a))
+  ) {
     throw new TypeError("a must be an array");
   }
-  if (b === null || b === undefined) {
+  if (
+    b === null ||
+    b === undefined ||
+    (typeof b === "number" && Number.isNaN(b))
+  ) {
     throw new TypeError("b must be an array");
   }
   const excluded = new Set(b);
