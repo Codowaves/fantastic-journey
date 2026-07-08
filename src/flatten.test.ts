@@ -43,4 +43,49 @@ describe("flatten", () => {
       "arr must be an array",
     );
   });
+
+  it("preserves falsy primitive values like 0, false, and empty string", () => {
+    expect(flatten([0, [false, ""], null])).toEqual([0, false, "", null]);
+  });
+
+  it("drops nested empty arrays without leaving undefined holes", () => {
+    expect(flatten([1, [], [2], [], 3])).toEqual([1, 2, 3]);
+  });
+
+  it("flattens an array consisting only of nested empty arrays", () => {
+    expect(flatten([[], [], []])).toEqual([]);
+  });
+
+  it("flattens when every element is itself a nested array", () => {
+    expect(flatten([[1, 2], [3, 4], [5]])).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("preserves null and undefined values inside the array", () => {
+    expect(flatten([null, [undefined, null], undefined])).toEqual([
+      null,
+      undefined,
+      null,
+      undefined,
+    ]);
+  });
+
+  it("flattens single-element nested arrays", () => {
+    expect(flatten([[1], [2], [3]])).toEqual([1, 2, 3]);
+  });
+
+  it("returns a new array instance rather than mutating the input", () => {
+    const input: (number | number[])[] = [1, [2, 3]];
+    const output = flatten(input);
+    expect(output).not.toBe(input);
+    expect(input).toEqual([1, [2, 3]]);
+    expect(output).toEqual([1, 2, 3]);
+  });
+
+  it("treats arrays-of-arrays with no leaf scalars as still valid input", () => {
+    expect(flatten([[], [[]], []])).toEqual([[]]);
+  });
+
+  it("does not coerce boolean false input into a valid array", () => {
+    expect(() => flatten(false as unknown as number[])).toThrow(TypeError);
+  });
 });
