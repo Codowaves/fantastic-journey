@@ -97,6 +97,17 @@ function nowIso(now = new Date()): string {
   return now.toISOString();
 }
 
+function assertString(value: unknown, name: string): asserts value is string {
+  if (value === null || value === undefined) {
+    throw new TypeError(
+      `${name} must be a string, got ${value === null ? "null" : "undefined"}`,
+    );
+  }
+  if (typeof value !== "string") {
+    throw new TypeError(`${name} must be a string, got ${typeof value}`);
+  }
+}
+
 function seedDefaultUsers(): void {
   workspaceUsers.clear();
   addWorkspaceUser({
@@ -153,6 +164,7 @@ function getOrCreateUser(
 
 /** Returns every WorkspaceUser that belongs to the given workspace. */
 export function listWorkspaceUsers(workspaceId: string): WorkspaceUser[] {
+  assertString(workspaceId, "workspaceId");
   return [...workspaceUsers.values()].filter(
     (u) => u.workspaceId === workspaceId,
   );
@@ -163,6 +175,8 @@ export function getUser(
   workspaceId: string,
   userId: string,
 ): WorkspaceUser | null {
+  assertString(workspaceId, "workspaceId");
+  assertString(userId, "userId");
   return workspaceUsers.get(userKey(workspaceId, userId)) ?? null;
 }
 
@@ -335,6 +349,20 @@ export function recordAuthEvent(params: {
   context: AuthRequestContext;
   now?: Date;
 }): AuthEvent {
+  if (params.kind === null || params.kind === undefined) {
+    throw new TypeError(
+      `kind must be an AuthEventKind, got ${params.kind === null ? "null" : "undefined"}`,
+    );
+  }
+  if (typeof params.kind !== "string") {
+    throw new TypeError(
+      `kind must be an AuthEventKind, got ${typeof params.kind}`,
+    );
+  }
+  if (params.workspaceId != null)
+    assertString(params.workspaceId, "workspaceId");
+  if (params.userId != null) assertString(params.userId, "userId");
+  if (params.reason != null) assertString(params.reason, "reason");
   const timestamp = nowIso(params.now);
   const event: AuthEvent = {
     id: `evt_${randomUUID()}`,
@@ -358,6 +386,7 @@ export function listAuthEvents(): AuthEvent[] {
 
 /** Returns the SAML metadata stored for a workspace, or null if none is configured. */
 export function getSamlMetadata(workspaceId: string): SamlMetadata | null {
+  assertString(workspaceId, "workspaceId");
   return samlMetadataByWorkspace.get(workspaceId) ?? null;
 }
 
@@ -369,6 +398,7 @@ export async function saveSamlMetadata(params: {
   timeoutMs?: number;
   fetcher?: typeof fetch;
 }): Promise<SamlMetadata> {
+  assertString(params.workspaceId, "workspaceId");
   const timeoutMs = params.timeoutMs ?? 2_000;
   let xml = params.xml;
   let source: SamlMetadata["source"] = "upload";
@@ -438,6 +468,10 @@ export function authenticateSaml(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  assertString(params.workspaceId, "workspaceId");
+  assertString(params.assertion, "assertion");
+  assertString(params.expectedAudience, "expectedAudience");
+  assertString(params.expectedDestination, "expectedDestination");
   const metadata = getSamlMetadata(params.workspaceId);
 
   if (!metadata) {
@@ -569,6 +603,8 @@ export function createMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): MagicLinkToken {
+  assertString(params.workspaceId, "workspaceId");
+  assertString(params.email, "email");
   const now = params.now ?? new Date();
   const user = getOrCreateUser(params.workspaceId, params.email);
   const token: MagicLinkToken = {
@@ -598,6 +634,7 @@ export function redeemMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  assertString(params.token, "token");
   const magicToken = magicTokensByToken.get(params.token);
   const now = params.now ?? new Date();
   if (!magicToken) {
@@ -661,6 +698,9 @@ export function authenticatePassword(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  assertString(params.workspaceId, "workspaceId");
+  assertString(params.userId, "userId");
+  assertString(params.password, "password");
   const user = getUser(params.workspaceId, params.userId);
   if (!user || params.password !== "password") {
     recordAuthEvent({
@@ -694,6 +734,7 @@ export function authenticatePassword(params: {
 
 /** Returns non-revoked sessions belonging to a workspace. */
 export function listActiveSessions(workspaceId: string): Session[] {
+  assertString(workspaceId, "workspaceId");
   return [...sessionsById.values()].filter(
     (session) => session.workspaceId === workspaceId && !session.revokedAt,
   );
@@ -715,6 +756,9 @@ export function revokeSession(params: {
   actorUserId: string;
   now?: Date;
 }): boolean {
+  assertString(params.workspaceId, "workspaceId");
+  assertString(params.sessionId, "sessionId");
+  assertString(params.actorUserId, "actorUserId");
   const actor = getUser(params.workspaceId, params.actorUserId);
   if (actor?.role !== "owner") return false;
 

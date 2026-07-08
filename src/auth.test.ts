@@ -10,6 +10,7 @@ import {
   createMagicLinkToken,
   getActiveSession,
   getSamlMetadata,
+  getUser,
   isWorkspaceOwner,
   listActiveSessions,
   listAuthEvents,
@@ -751,5 +752,188 @@ describe("resetAuthState", () => {
     expect(
       [...new Set(listWorkspaceUsers("ws_1").map((u) => u.userId))].sort(),
     ).toEqual(["owner_1", "user_1"]);
+  });
+});
+
+describe("input validation", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("listWorkspaceUsers throws TypeError when workspaceId is null or undefined", () => {
+    expect(() => listWorkspaceUsers(null as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listWorkspaceUsers(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listWorkspaceUsers(42 as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("getUser throws TypeError when workspaceId or userId is null/undefined", () => {
+    expect(() => getUser(null as unknown as string, "owner_1")).toThrow(
+      TypeError,
+    );
+    expect(() => getUser("ws_1", undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("getSamlMetadata throws TypeError when workspaceId is null or undefined", () => {
+    expect(() => getSamlMetadata(null as unknown as string)).toThrow(TypeError);
+    expect(() => getSamlMetadata(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("listActiveSessions throws TypeError when workspaceId is null or undefined", () => {
+    expect(() => listActiveSessions(null as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listActiveSessions(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("saveSamlMetadata throws TypeError when workspaceId is null or undefined", async () => {
+    await expect(
+      saveSamlMetadata({
+        workspaceId: null as unknown as string,
+        xml: "<x/>",
+      }),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      saveSamlMetadata({
+        workspaceId: undefined as unknown as string,
+        xml: "<x/>",
+      }),
+    ).rejects.toThrow(TypeError);
+  });
+
+  it("createMagicLinkToken throws TypeError when workspaceId or email is null/undefined", () => {
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: null as unknown as string,
+        email: "u@example.com",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: undefined as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("redeemMagicLinkToken throws TypeError when token is null/undefined", () => {
+    expect(() =>
+      redeemMagicLinkToken({
+        token: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      redeemMagicLinkToken({
+        token: undefined as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("authenticatePassword throws TypeError when required string params are null/undefined", () => {
+    expect(() =>
+      authenticatePassword({
+        workspaceId: null as unknown as string,
+        userId: "owner_1",
+        password: "password",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: undefined as unknown as string,
+        password: "password",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("revokeSession throws TypeError when any required string param is null/undefined", () => {
+    expect(() =>
+      revokeSession({
+        workspaceId: null as unknown as string,
+        sessionId: "sess_x",
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: undefined as unknown as string,
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: "sess_x",
+        actorUserId: null as unknown as string,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("recordAuthEvent throws TypeError when kind is null, undefined, or not a string", () => {
+    expect(() =>
+      recordAuthEvent({
+        kind: null as unknown as "fail",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      recordAuthEvent({
+        kind: undefined as unknown as "fail",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      recordAuthEvent({
+        kind: 42 as unknown as "fail",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("authenticateSaml throws TypeError when required string params are null/undefined", () => {
+    expect(() =>
+      authenticateSaml({
+        workspaceId: null as unknown as string,
+        assertion: "<x/>",
+        expectedAudience: "a",
+        expectedDestination: "d",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticateSaml({
+        workspaceId: "ws_1",
+        assertion: undefined as unknown as string,
+        expectedAudience: "a",
+        expectedDestination: "d",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
   });
 });
