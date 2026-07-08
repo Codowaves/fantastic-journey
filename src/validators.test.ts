@@ -27,6 +27,31 @@ describe("isEmail", () => {
   it("rejects the empty string", () => {
     expect(isEmail("")).toBe(false);
   });
+
+  it("rejects a single-character local part with no domain", () => {
+    expect(isEmail("a@")).toBe(false);
+  });
+
+  it("rejects a string that is just whitespace", () => {
+    expect(isEmail("   ")).toBe(false);
+  });
+
+  it("rejects an address with multiple @ signs", () => {
+    expect(isEmail("a@b@example.com")).toBe(false);
+  });
+
+  it("rejects a TLD that is only a dot", () => {
+    expect(isEmail("user@example.")).toBe(false);
+  });
+
+  it("rejects leading and trailing whitespace", () => {
+    expect(isEmail(" user@example.com")).toBe(false);
+    expect(isEmail("user@example.com ")).toBe(false);
+  });
+
+  it("rejects an address with no local part", () => {
+    expect(isEmail("@example.com")).toBe(false);
+  });
 });
 
 describe("isUrl", () => {
@@ -58,6 +83,31 @@ describe("isUrl", () => {
 
   it("rejects the empty string", () => {
     expect(isUrl("")).toBe(false);
+  });
+
+  it("rejects a single-character scheme without ://", () => {
+    expect(isUrl("a:foo")).toBe(false);
+  });
+
+  it("rejects a URL with a tab character", () => {
+    expect(isUrl("http://example\t.com")).toBe(false);
+  });
+
+  it("rejects a URL with a newline character", () => {
+    expect(isUrl("http://example\n.com")).toBe(false);
+  });
+
+  it("rejects a URL with only a scheme but no authority", () => {
+    expect(isUrl("http://")).toBe(false);
+  });
+
+  it("accepts an uppercase scheme because the regex uses the i flag", () => {
+    expect(isUrl("HTTP://example.com")).toBe(true);
+    expect(isUrl("HTTPS://example.com/path")).toBe(true);
+  });
+
+  it("rejects a URL that is just whitespace", () => {
+    expect(isUrl("   ")).toBe(false);
   });
 });
 
@@ -94,5 +144,33 @@ describe("isUuid", () => {
 
   it("rejects the empty string", () => {
     expect(isUuid("")).toBe(false);
+  });
+
+  it("rejects a UUID with too many characters", () => {
+    expect(isUuid("550e8400-e29b-41d4-a716-4466554400000")).toBe(false);
+  });
+
+  it("rejects a UUID where hyphens are misplaced", () => {
+    expect(isUuid("550e8400e-29b-41d4-a716-446655440000")).toBe(false);
+  });
+
+  it("rejects a UUID with spaces between groups", () => {
+    expect(isUuid("550e8400 e29b-41d4-a716-446655440000")).toBe(false);
+  });
+
+  it("rejects a UUID with only hex digits but no hyphens at all", () => {
+    expect(isUuid("550e8400e29b41d4a716446655440000")).toBe(false);
+  });
+
+  it("rejects a UUID string that is just whitespace", () => {
+    expect(isUuid("   ")).toBe(false);
+  });
+
+  it("rejects a UUID with surrounding whitespace", () => {
+    expect(isUuid(" 550e8400-e29b-41d4-a716-446655440000")).toBe(false);
+  });
+
+  it("rejects a nil-like but malformed UUID", () => {
+    expect(isUuid("00000000-0000-0000-0000-00000000000")).toBe(false);
   });
 });
