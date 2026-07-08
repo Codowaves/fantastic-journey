@@ -42,4 +42,22 @@ describe("dropN", () => {
   it("throws RangeError when n is not an integer", () => {
     expect(() => dropN([1, 2, 3], 1.5)).toThrow(RangeError);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() => dropN(null as unknown as number[], 1)).toThrow(TypeError);
+    expect(() => dropN(undefined as unknown as number[], 1)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when n is null or undefined", () => {
+    expect(() => dropN([1, 2, 3], null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => dropN([1, 2, 3], undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when n is NaN", () => {
+    expect(() => dropN([1, 2, 3], Number.NaN)).toThrow(TypeError);
+  });
 });
