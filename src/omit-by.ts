@@ -9,6 +9,10 @@
  * @param pred - Predicate invoked with each `(value, key)` pair. When it
  *   returns a truthy value, the corresponding key is dropped from the result.
  * @returns A new object with the matching keys removed.
+ *
+ * @example
+ * omitBy({ a: 1, b: 2, c: 3 }, (v) => v > 1);
+ * // => { a: 1 }
  */
 export function omitBy<T extends object>(
   obj: T,
