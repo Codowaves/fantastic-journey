@@ -22,4 +22,24 @@ describe("roundTo", () => {
   it("rounds negative numbers", () => {
     expect(roundTo(-1.236, 2)).toBe(-1.24);
   });
+
+  it("throws TypeError when n is null or undefined", () => {
+    expect(() => roundTo(null as unknown as number, 2)).toThrow(TypeError);
+    expect(() => roundTo(undefined as unknown as number, 2)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when n is NaN", () => {
+    expect(() => roundTo(Number.NaN, 2)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when dp is null or undefined", () => {
+    expect(() => roundTo(1.5, null as unknown as number)).toThrow(TypeError);
+    expect(() => roundTo(1.5, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when dp is NaN", () => {
+    expect(() => roundTo(1.5, Number.NaN)).toThrow(TypeError);
+  });
 });
