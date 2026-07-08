@@ -22,4 +22,24 @@ describe("countWords", () => {
   it("handles leading and trailing whitespace", () => {
     expect(countWords("  hello world  ")).toBe(2);
   });
+
+  it("counts a single word with no surrounding whitespace", () => {
+    expect(countWords("hello")).toBe(1);
+  });
+
+  it("handles tabs and newlines as whitespace", () => {
+    expect(countWords("a\tb\nc")).toBe(3);
+  });
+
+  it("handles mixed whitespace runs including tabs and newlines", () => {
+    expect(countWords("  a \t b \n\n  c  ")).toBe(3);
+  });
+
+  it("returns 0 for a string containing only tabs and newlines", () => {
+    expect(countWords("\t\n  \t\r\n")).toBe(0);
+  });
+
+  it("counts words with punctuation attached", () => {
+    expect(countWords("hello, world!")).toBe(2);
+  });
 });
