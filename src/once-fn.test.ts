@@ -44,4 +44,25 @@ describe("onceFn", () => {
     expect(fn).toHaveBeenCalledWith(1, 2, 3, 4);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() =>
+      onceFn(null as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      onceFn(undefined as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is not a function", () => {
+    expect(() =>
+      onceFn(42 as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      onceFn("not-a-fn" as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      onceFn({} as unknown as (...args: number[]) => number),
+    ).toThrow(TypeError);
+  });
 });

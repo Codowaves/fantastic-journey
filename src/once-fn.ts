@@ -6,6 +6,15 @@
 export function onceFn<A extends unknown[], R>(
   fn: (...args: A) => R,
 ): (...args: A) => R | undefined {
+  if (fn === null || fn === undefined) {
+    throw new TypeError("fn must be a function");
+  }
+  if (typeof fn !== "function") {
+    throw new TypeError("fn must be a function");
+  }
+  if (Number.isNaN(fn as unknown as number)) {
+    throw new TypeError("fn must be a function");
+  }
   let called = false;
   let result: R | undefined;
   return (...args: A): R | undefined => {
