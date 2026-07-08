@@ -1,5 +1,9 @@
 /**
  * Configuration options for the retry helper.
+ *
+ * @example
+ * const options: RetryOptions = { attempts: 5, baseDelayMs: 50, factor: 3 };
+ * // delays between attempts: 50ms, 150ms, 450ms, 1350ms
  */
 export interface RetryOptions {
   /** Total number of attempts (including the first try). Default: 3 */
@@ -21,6 +25,14 @@ export interface RetryOptions {
  * @returns The result of the first successful invocation.
  * @throws The error from the final failed attempt if all retries are exhausted.
  * @throws RangeError if `attempts` is less than 1.
+ *
+ * @example
+ * // Retry a flaky network call up to 3 times with default backoff.
+ * const data = await retry(() => fetch("/api/status").then((r) => r.json()));
+ *
+ * @example
+ * // Custom backoff: 4 attempts, starting at 200ms and tripling each time.
+ * await retry(sendTelemetry, { attempts: 4, baseDelayMs: 200, factor: 3 });
  */
 export async function retry<T>(
   fn: () => Promise<T>,
