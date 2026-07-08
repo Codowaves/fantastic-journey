@@ -22,6 +22,30 @@ describe("safeInt", () => {
       expect(res.error).toBeInstanceOf(Error);
     }
   });
+
+  it("returns an Err for null input", () => {
+    const res = safeInt(null as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for undefined input", () => {
+    const res = safeInt(undefined as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for non-string input (number)", () => {
+    const res = safeInt(42 as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
 });
 
 describe("safeFloat", () => {
@@ -31,6 +55,30 @@ describe("safeFloat", () => {
 
   it("returns an Err for a string that has no numeric prefix", () => {
     const res = safeFloat("abc");
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for null input", () => {
+    const res = safeFloat(null as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for undefined input", () => {
+    const res = safeFloat(undefined as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for non-string input (boolean)", () => {
+    const res = safeFloat(true as unknown as string);
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toBeInstanceOf(Error);
@@ -48,6 +96,30 @@ describe("safeJson", () => {
 
   it("returns an Err for malformed JSON", () => {
     const res = safeJson("{not json}");
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for null input", () => {
+    const res = safeJson(null as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for undefined input", () => {
+    const res = safeJson(undefined as unknown as string);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("returns an Err for non-string input (object)", () => {
+    const res = safeJson({} as unknown as string);
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toBeInstanceOf(Error);
