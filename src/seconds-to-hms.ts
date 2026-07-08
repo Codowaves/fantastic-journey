@@ -3,8 +3,16 @@
  *
  * @param s - The number of seconds to format.
  * @returns A string in `H:MM:SS` form.
+ * @throws {TypeError} If `s` is null or undefined.
+ * @throws {RangeError} If `s` is not a finite number or is negative.
  */
 export function secondsToHMS(s: number): string {
+  if (s === null || s === undefined) {
+    throw new TypeError("s must be a number");
+  }
+  if (Number.isNaN(s)) {
+    throw new TypeError("s must be a number");
+  }
   if (!Number.isFinite(s)) {
     throw new RangeError("seconds must be a finite number");
   }

@@ -58,9 +58,29 @@ describe("secondsToHMS", () => {
   it("throws RangeError for non-finite seconds", () => {
     expect(() => secondsToHMS(Infinity)).toThrow(RangeError);
     expect(() => secondsToHMS(-Infinity)).toThrow(RangeError);
-    expect(() => secondsToHMS(NaN)).toThrow(RangeError);
     expect(() => secondsToHMS(Infinity)).toThrow(
       "seconds must be a finite number",
     );
+  });
+
+  it("throws TypeError when s is null", () => {
+    expect(() => secondsToHMS(null as unknown as number)).toThrow(TypeError);
+    expect(() => secondsToHMS(null as unknown as number)).toThrow(
+      "s must be a number",
+    );
+  });
+
+  it("throws TypeError when s is undefined", () => {
+    expect(() => secondsToHMS(undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => secondsToHMS(undefined as unknown as number)).toThrow(
+      "s must be a number",
+    );
+  });
+
+  it("throws TypeError when s is NaN", () => {
+    expect(() => secondsToHMS(Number.NaN)).toThrow(TypeError);
+    expect(() => secondsToHMS(Number.NaN)).toThrow("s must be a number");
   });
 });
