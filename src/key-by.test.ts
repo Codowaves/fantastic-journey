@@ -44,4 +44,28 @@ describe("keyBy", () => {
     keyBy(input, (n) => n);
     expect(input).toEqual(snapshot);
   });
+
+  it("propagates errors thrown by the key function", () => {
+    expect(() =>
+      keyBy([1, 2, 3], (n) => {
+        if (n === 2) throw new Error("boom");
+        return String(n);
+      }),
+    ).toThrowError("boom");
+  });
+
+  it("supports symbol keys", () => {
+    const a = Symbol("a");
+    const b = Symbol("b");
+    const result = keyBy([a, b], (s) => s);
+    expect(result[a]).toBe(a);
+    expect(result[b]).toBe(b);
+    expect(Object.getOwnPropertySymbols(result)).toEqual([a, b]);
+  });
+
+  it("indexes items whose key is the literal string 'null'", () => {
+    expect(keyBy([null, null] as Array<null>, () => "null")).toEqual({
+      null: null,
+    });
+  });
 });
