@@ -131,4 +131,29 @@ describe("dedupeAdjacent", () => {
     expect(result).not.toBe(input);
     expect(result).toEqual(input);
   });
+
+  it("handles sparse arrays without throwing on empty slots", () => {
+    const sparse: number[] = [];
+    sparse[2] = 5;
+    expect(() => dedupeAdjacent(sparse)).not.toThrow();
+    expect(dedupeAdjacent(sparse)).toEqual([undefined, 5]);
+  });
+
+  it("does not throw when comparing against an undefined previous slot", () => {
+    const sparse: number[] = [];
+    sparse[1] = 7;
+    expect(() => dedupeAdjacent(sparse)).not.toThrow();
+    expect(dedupeAdjacent(sparse)).toEqual([undefined, 7]);
+  });
+
+  it("handles an array created via the Array constructor without throwing", () => {
+    const constructed = new Array<number>(3);
+    expect(() => dedupeAdjacent(constructed)).not.toThrow();
+    expect(dedupeAdjacent(constructed)).toEqual([undefined]);
+  });
+
+  it("does not throw when adjacent values are undefined literals", () => {
+    expect(() => dedupeAdjacent([undefined, undefined, 1])).not.toThrow();
+    expect(dedupeAdjacent([undefined, undefined, 1])).toEqual([undefined, 1]);
+  });
 });
