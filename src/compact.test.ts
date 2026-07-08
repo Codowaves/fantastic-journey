@@ -23,4 +23,25 @@ describe("compact", () => {
   it("returns an empty array for an empty input", () => {
     expect(compact([])).toEqual([]);
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => compact(null as unknown as readonly unknown[])).toThrow(
+      TypeError,
+    );
+    expect(() => compact(undefined as unknown as readonly unknown[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input is not an array", () => {
+    expect(() =>
+      compact("not-an-array" as unknown as readonly unknown[]),
+    ).toThrow(TypeError);
+    expect(() => compact(42 as unknown as readonly unknown[])).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      compact({ length: 0 } as unknown as readonly unknown[]),
+    ).toThrow(TypeError);
+  });
 });
