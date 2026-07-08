@@ -4,6 +4,14 @@
  *
  * @param a - The array to scan.
  * @returns The first duplicated element, or `undefined` when none exist.
+ *
+ * @example
+ * firstDup([1, 2, 3, 2, 4]);
+ * // 2
+ * firstDup(['a', 'b', 'c']);
+ * // undefined
+ * firstDup([{ id: 1 }, { id: 2 }, { id: 1 }]);
+ * // { id: 1 }
  */
 // O(n)
 export function firstDup<T>(a: T[]): T | undefined {
