@@ -217,4 +217,76 @@ describe("TypedEventEmitter", () => {
 
     expect(() => emitter.off("message", listener)).not.toThrow();
   });
+
+  it("should not fail when removing from event that was never registered", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    expect(() => emitter.off("count", listener)).not.toThrow();
+    expect(emitter.listenerCount("count")).toBe(0);
+  });
+
+  it("should return 0 listenerCount for never-registered event", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    expect(emitter.listenerCount("message")).toBe(0);
+    expect(emitter.listenerCount("count")).toBe(0);
+  });
+
+  it("should handle empty string payload", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    emitter.on("message", listener);
+    emitter.emit("message", "");
+
+    expect(listener).toHaveBeenCalledWith("");
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle zero numeric payload", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    emitter.on("count", listener);
+    emitter.emit("count", 0);
+
+    expect(listener).toHaveBeenCalledWith(0);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("should be safe to call unsubscribe twice", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    const unsubscribe = emitter.on("message", listener);
+    unsubscribe();
+    expect(() => unsubscribe()).not.toThrow();
+    expect(emitter.listenerCount("message")).toBe(0);
+  });
+
+  it("should not invoke listener added after emit begins", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const calls: string[] = [];
+
+    emitter.on("message", () => {
+      calls.push("first");
+      emitter.on("message", () => calls.push("late"));
+    });
+
+    emitter.emit("message", "x");
+    expect(calls).toEqual(["first"]);
+
+    emitter.emit("message", "y");
+    expect(calls).toEqual(["first", "first", "late"]);
+  });
+
+  it("should handle listener throwing non-Error value", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+
+    emitter.on("count", () => {
+      throw "string error";
+    });
+
+    expect(() => emitter.emit("count", 1)).toThrow();
+  });
 });
