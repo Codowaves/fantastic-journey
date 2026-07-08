@@ -20,22 +20,44 @@ describe("hexToRgb", () => {
   });
 
   it("throws on null input", () => {
-    expect(() => hexToRgb(null as unknown as string)).toThrow(TypeError);
+    expect(() => hexToRgb(null as unknown as string)).toThrow(
+      /hex must be a string, got null/,
+    );
   });
 
   it("throws on undefined input", () => {
-    expect(() => hexToRgb(undefined as unknown as string)).toThrow(TypeError);
+    expect(() => hexToRgb(undefined as unknown as string)).toThrow(
+      /hex must be a string, got undefined/,
+    );
   });
 
   it("throws on non-string input", () => {
-    expect(() => hexToRgb(0xff0000 as unknown as string)).toThrow(TypeError);
+    expect(() => hexToRgb(0xff0000 as unknown as string)).toThrow(
+      /hex must be a string, got number/,
+    );
   });
 
   it("throws on malformed hex string", () => {
-    expect(() => hexToRgb("#zzzzzz")).toThrow(TypeError);
+    expect(() => hexToRgb("#zzzzzz")).toThrow(
+      /hex must be a valid #rrggbb string/,
+    );
+  });
+
+  it("throws when the green channel is not valid hex", () => {
+    expect(() => hexToRgb("#ffzzff")).toThrow(
+      /hex must be a valid #rrggbb string/,
+    );
+  });
+
+  it("throws when the blue channel is not valid hex", () => {
+    expect(() => hexToRgb("#ffffzz")).toThrow(
+      /hex must be a valid #rrggbb string/,
+    );
   });
 
   it("throws on too-short hex string", () => {
-    expect(() => hexToRgb("#fff")).toThrow(TypeError);
+    expect(() => hexToRgb("#fff")).toThrow(
+      /hex must be a valid #rrggbb string/,
+    );
   });
 });
