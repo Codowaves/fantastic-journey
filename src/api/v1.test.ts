@@ -9,7 +9,7 @@ import {
   resetAuthState,
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
-import { handleRequest } from "./v1";
+import { confirmOrder, createOrder, getOrderStatus, handleRequest } from "./v1";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -853,5 +853,41 @@ describe("api v1 route handler", () => {
       "password",
       "fail",
     ]);
+  });
+
+  describe("order export input validation", () => {
+    it("createOrder rejects null/empty customerId", () => {
+      expect(() => createOrder(null as unknown as string, [])).toThrow(
+        TypeError,
+      );
+      expect(() => createOrder("   ", [])).toThrow(TypeError);
+    });
+
+    it("createOrder rejects items with a NaN qty", () => {
+      expect(() =>
+        createOrder("cust_1", [{ id: "sku_1", qty: Number.NaN }]),
+      ).toThrow(TypeError);
+    });
+
+    it("confirmOrder rejects a null/undefined order", () => {
+      expect(() =>
+        confirmOrder(null as unknown as Parameters<typeof confirmOrder>[0]),
+      ).toThrow(TypeError);
+      expect(() =>
+        confirmOrder(
+          undefined as unknown as Parameters<typeof confirmOrder>[0],
+        ),
+      ).toThrow(TypeError);
+    });
+
+    it("getOrderStatus returns null for null/undefined/blank ids", async () => {
+      await expect(
+        getOrderStatus(null as unknown as string),
+      ).resolves.toBeNull();
+      await expect(
+        getOrderStatus(undefined as unknown as string),
+      ).resolves.toBeNull();
+      await expect(getOrderStatus("   ")).resolves.toBeNull();
+    });
   });
 });

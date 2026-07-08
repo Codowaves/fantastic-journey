@@ -66,6 +66,20 @@ export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
 ): Order {
+  if (typeof customerId !== "string" || !customerId.trim()) {
+    throw new TypeError("customerId must be a non-empty string");
+  }
+  if (!Array.isArray(items)) {
+    throw new TypeError("items must be an array");
+  }
+  for (const item of items) {
+    if (!item || typeof item.id !== "string" || !item.id.trim()) {
+      throw new TypeError("each item must have a non-empty id");
+    }
+    if (typeof item.qty !== "number" || !Number.isFinite(item.qty)) {
+      throw new TypeError("each item must have a finite qty");
+    }
+  }
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -84,6 +98,9 @@ export function createOrder(
  * @returns A new {@link Order} with `status` set to `confirmed`.
  */
 export function confirmOrder(order: Order): Order {
+  if (!order || typeof order !== "object") {
+    throw new TypeError("order must be an object");
+  }
   return { ...order, status: "confirmed" };
 }
 
@@ -96,7 +113,8 @@ export function confirmOrder(order: Order): Order {
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
-  return Promise.resolve(orderId ? "pending" : null);
+  const valid = typeof orderId === "string" && orderId.trim().length > 0;
+  return Promise.resolve(valid ? "pending" : null);
 }
 
 /**
