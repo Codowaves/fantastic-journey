@@ -4,8 +4,16 @@
  *
  * @param s - The input string to count words in.
  * @returns The number of whitespace-separated tokens, or 0 if `s` is empty or all whitespace.
+ * @throws {TypeError} If `s` is null, undefined, or NaN.
  */
 export function wordCount(s: string): number {
+  if (
+    s === null ||
+    s === undefined ||
+    (typeof s === "number" && Number.isNaN(s))
+  ) {
+    throw new TypeError("s must be a string");
+  }
   const t = s.trim();
   return t ? t.split(/\s+/).length : 0;
 }
