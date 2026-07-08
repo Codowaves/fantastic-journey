@@ -175,4 +175,91 @@ describe("deepEqual", () => {
       expect(deepEqual(obj1, obj3)).toBe(false);
     });
   });
+
+  describe("edge cases", () => {
+    it("handles undefined values inside arrays", () => {
+      const a = [1, undefined, 3];
+      const b = [1, undefined, 3];
+      const c = [1, null, 3];
+      const d = [1, undefined, 4];
+      expect(deepEqual(a, b)).toBe(true);
+      expect(deepEqual(a, c)).toBe(false);
+      expect(deepEqual(a, d)).toBe(false);
+      expect(deepEqual([undefined], [undefined])).toBe(true);
+    });
+
+    it("returns false for two Invalid Date instances (NaN timestamp)", () => {
+      expect(deepEqual(new Date("not-a-date"), new Date("not-a-date"))).toBe(
+        false,
+      );
+    });
+
+    it("returns false when comparing object to string-keyed vs numeric-keyed array-like", () => {
+      expect(deepEqual({ 0: "a", 1: "b" }, { 0: "a", 1: "b" })).toBe(true);
+      expect(deepEqual({ 0: "a", 1: "b" }, ["a", "b"])).toBe(false);
+    });
+
+    it("returns true for objects with numeric string keys", () => {
+      expect(deepEqual({ "1": 1, "2": 2 }, { "1": 1, "2": 2 })).toBe(true);
+      expect(deepEqual({ "1": 1, "2": 2 }, { "1": 1, "2": 3 })).toBe(false);
+    });
+
+    it("handles objects whose values are bigints", () => {
+      expect(deepEqual({ n: 1n }, { n: 1n })).toBe(true);
+      expect(deepEqual({ n: 1n }, { n: 2n })).toBe(false);
+      expect(deepEqual(1n, 1)).toBe(false);
+    });
+
+    it("handles boolean true vs false in nested positions", () => {
+      expect(deepEqual({ a: true, b: 1 }, { a: true, b: 1 })).toBe(true);
+      expect(deepEqual({ a: true, b: 1 }, { a: true, b: "1" })).toBe(false);
+      expect(deepEqual({ a: true }, { a: 1 })).toBe(false);
+    });
+
+    it("handles deeply nested empty structures", () => {
+      expect(deepEqual([[[[]]]], [[[[]]]])).toBe(true);
+      expect(deepEqual({ a: { b: { c: {} } } }, { a: { b: { c: {} } } })).toBe(
+        true,
+      );
+    });
+
+    it("returns false when same-length object sets differ", () => {
+      expect(deepEqual({ x: 1 }, { y: 1 })).toBe(false);
+      expect(deepEqual({ y: 1 }, { x: 1 })).toBe(false);
+    });
+
+    it("distinguishes Date from object literal with getTime method", () => {
+      const date = new Date("2024-01-01");
+      const fake = { getTime: () => date.getTime() } as unknown as Date;
+      expect(deepEqual(date, fake)).toBe(false);
+    });
+
+    it("returns false for null vs object with null prototype", () => {
+      const bare = Object.create(null);
+      expect(deepEqual(null, bare)).toBe(false);
+      expect(deepEqual(bare, null)).toBe(false);
+    });
+
+    it("returns true for matching objects with null prototype", () => {
+      const a = Object.create(null);
+      a.x = 1;
+      a.y = 2;
+      const b = Object.create(null);
+      b.x = 1;
+      b.y = 2;
+      expect(deepEqual(a, b)).toBe(true);
+    });
+
+    it("compares class instances by own enumerable properties only", () => {
+      class A {
+        constructor(public x: number) {}
+      }
+      class B {
+        constructor(public x: number) {}
+      }
+      expect(deepEqual(new A(1), new B(1))).toBe(true);
+      expect(deepEqual(new A(1), new A(2))).toBe(false);
+      expect(deepEqual(new A(1), { x: 1 })).toBe(true);
+    });
+  });
 });
