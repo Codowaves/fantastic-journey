@@ -11,10 +11,10 @@
  * @throws {TypeError} If `a` or `b` is null or undefined.
  */
 export function difference<T>(a: readonly T[], b: readonly T[]): T[] {
-  if (a === null || a === undefined) {
+  if (a === null || a === undefined || Number.isNaN(a)) {
     throw new TypeError("a must be an array");
   }
-  if (b === null || b === undefined) {
+  if (b === null || b === undefined || Number.isNaN(b)) {
     throw new TypeError("b must be an array");
   }
   const excluded = new Set(b);
