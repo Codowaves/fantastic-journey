@@ -19,6 +19,19 @@
  * // { 0: 3, 1: 3 }
  * countBy([], (x) => x);
  * // {}
+ *
+ * @remarks
+ * Edge cases:
+ * - Items that all map to the same key collapse into a single entry whose
+ *   count equals `items.length`; no duplicates are produced.
+ * - A single-element input always yields a record with one entry and a
+ *   count of `1`.
+ * - `keyFn` is invoked exactly once per item, in input order; it must not
+ *   mutate `items` (this function does not copy the array — passing a
+ *   mutable reference is fine, but `keyFn` should treat it as read-only).
+ * - Keys are restricted to `PropertyKey` (string, number, or symbol); the
+ *   returned record only contains entries for keys that were actually
+ *   produced by `keyFn`.
  */
 export function countBy<T, K extends PropertyKey>(
   items: readonly T[],
