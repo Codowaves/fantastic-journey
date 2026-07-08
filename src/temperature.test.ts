@@ -17,6 +17,19 @@ describe("celsiusToFahrenheit", () => {
   it("converts negative temperatures", () => {
     expect(celsiusToFahrenheit(-40)).toBe(-40);
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => celsiusToFahrenheit(null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => celsiusToFahrenheit(undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => celsiusToFahrenheit(Number.NaN)).toThrow(TypeError);
+  });
 });
 
 describe("fahrenheitToCelsius", () => {
@@ -34,5 +47,18 @@ describe("fahrenheitToCelsius", () => {
 
   it("converts the crossover point", () => {
     expect(fahrenheitToCelsius(-40)).toBe(-40);
+  });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => fahrenheitToCelsius(null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => fahrenheitToCelsius(undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => fahrenheitToCelsius(Number.NaN)).toThrow(TypeError);
   });
 });
