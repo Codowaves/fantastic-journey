@@ -32,4 +32,33 @@ describe("intersection", () => {
     const result = intersection(["a", "b", "c", "d"], ["c", "d", "e"]);
     expect(result).toEqual(["c", "d"]);
   });
+
+  it("throws TypeError when the first argument is null", () => {
+    expect(() => intersection(null as unknown as never[], [1, 2])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when the first argument is undefined", () => {
+    expect(() => intersection(undefined as unknown as never[], [1, 2])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("returns an empty array when the second argument is null", () => {
+    expect(intersection([1, 2], null as unknown as never[])).toEqual([]);
+  });
+
+  it("returns an empty array when the second argument is undefined", () => {
+    expect(intersection([1, 2], undefined as unknown as never[])).toEqual([]);
+  });
+
+  it("throws TypeError when the first argument is not iterable", () => {
+    expect(() => intersection(42 as unknown as never[], [1, 2])).toThrow(
+      TypeError,
+    );
+    expect(() => intersection({} as unknown as never[], [1, 2])).toThrow(
+      TypeError,
+    );
+  });
 });
