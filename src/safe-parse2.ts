@@ -10,6 +10,16 @@ import { err, ok, type Result } from "./result";
  * @param input - The string to parse.
  * @returns An `Ok` carrying the parsed integer, or an `Err` describing the
  *   parse failure.
+ *
+ * @example
+ * ```ts
+ * const result = safeInt("42");
+ * if (result.ok) {
+ *   console.log(result.value); // 42
+ * } else {
+ *   console.error(result.error.message);
+ * }
+ * ```
  */
 export function safeInt(input: string): Result<number, Error> {
   const parsed = Number.parseInt(input, 10);
@@ -29,6 +39,16 @@ export function safeInt(input: string): Result<number, Error> {
  * @param input - The string to parse.
  * @returns An `Ok` carrying the parsed number, or an `Err` describing the
  *   parse failure.
+ *
+ * @example
+ * ```ts
+ * const result = safeFloat("3.14");
+ * if (result.ok) {
+ *   console.log(result.value); // 3.14
+ * } else {
+ *   console.error(result.error.message);
+ * }
+ * ```
  */
 export function safeFloat(input: string): Result<number, Error> {
   const parsed = Number.parseFloat(input);
@@ -49,6 +69,17 @@ export function safeFloat(input: string): Result<number, Error> {
  * @param input - The JSON text to parse.
  * @returns An `Ok` carrying the parsed value, or an `Err` carrying the
  *   parse error.
+ *
+ * @example
+ * ```ts
+ * type User = { name: string; age: number };
+ * const result = safeJson<User>('{"name":"Ada","age":36}');
+ * if (result.ok) {
+ *   console.log(result.value.name); // "Ada"
+ * } else {
+ *   console.error(result.error.message);
+ * }
+ * ```
  */
 export function safeJson<T = unknown>(input: string): Result<T, Error> {
   try {
