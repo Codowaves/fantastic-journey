@@ -37,4 +37,32 @@ describe("truncate", () => {
       "maxLength must be an integer >= 1",
     );
   });
+
+  it("returns empty string unchanged when input is empty", () => {
+    expect(truncate("", 10)).toBe("");
+    expect(truncate("", 1)).toBe("");
+  });
+
+  it("truncates empty string to ellipsis when maxLength is 1 and input has content", () => {
+    // Already covered by single-character test, but reinforce boundary
+    expect(truncate("a", 1)).toBe("a");
+  });
+
+  it("truncates string longer than maxLength by exactly one character before ellipsis", () => {
+    const result = truncate("abcdefghij", 4);
+    expect(result).toBe("abc…");
+    expect(result.length).toBe(4);
+  });
+
+  it("handles maxLength of 1 as a valid lower boundary", () => {
+    expect(() => truncate("hello", 1)).not.toThrow();
+  });
+
+  it("throws RangeError when maxLength is NaN", () => {
+    expect(() => truncate("hello", NaN)).toThrow(RangeError);
+  });
+
+  it("throws RangeError for Infinity maxLength", () => {
+    expect(() => truncate("hello", Infinity)).toThrow(RangeError);
+  });
 });
