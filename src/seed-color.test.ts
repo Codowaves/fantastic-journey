@@ -38,4 +38,30 @@ describe("lighten", () => {
   it("handles large amounts that overflow every channel", () => {
     expect(lighten("#123456", 1000)).toBe("#ffffff");
   });
+
+  it("throws TypeError when hex is null", () => {
+    expect(() => lighten(null as unknown as string, 10)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when hex is undefined", () => {
+    expect(() => lighten(undefined as unknown as string, 10)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when amt is null", () => {
+    expect(() => lighten("#101010", null as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when amt is undefined", () => {
+    expect(() => lighten("#101010", undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when amt is NaN", () => {
+    expect(() => lighten("#101010", NaN)).toThrow(TypeError);
+  });
 });
