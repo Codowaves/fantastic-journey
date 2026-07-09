@@ -10,4 +10,16 @@ describe("farewell", () => {
   it("handles an empty string by returning the base farewell", () => {
     expect(farewell("")).toBe("Goodbye, !");
   });
+
+  it("returns the friend fallback for null", () => {
+    expect(farewell(null as unknown as string)).toBe("Goodbye, friend!");
+  });
+
+  it("returns the friend fallback for undefined", () => {
+    expect(farewell(undefined as unknown as string)).toBe("Goodbye, friend!");
+  });
+
+  it("returns the friend fallback for NaN", () => {
+    expect(farewell(Number.NaN as unknown as string)).toBe("Goodbye, friend!");
+  });
 });
