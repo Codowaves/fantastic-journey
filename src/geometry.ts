@@ -5,6 +5,9 @@
  * @returns The area of the circle.
  */
 export function circleArea(radius: number): number {
+  if (radius === null || radius === undefined || Number.isNaN(radius)) {
+    throw new TypeError("radius must be a number");
+  }
   if (radius < 0) {
     throw new RangeError("radius must be non-negative");
   }
@@ -19,6 +22,12 @@ export function circleArea(radius: number): number {
  * @returns The area of the rectangle.
  */
 export function rectArea(width: number, height: number): number {
+  if (width === null || width === undefined || Number.isNaN(width)) {
+    throw new TypeError("width must be a number");
+  }
+  if (height === null || height === undefined || Number.isNaN(height)) {
+    throw new TypeError("height must be a number");
+  }
   if (width < 0 || height < 0) {
     throw new RangeError("width and height must be non-negative");
   }

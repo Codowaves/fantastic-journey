@@ -19,6 +19,12 @@ describe("circleArea", () => {
     expect(() => circleArea(-1)).toThrow(RangeError);
     expect(() => circleArea(-1)).toThrow("radius must be non-negative");
   });
+
+  it("throws TypeError when radius is null, undefined, or NaN", () => {
+    expect(() => circleArea(null as unknown as number)).toThrow(TypeError);
+    expect(() => circleArea(undefined as unknown as number)).toThrow(TypeError);
+    expect(() => circleArea(Number.NaN)).toThrow(TypeError);
+  });
 });
 
 describe("rectArea", () => {
@@ -38,5 +44,18 @@ describe("rectArea", () => {
     expect(() => rectArea(-1, 5)).toThrow(
       "width and height must be non-negative",
     );
+  });
+
+  it("throws TypeError when width or height is null, undefined, or NaN", () => {
+    expect(() => rectArea(null as unknown as number, 5)).toThrow(TypeError);
+    expect(() => rectArea(5, null as unknown as number)).toThrow(TypeError);
+    expect(() => rectArea(undefined as unknown as number, 5)).toThrow(
+      TypeError,
+    );
+    expect(() => rectArea(5, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => rectArea(Number.NaN, 5)).toThrow(TypeError);
+    expect(() => rectArea(5, Number.NaN)).toThrow(TypeError);
   });
 });
