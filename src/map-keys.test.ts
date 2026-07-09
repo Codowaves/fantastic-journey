@@ -46,4 +46,45 @@ describe("mapKeys", () => {
       "prefix:only": "x",
     });
   });
+
+  it("propagates the error when fn throws on a mid-iteration key", () => {
+    const boom = new Error("boom");
+    const input = { a: 1, b: 2, c: 3 };
+    expect(() =>
+      mapKeys(input, (k) => {
+        if (k === "b") throw boom;
+        return k;
+      }),
+    ).toThrow(boom);
+  });
+
+  it("propagates the error when fn throws on the first key", () => {
+    const input = { a: 1, b: 2 };
+    expect(() =>
+      mapKeys(input, () => {
+        throw new RangeError("first");
+      }),
+    ).toThrow(RangeError);
+  });
+
+  it("propagates non-Error throws from fn", () => {
+    const input = { a: 1 };
+    expect(() =>
+      mapKeys(input, () => {
+        throw "string-error";
+      }),
+    ).toThrow("string-error");
+  });
+
+  it("throws TypeError when the source object is null", () => {
+    expect(() =>
+      mapKeys(null as unknown as Record<string, number>, (k) => k),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when the source object is undefined", () => {
+    expect(() =>
+      mapKeys(undefined as unknown as Record<string, number>, (k) => k),
+    ).toThrow(TypeError);
+  });
 });
