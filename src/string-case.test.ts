@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest";
 import { toCamel, toKebab, toSnake } from "./string-case";
 
 describe("toCamel", () => {
+  it("throws TypeError when str is null", () => {
+    expect(() => toCamel(null as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is undefined", () => {
+    expect(() => toCamel(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is NaN", () => {
+    expect(() => toCamel(NaN as unknown as string)).toThrow(TypeError);
+  });
+
   it("lowercases a single word", () => {
     expect(toCamel("Hello")).toBe("hello");
   });
@@ -45,6 +57,18 @@ describe("toCamel", () => {
 });
 
 describe("toSnake", () => {
+  it("throws TypeError when str is null", () => {
+    expect(() => toSnake(null as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is undefined", () => {
+    expect(() => toSnake(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is NaN", () => {
+    expect(() => toSnake(NaN as unknown as string)).toThrow(TypeError);
+  });
+
   it("converts camelCase to snake_case", () => {
     expect(toSnake("helloWorld")).toBe("hello_world");
   });
@@ -79,6 +103,18 @@ describe("toSnake", () => {
 });
 
 describe("toKebab", () => {
+  it("throws TypeError when str is null", () => {
+    expect(() => toKebab(null as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is undefined", () => {
+    expect(() => toKebab(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is NaN", () => {
+    expect(() => toKebab(NaN as unknown as string)).toThrow(TypeError);
+  });
+
   it("lowercases and hyphenates a space-separated phrase", () => {
     expect(toKebab("Hello World")).toBe("hello-world");
   });
