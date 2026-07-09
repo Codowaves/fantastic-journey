@@ -1,5 +1,10 @@
 /**
  * Configuration options for the retry helper.
+ *
+ * @example
+ * ```ts
+ * const options: RetryOptions = { attempts: 5, baseDelayMs: 200, factor: 2 };
+ * ```
  */
 export interface RetryOptions {
   /** Total number of attempts (including the first try). Default: 3 */
@@ -21,6 +26,20 @@ export interface RetryOptions {
  * @returns The result of the first successful invocation.
  * @throws The error from the final failed attempt if all retries are exhausted.
  * @throws RangeError if `attempts` is less than 1.
+ *
+ * @example
+ * ```ts
+ * const data = await retry(() => fetchData());
+ * ```
+ *
+ * @example
+ * ```ts
+ * const result = await retry(() => api.call(), {
+ *   attempts: 5,
+ *   baseDelayMs: 200,
+ *   factor: 2,
+ * });
+ * ```
  */
 export async function retry<T>(
   fn: () => Promise<T>,
