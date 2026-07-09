@@ -16,8 +16,19 @@ function splitWords(input: string): string[] {
     .filter((word) => word.length > 0);
 }
 
+function validateInput(str: string, paramName: string): void {
+  if (
+    str === null ||
+    str === undefined ||
+    (typeof str === "number" && Number.isNaN(str))
+  ) {
+    throw new TypeError(`${paramName} must be a string`);
+  }
+}
+
 /** Converts `str` to camelCase. */
 export function toCamel(str: string): string {
+  validateInput(str, "str");
   const words = splitWords(str);
   if (words.length === 0) {
     return "";
@@ -29,10 +40,12 @@ export function toCamel(str: string): string {
 
 /** Converts `str` to snake_case. */
 export function toSnake(str: string): string {
+  validateInput(str, "str");
   return splitWords(str).join("_");
 }
 
 /** Converts `str` to kebab-case. */
 export function toKebab(str: string): string {
+  validateInput(str, "str");
   return splitWords(str).join("-");
 }

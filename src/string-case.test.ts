@@ -42,6 +42,15 @@ describe("toCamel", () => {
   it("returns an empty string for input that has no alphanumeric characters", () => {
     expect(toCamel("!!! ??? ---")).toBe("");
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => toCamel(null as unknown as string)).toThrow(TypeError);
+    expect(() => toCamel(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => toCamel(Number.NaN as unknown as string)).toThrow(TypeError);
+  });
 });
 
 describe("toSnake", () => {
@@ -75,6 +84,15 @@ describe("toSnake", () => {
 
   it("returns an empty string for input that has no alphanumeric characters", () => {
     expect(toSnake("!!! ??? ---")).toBe("");
+  });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => toSnake(null as unknown as string)).toThrow(TypeError);
+    expect(() => toSnake(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => toSnake(Number.NaN as unknown as string)).toThrow(TypeError);
   });
 });
 
@@ -113,5 +131,14 @@ describe("toKebab", () => {
 
   it("returns an empty string for input that has no alphanumeric characters", () => {
     expect(toKebab("!!! ???")).toBe("");
+  });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => toKebab(null as unknown as string)).toThrow(TypeError);
+    expect(() => toKebab(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => toKebab(Number.NaN as unknown as string)).toThrow(TypeError);
   });
 });
