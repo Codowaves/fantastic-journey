@@ -50,8 +50,11 @@ describe("isEmptyValue", () => {
       expect(isEmptyValue(0)).toBe(false);
       expect(isEmptyValue(42)).toBe(false);
       expect(isEmptyValue(-1)).toBe(false);
-      expect(isEmptyValue(NaN)).toBe(false);
       expect(isEmptyValue(Infinity)).toBe(false);
+    });
+
+    it("returns true for NaN (explicitly guarded as empty)", () => {
+      expect(isEmptyValue(NaN)).toBe(true);
     });
 
     it("returns false for bigints via the fallback branch", () => {
@@ -180,6 +183,31 @@ describe("isEmptyValue", () => {
 
     it("treats void 0 the same as undefined", () => {
       expect(isEmptyValue(void 0)).toBe(true);
+    });
+  });
+
+  describe("input validation guards (null/undefined/NaN)", () => {
+    it("returns true for null", () => {
+      expect(isEmptyValue(null)).toBe(true);
+    });
+
+    it("returns true for undefined", () => {
+      expect(isEmptyValue(undefined)).toBe(true);
+    });
+
+    it("returns true for NaN", () => {
+      expect(isEmptyValue(NaN)).toBe(true);
+    });
+
+    it("does not throw on null, undefined, or NaN", () => {
+      expect(() => isEmptyValue(null)).not.toThrow();
+      expect(() => isEmptyValue(undefined)).not.toThrow();
+      expect(() => isEmptyValue(NaN)).not.toThrow();
+    });
+
+    it("keeps non-NaN numbers treated as non-empty", () => {
+      expect(isEmptyValue(0)).toBe(false);
+      expect(isEmptyValue(42)).toBe(false);
     });
   });
 });
