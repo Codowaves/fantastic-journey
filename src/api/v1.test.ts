@@ -793,6 +793,237 @@ describe("api v1 route handler", () => {
       const secondBody = (await second.json()) as { order: { id: string } };
       expect(secondBody.order.id).toBe(firstBody.order.id);
     });
+
+    it("returns 400 when an item has a whitespace-only id", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "   ", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item id is a number", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: 123, qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.id is required",
+      });
+    });
+
+    it("returns 400 when an item qty is NaN", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: Number.NaN, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item qty is Infinity", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: Number.POSITIVE_INFINITY, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item qty is a string", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: "2", unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item qty is negative", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: -1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.qty must be a positive number",
+      });
+    });
+
+    it("returns 400 when an item unitPrice is NaN", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: Number.NaN }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.unitPrice must be a non-negative number",
+      });
+    });
+
+    it("returns 400 when an item unitPrice is a string", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [{ id: "sku_1", qty: 1, unitPrice: "10" }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "item.unitPrice must be a non-negative number",
+      });
+    });
+
+    it("returns 400 when an item is null", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: [null],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "each item must be an object",
+      });
+    });
+
+    it("returns 400 when an item is a primitive", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        items: ["sku_1"],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "each item must be an object",
+      });
+    });
+
+    it("accepts an idempotency key that consists only of whitespace", async () => {
+      const response = await postOrder(
+        {
+          customerId: "cust_1",
+          currency: "USD",
+          taxRate: 0,
+          items: [{ id: "sku_1", qty: 1, unitPrice: 25 }],
+        },
+        { "Idempotency-Key": "   " },
+      );
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toMatchObject({
+        order: { total: 25, currency: "USD" },
+      });
+    });
+
+    it("returns 400 when discountPercent is negative", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: -1,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "discountPercent must be a number between 0 and 100",
+      });
+    });
+
+    it("treats discountPercent of null as no discount", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+        discountPercent: null,
+        items: [{ id: "sku_1", qty: 1, unitPrice: 75 }],
+      });
+
+      expect(response.status).toBe(201);
+      await expect(response.json()).resolves.toMatchObject({
+        order: { total: 75, currency: "USD" },
+      });
+    });
+
+    it("returns 400 when taxRate is missing entirely", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        items: [{ id: "sku_1", qty: 1, unitPrice: 10 }],
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "taxRate must be a non-negative number",
+      });
+    });
+
+    it("returns 400 when items key is missing entirely", async () => {
+      const response = await postOrder({
+        customerId: "cust_1",
+        currency: "USD",
+        taxRate: 0,
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "items must be a non-empty array",
+      });
+    });
+
+    it("returns 400 when body is invalid JSON", async () => {
+      const response = await postOrderRaw("{not-json");
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
+
+    it("returns 400 when body is not an object", async () => {
+      const response = await postOrderRaw(JSON.stringify("just-a-string"));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "customerId is required",
+      });
+    });
   });
 
   it("writes an audit row for SSO, magic, password, and failed attempts", async () => {
@@ -853,5 +1084,324 @@ describe("api v1 route handler", () => {
       "password",
       "fail",
     ]);
+  });
+
+  describe("auth edge cases", () => {
+    function postJson(path: string, body: unknown): Promise<Response> {
+      return handleRequest(
+        new Request(`https://example.com${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    }
+
+    it("returns 400 when /auth/saml is missing workspaceId", async () => {
+      const response = await postJson("/auth/saml", {
+        assertionXml: "<Assertion/>",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and assertion are required",
+      });
+    });
+
+    it("returns 400 when /auth/saml is missing assertion", async () => {
+      const response = await postJson("/auth/saml", { workspaceId: "ws_1" });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and assertion are required",
+      });
+    });
+
+    it("returns 400 when /auth/magic-link is missing email", async () => {
+      const response = await postJson("/auth/magic-link", {
+        workspaceId: "ws_1",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId and email are required",
+      });
+    });
+
+    it("returns 400 when /auth/password is missing password", async () => {
+      const response = await postJson("/auth/password", {
+        workspaceId: "ws_1",
+        userId: "owner_1",
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId, userId, and password are required",
+      });
+    });
+
+    it("returns 400 when /settings/security/saml/metadata is missing workspaceId", async () => {
+      const response = await postJson("/settings/security/saml/metadata", {
+        xml: samlMetadataXml(),
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "workspaceId is required",
+      });
+    });
+
+    it("returns 400 when GET /auth/magic-link/verify has no token", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/auth/magic-link/verify"),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "token is required",
+      });
+    });
+  });
+
+  describe("admin and sessions edge cases", () => {
+    async function loginOwner(): Promise<string> {
+      const loginResponse = await handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: "ws_1",
+            userId: "owner_1",
+            password: "password",
+          }),
+        }),
+      );
+      return loginResponse.headers.get("set-cookie") ?? "";
+    }
+
+    it("returns 403 for /admin/users without an owner session", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users"),
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
+    });
+
+    it("returns 403 for /admin/users/export without an owner session", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users/export"),
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
+    });
+
+    it("returns the owner user when /admin/users is accessed with a valid owner session", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users", {
+          headers: { cookie },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        items: expect.arrayContaining([
+          expect.objectContaining({ id: "owner_1", plan: "pro" }),
+        ]),
+      });
+    });
+
+    it("filters /admin/users by plan query parameter", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users?plan=free", {
+          headers: { cookie },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        items: Array<{ id: string; plan: string | null }>;
+      };
+      // listWorkspaceUsers stores users twice (by user key and by email key),
+      // so plan="free" returns two entries — both for the free member.
+      expect(body.items.length).toBeGreaterThan(0);
+      expect(body.items.every((u) => u.plan === "free")).toBe(true);
+      expect(body.items.every((u) => u.id === "user_1")).toBe(true);
+    });
+
+    it("filters /admin/users by active status query parameter", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users?status=active", {
+          headers: { cookie },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        items: Array<{ id: string; last_active_at: string | null }>;
+      };
+      // Both seeded users have a last_active_at, so status=active includes them.
+      const ids = body.items.map((u) => u.id).sort();
+      expect(ids).toContain("owner_1");
+      expect(ids).toContain("user_1");
+      expect(body.items.every((u) => u.last_active_at !== null)).toBe(true);
+    });
+
+    it("returns CSV content-type for /admin/users/export with owner session", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/admin/users/export", {
+          headers: { cookie },
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/csv");
+      expect(response.headers.get("content-disposition")).toContain(
+        "attachment; filename=",
+      );
+      const text = await response.text();
+      expect(text.split("\n")[0]).toBe(
+        "id,email,plan,signed_up_at,last_active_at",
+      );
+      expect(text).toContain("owner@example.com");
+      expect(text).toContain("user@example.com");
+    });
+
+    it("returns 400 for /settings/security/sessions/revoke without sessionId", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({}),
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "sessionId is required",
+      });
+    });
+
+    it("returns 404 for /settings/security/sessions/revoke with an unknown sessionId", async () => {
+      const cookie = await loginOwner();
+      const response = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({ sessionId: "sess_does_not_exist" }),
+        }),
+      );
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({ revoked: false });
+    });
+
+    it("revokes a session via form-encoded body when content-type is form data", async () => {
+      const cookie = await loginOwner();
+
+      const loginResponse = await handleRequest(
+        new Request("https://example.com/auth/password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: "ws_1",
+            userId: "user_1",
+            password: "password",
+          }),
+        }),
+      );
+      const loginBody = (await loginResponse.json()) as {
+        session: { id: string };
+      };
+
+      const revokeResponse = await handleRequest(
+        new Request("https://example.com/settings/security/sessions/revoke", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            cookie,
+          },
+          body: `sessionId=${encodeURIComponent(loginBody.session.id)}`,
+        }),
+      );
+
+      expect(revokeResponse.status).toBe(200);
+      await expect(revokeResponse.json()).resolves.toEqual({ revoked: true });
+    });
+  });
+
+  describe("CORS handling", () => {
+    it("returns 403 for OPTIONS preflight from a disallowed origin", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/api/projects", {
+          method: "OPTIONS",
+          headers: { origin: "https://evil.example" },
+        }),
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it("falls through to a normal 404 when OPTIONS preflight has no Origin header", async () => {
+      const response = await handleRequest(
+        new Request("https://example.com/api/projects", {
+          method: "OPTIONS",
+        }),
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("createOrder/confirmOrder/getOrderStatus", () => {
+    it("createOrder returns a pending order with the supplied customer id", async () => {
+      const { createOrder } = await import("./v1");
+      const order = createOrder("cust_xyz", [{ id: "sku_1", qty: 2 }]);
+
+      expect(order).toMatchObject({
+        customerId: "cust_xyz",
+        total: 1,
+        currency: "USD",
+        status: "pending",
+        items: [{ id: "sku_1", qty: 2, unitPrice: 0 }],
+      });
+      expect(order.id).toMatch(/^ord_/);
+    });
+
+    it("confirmOrder transitions status from pending to confirmed", async () => {
+      const { createOrder, confirmOrder } = await import("./v1");
+      const order = createOrder("cust_xyz", [{ id: "sku_1", qty: 1 }]);
+      const confirmed = confirmOrder(order);
+
+      expect(confirmed.status).toBe("confirmed");
+      expect(confirmed.customerId).toBe("cust_xyz");
+    });
+
+    it("getOrderStatus resolves to pending for a non-empty id", async () => {
+      const { getOrderStatus } = await import("./v1");
+      await expect(getOrderStatus("ord_1")).resolves.toBe("pending");
+    });
+
+    it("getOrderStatus resolves to null for an empty id", async () => {
+      const { getOrderStatus } = await import("./v1");
+      await expect(getOrderStatus("")).resolves.toBeNull();
+    });
+
+    it("SUPPORTED_CURRENCIES includes USD, EUR, GBP, JPY", async () => {
+      const { SUPPORTED_CURRENCIES } = await import("./v1");
+      expect(SUPPORTED_CURRENCIES).toEqual(["USD", "EUR", "GBP", "JPY"]);
+    });
   });
 });
