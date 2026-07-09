@@ -10,6 +10,10 @@ import { err, ok, type Result } from "./result";
  * @param input - The string to parse.
  * @returns An `Ok` carrying the parsed integer, or an `Err` describing the
  *   parse failure.
+ * @example
+ * safeInt("42"); // { ok: true, value: 42 }
+ * safeInt("abc"); // { ok: false, error: Error("Invalid integer: abc") }
+ * safeInt(""); // { ok: false, error: Error("Invalid integer: ") }
  */
 export function safeInt(input: string): Result<number, Error> {
   const parsed = Number.parseInt(input, 10);
@@ -29,6 +33,10 @@ export function safeInt(input: string): Result<number, Error> {
  * @param input - The string to parse.
  * @returns An `Ok` carrying the parsed number, or an `Err` describing the
  *   parse failure.
+ * @example
+ * safeFloat("3.14"); // { ok: true, value: 3.14 }
+ * safeFloat("abc"); // { ok: false, error: Error("Invalid float: abc") }
+ * safeFloat(""); // { ok: false, error: Error("Invalid float: ") }
  */
 export function safeFloat(input: string): Result<number, Error> {
   const parsed = Number.parseFloat(input);
@@ -49,6 +57,10 @@ export function safeFloat(input: string): Result<number, Error> {
  * @param input - The JSON text to parse.
  * @returns An `Ok` carrying the parsed value, or an `Err` carrying the
  *   parse error.
+ * @example
+ * safeJson('{"a":1}'); // { ok: true, value: { a: 1 } }
+ * safeJson("[1,2,3]"); // { ok: true, value: [1, 2, 3] }
+ * safeJson("{not json}"); // { ok: false, error: SyntaxError }
  */
 export function safeJson<T = unknown>(input: string): Result<T, Error> {
   try {
