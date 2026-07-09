@@ -16,6 +16,12 @@ const HTML_ESCAPES: Record<string, string> = {
  * @param str - The string to escape. Not mutated.
  * @returns A new string with HTML-significant characters replaced by entities.
  * @throws {TypeError} If `str` is null, undefined, or NaN.
+ *
+ * @example
+ * escapeHtml('<a href="x">\'&\'</a>');
+ * // '&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;'
+ * escapeHtml('hello');
+ * // 'hello'
  */
 export function escapeHtml(str: string): string {
   if (
