@@ -118,4 +118,53 @@ describe("RingBuffer", () => {
     expect(out[0]).toBe(0);
     expect(Number.isNaN(out[2])).toBe(true);
   });
+
+  describe("error/throw paths", () => {
+    it("does not throw when adding to a never-used buffer", () => {
+      expect(() => new RingBuffer<number>(5).add(1)).not.toThrow();
+    });
+
+    it("does not throw when toArray is called on an empty buffer", () => {
+      expect(() => new RingBuffer<number>(5).toArray()).not.toThrow();
+    });
+
+    it("does not throw when add exceeds capacity many times", () => {
+      const rb = new RingBuffer<number>(3);
+      expect(() => {
+        for (let i = 0; i < 1000; i++) rb.add(i);
+      }).not.toThrow();
+    });
+
+    it("does not throw when storing null and undefined values", () => {
+      const rb = new RingBuffer<number | null | undefined>(3);
+      expect(() => {
+        rb.add(null);
+        rb.add(undefined);
+        rb.add(1);
+        rb.add(2);
+      }).not.toThrow();
+      expect(rb.toArray()).toEqual([undefined, 1, 2]);
+    });
+
+    it("does not throw when the stored value is an object that throws on property access", () => {
+      const evil: any = {};
+      Object.defineProperty(evil, "toString", {
+        get() {
+          throw new Error("tostring bomb");
+        },
+      });
+      const rb = new RingBuffer<unknown>(3);
+      expect(() => rb.add(evil)).not.toThrow();
+      expect(() => rb.toArray()).not.toThrow();
+      expect(rb.toArray()[0]).toBe(evil);
+    });
+
+    it("does not throw and stays consistent when capacity is 0", () => {
+      const rb = new RingBuffer<number>(0);
+      rb.add(1);
+      rb.add(2);
+      expect(rb.length).toBe(0);
+      expect(rb.toArray()).toEqual([]);
+    });
+  });
 });
