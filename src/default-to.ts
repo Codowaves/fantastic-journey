@@ -5,6 +5,14 @@
  * @param v - The value to test.
  * @param d - The fallback to return when `v` is nullish or NaN.
  * @returns `v` when defined and not NaN, otherwise `d`.
+ *
+ * @example
+ * defaultTo(1, 10);            // 1
+ * defaultTo(null, 10);         // 10
+ * defaultTo(undefined, 10);    // 10
+ * defaultTo(NaN, 10);          // 10
+ * defaultTo(0, 10);            // 0
+ * defaultTo("", "fallback");   // ""
  */
 export function defaultTo<T>(v: T, d: T): T {
   if (v === null || v === undefined) return d;
