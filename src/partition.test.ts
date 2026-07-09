@@ -28,4 +28,45 @@ describe("partition", () => {
     expect(pass).toEqual([4, 5, 9, 6, 5, 5]);
     expect(fail).toEqual([3, 1, 1, 2, 3]);
   });
+
+  it("propagates an error thrown by the predicate", () => {
+    const boom = new Error("boom");
+    expect(() =>
+      partition([1, 2, 3], () => {
+        throw boom;
+      }),
+    ).toThrow(boom);
+  });
+
+  it("propagates a non-Error thrown by the predicate", () => {
+    expect(() =>
+      partition([1, 2, 3], () => {
+        throw "string-thrown";
+      }),
+    ).toThrow("string-thrown");
+  });
+
+  it("stops iteration once the predicate throws on a later element", () => {
+    const seen: number[] = [];
+    expect(() =>
+      partition([1, 2, 3, 4, 5], (n) => {
+        seen.push(n);
+        if (n === 3) throw new Error("stop at 3");
+        return n % 2 === 0;
+      }),
+    ).toThrow("stop at 3");
+    expect(seen).toEqual([1, 2, 3]);
+  });
+
+  it("propagates a TypeError when items is not an array", () => {
+    expect(() => partition(null as unknown as number[], (n) => n > 0)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("propagates a TypeError when pred is not a function", () => {
+    expect(() =>
+      partition([1, 2, 3], "not-a-fn" as unknown as (n: number) => boolean),
+    ).toThrow(TypeError);
+  });
 });
