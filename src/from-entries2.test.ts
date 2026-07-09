@@ -74,4 +74,62 @@ describe("fromEntries2", () => {
     expect(a).not.toBe(b);
     expect(a).toEqual(b);
   });
+
+  it("propagates an error thrown by the iterable", () => {
+    const error = new Error("iter blew up");
+    const throwing: Iterable<readonly [string, number]> = {
+      [Symbol.iterator]() {
+        let i = 0;
+        return {
+          next() {
+            i += 1;
+            if (i === 1) {
+              return { value: ["a", 1], done: false } as const;
+            }
+            throw error;
+          },
+        };
+      },
+    };
+    expect(() => fromEntries2(throwing)).toThrow("iter blew up");
+  });
+
+  it("propagates an error thrown during iteration after the first pair", () => {
+    const boom = new RangeError("bad value");
+    function* gen(): IterableIterator<readonly [string, number]> {
+      yield ["x", 1];
+      throw boom;
+    }
+    expect(() => fromEntries2(gen())).toThrow(boom);
+  });
+
+  it("propagates an error thrown by an iterable that errors before yielding", () => {
+    const boom = new TypeError("empty but angry");
+    const angryEmpty: Iterable<readonly [string, number]> = {
+      [Symbol.iterator]() {
+        return {
+          next() {
+            throw boom;
+          },
+        };
+      },
+    };
+    expect(() => fromEntries2(angryEmpty)).toThrow(TypeError);
+    expect(() => fromEntries2(angryEmpty)).toThrow("empty but angry");
+  });
+
+  it("does not produce a partial result when iteration throws partway through", () => {
+    function* gen(): IterableIterator<readonly [string, number]> {
+      yield ["a", 1];
+      yield ["b", 2];
+      throw new Error("stop");
+    }
+    let captured: unknown;
+    try {
+      fromEntries2(gen());
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(Error);
+  });
 });
