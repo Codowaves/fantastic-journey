@@ -31,6 +31,9 @@ const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
 /** Masks the local part of an email address, keeping the domain visible (e.g. `a****@example.com`). Returns the input unchanged when it contains no `@` separator. */
 export function maskEmail(email: string): string {
+  if (email === null || email === undefined || Number.isNaN(email)) {
+    throw new TypeError("email must be a string");
+  }
   const atIndex = email.indexOf("@");
   if (atIndex <= 0) return email;
   const local = email.slice(0, atIndex);
@@ -41,6 +44,9 @@ export function maskEmail(email: string): string {
 
 /** Replaces every email address found in `input` with its [[maskEmail]] form, leaving surrounding text intact. */
 export function maskEmails(input: string): string {
+  if (input === null || input === undefined || Number.isNaN(input)) {
+    throw new TypeError("input must be a string");
+  }
   return input.replace(EMAIL_PATTERN, maskEmail);
 }
 
@@ -50,6 +56,9 @@ function writeLog(
   fields: Record<string, unknown> = {},
   sink: LogSink = console.log,
 ): void {
+  if (message === null || message === undefined || Number.isNaN(message)) {
+    throw new TypeError("message must be a string");
+  }
   const reqId = getReqId();
   const extraFields = { ...fields };
   delete extraFields.reqId;

@@ -63,6 +63,15 @@ describe("maskEmail", () => {
   it("leaves non-email strings unchanged", () => {
     expect(maskEmail("not-an-email")).toBe("not-an-email");
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => maskEmail(null as unknown as string)).toThrow(TypeError);
+    expect(() => maskEmail(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => maskEmail(Number.NaN as unknown as string)).toThrow(TypeError);
+  });
 });
 
 describe("maskEmails", () => {
@@ -74,5 +83,16 @@ describe("maskEmails", () => {
 
   it("leaves strings without emails unchanged", () => {
     expect(maskEmails("no addresses here")).toBe("no addresses here");
+  });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => maskEmails(null as unknown as string)).toThrow(TypeError);
+    expect(() => maskEmails(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => maskEmails(Number.NaN as unknown as string)).toThrow(
+      TypeError,
+    );
   });
 });
