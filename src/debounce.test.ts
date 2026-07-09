@@ -60,4 +60,28 @@ describe("debounce", () => {
     expect(() => debounce(fn, Infinity)).toThrow(RangeError);
     expect(() => debounce(fn, NaN)).toThrow(RangeError);
   });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() => debounce(null as unknown as () => void, 100)).toThrow(
+      TypeError,
+    );
+    expect(() => debounce(undefined as unknown as () => void, 100)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn is not a function", () => {
+    expect(() =>
+      debounce("not a function" as unknown as () => void, 100),
+    ).toThrow(TypeError);
+    expect(() => debounce(42 as unknown as () => void, 100)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when waitMs is null or undefined", () => {
+    const fn = vi.fn();
+    expect(() => debounce(fn, null as unknown as number)).toThrow(TypeError);
+    expect(() => debounce(fn, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+  });
 });
