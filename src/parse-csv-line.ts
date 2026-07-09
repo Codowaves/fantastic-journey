@@ -13,6 +13,11 @@
  * @param line - A single line of CSV text (no trailing newline).
  * @returns An array of field strings. Returns an empty array for an empty line.
  * @throws {Error} If the line ends while a quoted field is still open.
+ *
+ * @example
+ * parseCsvLine('a,b,c');           // ["a", "b", "c"]
+ * parseCsvLine('"hello, world"');  // ["hello, world"]
+ * parseCsvLine('"he said ""hi"""'); // ["he said \"hi\""]
  */
 export function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
