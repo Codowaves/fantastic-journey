@@ -23,6 +23,39 @@ describe("flatten", () => {
     expect(flatten([1, [2, [3, 4]], 5])).toEqual([1, 2, [3, 4], 5]);
   });
 
+  it("drops empty nested arrays", () => {
+    expect(flatten([1, [], 2, []])).toEqual([1, 2]);
+  });
+
+  it("returns an empty array when every element is an empty array", () => {
+    expect(flatten([[], [], []])).toEqual([]);
+  });
+
+  it("preserves falsy elements", () => {
+    expect(flatten([0, [false, ""], null, [undefined]])).toEqual([
+      0,
+      false,
+      "",
+      null,
+      undefined,
+    ]);
+  });
+
+  it("unwraps a single-element nested array", () => {
+    expect(flatten([[42]])).toEqual([42]);
+  });
+
+  it("returns a new array rather than the input reference", () => {
+    const input = [1, 2, 3];
+    expect(flatten(input)).not.toBe(input);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [1, [2, 3], 4];
+    flatten(input);
+    expect(input).toEqual([1, [2, 3], 4]);
+  });
+
   it("throws TypeError when arr is null", () => {
     expect(() => flatten(null as unknown as number[])).toThrow(TypeError);
     expect(() => flatten(null as unknown as number[])).toThrow(
