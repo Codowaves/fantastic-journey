@@ -33,6 +33,18 @@ describe("processPayment", () => {
       RangeError,
     );
   });
+
+  it("rejects Infinity", () => {
+    expect(() => processPayment({ amount: Infinity, currency: "USD" })).toThrow(
+      RangeError,
+    );
+  });
+
+  it("rejects negative Infinity", () => {
+    expect(() =>
+      processPayment({ amount: -Infinity, currency: "USD" }),
+    ).toThrow(RangeError);
+  });
 });
 
 describe("applyDiscount", () => {
