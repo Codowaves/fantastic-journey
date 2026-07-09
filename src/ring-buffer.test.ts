@@ -118,4 +118,75 @@ describe("RingBuffer", () => {
     expect(out[0]).toBe(0);
     expect(Number.isNaN(out[2])).toBe(true);
   });
+
+  describe("constructor error paths", () => {
+    it("throws TypeError when cap is null", () => {
+      expect(() => new RingBuffer<number>(null as unknown as number)).toThrow(
+        TypeError,
+      );
+      expect(() => new RingBuffer<number>(null as unknown as number)).toThrow(
+        "cap must be a number",
+      );
+    });
+
+    it("throws TypeError when cap is undefined", () => {
+      expect(
+        () => new RingBuffer<number>(undefined as unknown as number),
+      ).toThrow(TypeError);
+      expect(
+        () => new RingBuffer<number>(undefined as unknown as number),
+      ).toThrow("cap must be a number");
+    });
+
+    it("throws TypeError when cap is NaN", () => {
+      expect(() => new RingBuffer<number>(Number.NaN)).toThrow(TypeError);
+      expect(() => new RingBuffer<number>(Number.NaN)).toThrow(
+        "cap must be a number",
+      );
+    });
+
+    it("throws RangeError when cap is negative", () => {
+      expect(() => new RingBuffer<number>(-1)).toThrow(RangeError);
+      expect(() => new RingBuffer<number>(-1)).toThrow(
+        "cap must be a non-negative integer",
+      );
+      expect(() => new RingBuffer<number>(-100)).toThrow(RangeError);
+    });
+
+    it("throws RangeError when cap is a non-integer", () => {
+      expect(() => new RingBuffer<number>(1.5)).toThrow(RangeError);
+      expect(() => new RingBuffer<number>(0.1)).toThrow(RangeError);
+      expect(() => new RingBuffer<number>(2.999)).toThrow(RangeError);
+    });
+
+    it("throws RangeError when cap is Infinity", () => {
+      expect(() => new RingBuffer<number>(Infinity)).toThrow(RangeError);
+      expect(() => new RingBuffer<number>(-Infinity)).toThrow(RangeError);
+    });
+
+    it("accepts a capacity of 0 (no items ever retained)", () => {
+      const rb = new RingBuffer<number>(0);
+      expect(rb.length).toBe(0);
+      rb.add(1);
+      expect(rb.length).toBe(0);
+      expect(rb.toArray()).toEqual([]);
+      rb.add(2);
+      rb.add(3);
+      expect(rb.length).toBe(0);
+      expect(rb.toArray()).toEqual([]);
+    });
+
+    it("does not retain any items when construction fails", () => {
+      try {
+        new RingBuffer<number>(-1);
+      } catch {
+        // expected
+      }
+      const rb = new RingBuffer<number>(2);
+      rb.add(10);
+      rb.add(20);
+      rb.add(30);
+      expect(rb.toArray()).toEqual([20, 30]);
+    });
+  });
 });
