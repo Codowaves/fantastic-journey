@@ -2,6 +2,10 @@
  * Returns a new array containing the unique values present in either `a` or
  * `b`, preserving the order of first occurrence across both inputs.
  *
+ * @example
+ * unionOf([1, 2, 3], [3, 4, 5]); // [1, 2, 3, 4, 5]
+ * unionOf(['a', 'b'], ['b', 'c']); // ['a', 'b', 'c']
+ *
  * @param a - The first array.
  * @param b - The second array.
  * @returns A new array of the union of the two inputs, deduplicated.
