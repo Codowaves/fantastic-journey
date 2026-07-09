@@ -43,4 +43,19 @@ describe("chunk", () => {
     chunk(input, 2);
     expect(input).toEqual([1, 2, 3, 4, 5]);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() => chunk(null as unknown as number[], 2)).toThrow(TypeError);
+    expect(() => chunk(undefined as unknown as number[], 2)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when size is null, undefined, or NaN", () => {
+    expect(() => chunk([1, 2, 3], null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => chunk([1, 2, 3], undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => chunk([1, 2, 3], Number.NaN)).toThrow(TypeError);
+  });
 });
