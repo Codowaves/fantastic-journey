@@ -48,4 +48,22 @@ describe("uniqueBy", () => {
     const result = uniqueBy(items, (item) => item.name);
     expect(result).toEqual([{ name: "alice" }, { name: "bob" }]);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() => uniqueBy(null as unknown as never[], (n: never) => n)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      uniqueBy(undefined as unknown as never[], (n: never) => n),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when keyFn is null or undefined", () => {
+    expect(() =>
+      uniqueBy([1, 2, 3], null as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      uniqueBy([1, 2, 3], undefined as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+  });
 });

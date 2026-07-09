@@ -7,6 +7,12 @@
  * @returns A new array containing the first item for each distinct key.
  */
 export function uniqueBy<T, K>(arr: T[], keyFn: (item: T) => K): T[] {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("arr must be an array");
+  }
+  if (keyFn === null || keyFn === undefined) {
+    throw new TypeError("keyFn must be a function");
+  }
   const seen = new Set<K>();
   const result: T[] = [];
   for (const item of arr) {
