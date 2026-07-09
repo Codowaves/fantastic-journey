@@ -127,6 +127,18 @@ describe("contextFromRequest", () => {
     const request = makeRequest({ "x-forwarded-for": "   " });
     expect(contextFromRequest(request)).toEqual({ ip: null, userAgent: null });
   });
+
+  it("throws TypeError when request is null", () => {
+    expect(() => contextFromRequest(null as unknown as Request)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when request is undefined", () => {
+    expect(() => contextFromRequest(undefined as unknown as Request)).toThrow(
+      TypeError,
+    );
+  });
 });
 
 describe("recordAuthEvent / listAuthEvents", () => {
@@ -238,6 +250,26 @@ describe("saveSamlMetadata / getSamlMetadata", () => {
     await expect(
       saveSamlMetadata({ workspaceId: "ws_1" }),
     ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+
+  it("throws TypeError when timeoutMs is null", async () => {
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        xml: makeSamlMetadataXml(cert),
+        timeoutMs: null as unknown as number,
+      }),
+    ).rejects.toBeInstanceOf(TypeError);
+  });
+
+  it("throws TypeError when timeoutMs is NaN", async () => {
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        xml: makeSamlMetadataXml(cert),
+        timeoutMs: Number.NaN,
+      }),
+    ).rejects.toBeInstanceOf(TypeError);
   });
 });
 
@@ -592,6 +624,25 @@ describe("createMagicLinkToken / redeemMagicLinkToken", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("magic_token_expired");
   });
+
+  it("throws TypeError when email is null", () => {
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when context is undefined", () => {
+    expect(() =>
+      redeemMagicLinkToken({
+        token: "ml_anything",
+        context: undefined as unknown as AuthRequestContext,
+      }),
+    ).toThrow(TypeError);
+  });
 });
 
 describe("authenticatePassword", () => {
@@ -630,6 +681,17 @@ describe("authenticatePassword", () => {
       context: CONTEXT,
     });
     expect(missing.ok).toBe(false);
+  });
+
+  it("throws TypeError when password is null", () => {
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
   });
 });
 

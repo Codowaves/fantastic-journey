@@ -318,6 +318,9 @@ function createSession(params: {
 
 /** Extracts the caller's IP and user-agent from a Request into an AuthRequestContext. */
 export function contextFromRequest(request: Request): AuthRequestContext {
+  if (request === null || request === undefined) {
+    throw new TypeError("request must be a Request");
+  }
   return {
     ip:
       getHeader(request, "x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -335,6 +338,14 @@ export function recordAuthEvent(params: {
   context: AuthRequestContext;
   now?: Date;
 }): AuthEvent {
+  if (
+    params.kind === null ||
+    params.kind === undefined ||
+    params.context === null ||
+    params.context === undefined
+  ) {
+    throw new TypeError("kind and context are required");
+  }
   const timestamp = nowIso(params.now);
   const event: AuthEvent = {
     id: `evt_${randomUUID()}`,
@@ -369,6 +380,11 @@ export async function saveSamlMetadata(params: {
   timeoutMs?: number;
   fetcher?: typeof fetch;
 }): Promise<SamlMetadata> {
+  if (params.timeoutMs !== undefined) {
+    if (params.timeoutMs === null || Number.isNaN(params.timeoutMs)) {
+      throw new TypeError("timeoutMs must be a number");
+    }
+  }
   const timeoutMs = params.timeoutMs ?? 2_000;
   let xml = params.xml;
   let source: SamlMetadata["source"] = "upload";
@@ -438,6 +454,26 @@ export function authenticateSaml(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  if (
+    params.workspaceId === null ||
+    params.workspaceId === undefined ||
+    typeof params.workspaceId !== "string" ||
+    params.assertion === null ||
+    params.assertion === undefined ||
+    typeof params.assertion !== "string" ||
+    params.expectedAudience === null ||
+    params.expectedAudience === undefined ||
+    typeof params.expectedAudience !== "string" ||
+    params.expectedDestination === null ||
+    params.expectedDestination === undefined ||
+    typeof params.expectedDestination !== "string" ||
+    params.context === null ||
+    params.context === undefined
+  ) {
+    throw new TypeError(
+      "workspaceId, assertion, expectedAudience, expectedDestination, and context are required",
+    );
+  }
   const metadata = getSamlMetadata(params.workspaceId);
 
   if (!metadata) {
@@ -569,6 +605,18 @@ export function createMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): MagicLinkToken {
+  if (
+    params.workspaceId === null ||
+    params.workspaceId === undefined ||
+    typeof params.workspaceId !== "string" ||
+    params.email === null ||
+    params.email === undefined ||
+    typeof params.email !== "string" ||
+    params.context === null ||
+    params.context === undefined
+  ) {
+    throw new TypeError("workspaceId, email, and context are required");
+  }
   const now = params.now ?? new Date();
   const user = getOrCreateUser(params.workspaceId, params.email);
   const token: MagicLinkToken = {
@@ -598,6 +646,15 @@ export function redeemMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  if (
+    params.token === null ||
+    params.token === undefined ||
+    typeof params.token !== "string" ||
+    params.context === null ||
+    params.context === undefined
+  ) {
+    throw new TypeError("token and context are required");
+  }
   const magicToken = magicTokensByToken.get(params.token);
   const now = params.now ?? new Date();
   if (!magicToken) {
@@ -661,6 +718,23 @@ export function authenticatePassword(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  if (
+    params.workspaceId === null ||
+    params.workspaceId === undefined ||
+    typeof params.workspaceId !== "string" ||
+    params.userId === null ||
+    params.userId === undefined ||
+    typeof params.userId !== "string" ||
+    params.password === null ||
+    params.password === undefined ||
+    typeof params.password !== "string" ||
+    params.context === null ||
+    params.context === undefined
+  ) {
+    throw new TypeError(
+      "workspaceId, userId, password, and context are required",
+    );
+  }
   const user = getUser(params.workspaceId, params.userId);
   if (!user || params.password !== "password") {
     recordAuthEvent({
@@ -715,6 +789,19 @@ export function revokeSession(params: {
   actorUserId: string;
   now?: Date;
 }): boolean {
+  if (
+    params.workspaceId === null ||
+    params.workspaceId === undefined ||
+    typeof params.workspaceId !== "string" ||
+    params.sessionId === null ||
+    params.sessionId === undefined ||
+    typeof params.sessionId !== "string" ||
+    params.actorUserId === null ||
+    params.actorUserId === undefined ||
+    typeof params.actorUserId !== "string"
+  ) {
+    throw new TypeError("workspaceId, sessionId, and actorUserId are required");
+  }
   const actor = getUser(params.workspaceId, params.actorUserId);
   if (actor?.role !== "owner") return false;
 
