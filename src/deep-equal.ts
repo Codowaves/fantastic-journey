@@ -10,6 +10,7 @@
  * @param a - The first value to compare.
  * @param b - The second value to compare.
  * @returns `true` if `a` and `b` are structurally equal, `false` otherwise.
+ * @throws {TypeError} If `a` or `b` is `null`, `undefined`, or `NaN`.
  *
  * Limitations: Does not handle Map, Set, or cyclic structures.
  *
@@ -22,6 +23,19 @@
  * deepEqual(null, {}); // false
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
+  if (
+    a === null ||
+    a === undefined ||
+    (typeof a === "number" && Number.isNaN(a)) ||
+    b === null ||
+    b === undefined ||
+    (typeof b === "number" && Number.isNaN(b))
+  ) {
+    throw new TypeError(
+      `deepEqual: arguments must be defined values, got a=${describe(a)}, b=${describe(b)}`,
+    );
+  }
+
   // Use Object.is for primitive comparison (handles NaN, +0/-0 correctly)
   if (Object.is(a, b)) {
     return true;
@@ -89,4 +103,11 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   }
 
   return true;
+}
+
+function describe(value: unknown): string {
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "number" && Number.isNaN(value)) return "NaN";
+  return typeof value;
 }

@@ -8,19 +8,12 @@ describe("deepEqual", () => {
       expect(deepEqual("hello", "hello")).toBe(true);
       expect(deepEqual(true, true)).toBe(true);
       expect(deepEqual(false, false)).toBe(true);
-      expect(deepEqual(null, null)).toBe(true);
-      expect(deepEqual(undefined, undefined)).toBe(true);
     });
 
     it("returns false for different primitives", () => {
       expect(deepEqual(1, 2)).toBe(false);
       expect(deepEqual("hello", "world")).toBe(false);
       expect(deepEqual(true, false)).toBe(false);
-      expect(deepEqual(null, undefined)).toBe(false);
-    });
-
-    it("handles NaN with Object.is semantics", () => {
-      expect(deepEqual(NaN, NaN)).toBe(true);
     });
 
     it("distinguishes +0 and -0 with Object.is semantics", () => {
@@ -136,11 +129,6 @@ describe("deepEqual", () => {
   });
 
   describe("mixed types", () => {
-    it("returns false for null vs empty object", () => {
-      expect(deepEqual(null, {})).toBe(false);
-      expect(deepEqual({}, null)).toBe(false);
-    });
-
     it("returns false for array vs object", () => {
       expect(deepEqual([], {})).toBe(false);
       expect(deepEqual({}, [])).toBe(false);
@@ -173,6 +161,40 @@ describe("deepEqual", () => {
 
       expect(deepEqual(obj1, obj2)).toBe(true);
       expect(deepEqual(obj1, obj3)).toBe(false);
+    });
+  });
+
+  describe("input validation", () => {
+    it("throws TypeError when a is null", () => {
+      expect(() => deepEqual(null as unknown as object, {})).toThrow(TypeError);
+    });
+
+    it("throws TypeError when b is null", () => {
+      expect(() => deepEqual({}, null as unknown as object)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when a is undefined", () => {
+      expect(() => deepEqual(undefined as unknown as object, {})).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when b is undefined", () => {
+      expect(() => deepEqual({}, undefined as unknown as object)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when a is NaN", () => {
+      expect(() => deepEqual(Number.NaN as unknown as object, {})).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when b is NaN", () => {
+      expect(() =>
+        deepEqual({} as object, Number.NaN as unknown as object),
+      ).toThrow(TypeError);
     });
   });
 });
