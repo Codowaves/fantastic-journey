@@ -25,4 +25,15 @@ describe("capitalize", () => {
   it("only capitalizes first character, leaves rest untouched", () => {
     expect(capitalize("hello world")).toBe("Hello world");
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => capitalize(null as unknown as string)).toThrow(TypeError);
+    expect(() => capitalize(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => capitalize(Number.NaN as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
 });
