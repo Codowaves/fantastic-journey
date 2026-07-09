@@ -66,6 +66,12 @@ export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
 ): Order {
+  if (customerId === null || customerId === undefined) {
+    throw new TypeError("customerId must be a string");
+  }
+  if (items === null || items === undefined) {
+    throw new TypeError("items must be an array");
+  }
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -84,6 +90,9 @@ export function createOrder(
  * @returns A new {@link Order} with `status` set to `confirmed`.
  */
 export function confirmOrder(order: Order): Order {
+  if (order === null || order === undefined) {
+    throw new TypeError("order must be an object");
+  }
   return { ...order, status: "confirmed" };
 }
 
@@ -96,6 +105,12 @@ export function confirmOrder(order: Order): Order {
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
+  if (orderId === null || orderId === undefined) {
+    throw new TypeError("orderId must be a string");
+  }
+  if (typeof orderId === "number" && Number.isNaN(orderId)) {
+    throw new TypeError("orderId must be a string");
+  }
   return Promise.resolve(orderId ? "pending" : null);
 }
 

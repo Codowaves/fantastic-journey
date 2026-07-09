@@ -9,7 +9,13 @@ import {
   resetAuthState,
 } from "../auth";
 import { listSentEmails, resetSentEmails } from "../email";
-import { handleRequest } from "./v1";
+import {
+  confirmOrder,
+  createOrder,
+  getOrderStatus,
+  handleRequest,
+  type Order,
+} from "./v1";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -853,5 +859,71 @@ describe("api v1 route handler", () => {
       "password",
       "fail",
     ]);
+  });
+});
+
+describe("api v1 export guards", () => {
+  describe("createOrder", () => {
+    it("throws TypeError when customerId is null", () => {
+      expect(() =>
+        createOrder(null as unknown as string, [{ id: "sku_1", qty: 1 }]),
+      ).toThrow(TypeError);
+    });
+
+    it("throws TypeError when customerId is undefined", () => {
+      expect(() =>
+        createOrder(undefined as unknown as string, [{ id: "sku_1", qty: 1 }]),
+      ).toThrow(TypeError);
+    });
+
+    it("throws TypeError when items is null", () => {
+      expect(() =>
+        createOrder(
+          "cust_1",
+          null as unknown as Array<{ id: string; qty: number }>,
+        ),
+      ).toThrow(TypeError);
+    });
+
+    it("throws TypeError when items is undefined", () => {
+      expect(() =>
+        createOrder(
+          "cust_1",
+          undefined as unknown as Array<{ id: string; qty: number }>,
+        ),
+      ).toThrow(TypeError);
+    });
+  });
+
+  describe("confirmOrder", () => {
+    it("throws TypeError when order is null", () => {
+      expect(() => confirmOrder(null as unknown as Order)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when order is undefined", () => {
+      expect(() => confirmOrder(undefined as unknown as Order)).toThrow(
+        TypeError,
+      );
+    });
+  });
+
+  describe("getOrderStatus", () => {
+    it("throws TypeError when orderId is null", () => {
+      expect(() => getOrderStatus(null as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when orderId is undefined", () => {
+      expect(() => getOrderStatus(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when orderId is NaN", () => {
+      expect(() => getOrderStatus(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 });
