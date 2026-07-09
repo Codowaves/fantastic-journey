@@ -44,4 +44,34 @@ describe("keyBy", () => {
     keyBy(input, (n) => n);
     expect(input).toEqual(snapshot);
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() =>
+      keyBy(null as unknown as readonly number[], (n: number) => n),
+    ).toThrow(TypeError);
+    expect(() =>
+      keyBy(undefined as unknown as readonly number[], (n: number) => n),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when arr is NaN", () => {
+    expect(() =>
+      keyBy(Number.NaN as unknown as readonly number[], (n: number) => n),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() =>
+      keyBy([1, 2, 3], null as unknown as (n: number) => string),
+    ).toThrow(TypeError);
+    expect(() =>
+      keyBy([1, 2, 3], undefined as unknown as (n: number) => string),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is NaN", () => {
+    expect(() =>
+      keyBy([1, 2, 3], Number.NaN as unknown as (n: number) => string),
+    ).toThrow(TypeError);
+  });
 });
