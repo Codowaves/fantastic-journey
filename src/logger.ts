@@ -29,8 +29,18 @@ type LogSink = (line: string) => void;
 
 const EMAIL_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
-/** Masks the local part of an email address, keeping the domain visible (e.g. `a****@example.com`). Returns the input unchanged when it contains no `@` separator. */
+/** Masks the local part of an email address, keeping the domain visible (e.g. `a****@example.com`). Returns the input unchanged when it contains no `@` separator. Throws when `email` is `null`, `undefined`, or `NaN`. */
 export function maskEmail(email: string): string {
+  if (email === null || email === undefined) {
+    throw new TypeError(
+      `maskEmail: email must be a string, got ${email === null ? "null" : "undefined"}`,
+    );
+  }
+  if (typeof email !== "string" || Number.isNaN(email as unknown as number)) {
+    throw new TypeError(
+      `maskEmail: email must be a string, got ${typeof email}`,
+    );
+  }
   const atIndex = email.indexOf("@");
   if (atIndex <= 0) return email;
   const local = email.slice(0, atIndex);
@@ -39,8 +49,18 @@ export function maskEmail(email: string): string {
   return `${local[0]}${"*".repeat(local.length - 1)}${domain}`;
 }
 
-/** Replaces every email address found in `input` with its [[maskEmail]] form, leaving surrounding text intact. */
+/** Replaces every email address found in `input` with its [[maskEmail]] form, leaving surrounding text intact. Throws when `input` is `null`, `undefined`, or `NaN`. */
 export function maskEmails(input: string): string {
+  if (input === null || input === undefined) {
+    throw new TypeError(
+      `maskEmails: input must be a string, got ${input === null ? "null" : "undefined"}`,
+    );
+  }
+  if (typeof input !== "string" || Number.isNaN(input as unknown as number)) {
+    throw new TypeError(
+      `maskEmails: input must be a string, got ${typeof input}`,
+    );
+  }
   return input.replace(EMAIL_PATTERN, maskEmail);
 }
 
