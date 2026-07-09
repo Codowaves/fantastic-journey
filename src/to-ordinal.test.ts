@@ -30,4 +30,16 @@ describe("toOrdinal", () => {
     expect(toOrdinal(10)).toBe("10th");
     expect(toOrdinal(100)).toBe("100th");
   });
+
+  it("throws on null", () => {
+    expect(() => toOrdinal(null as unknown as number)).toThrow(TypeError);
+  });
+
+  it("throws on undefined", () => {
+    expect(() => toOrdinal(undefined as unknown as number)).toThrow(TypeError);
+  });
+
+  it("throws on NaN", () => {
+    expect(() => toOrdinal(NaN)).toThrow(TypeError);
+  });
 });
