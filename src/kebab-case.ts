@@ -7,6 +7,14 @@
  *
  * @param str - The input string to convert.
  * @returns The kebab-cased string (e.g. `kebabCase('HelloWorld')` returns `'hello-world'`).
+ *
+ * @example
+ * kebabCase('HelloWorld');
+ * // 'hello-world'
+ * kebabCase('fooBarBaz');
+ * // 'foo-bar-baz'
+ * kebabCase('Hello World!');
+ * // 'hello-world'
  */
 export function kebabCase(str: string): string {
   return str
