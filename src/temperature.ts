@@ -4,6 +4,9 @@
  * @returns Equivalent temperature in degrees Fahrenheit.
  */
 export function celsiusToFahrenheit(c: number): number {
+  if (c === null || c === undefined || Number.isNaN(c)) {
+    throw new TypeError("c must be a number");
+  }
   return (c * 9) / 5 + 32;
 }
 
@@ -13,5 +16,8 @@ export function celsiusToFahrenheit(c: number): number {
  * @returns Equivalent temperature in degrees Celsius.
  */
 export function fahrenheitToCelsius(f: number): number {
+  if (f === null || f === undefined || Number.isNaN(f)) {
+    throw new TypeError("f must be a number");
+  }
   return ((f - 32) * 5) / 9;
 }
