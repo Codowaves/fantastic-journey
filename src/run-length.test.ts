@@ -51,11 +51,7 @@ describe("runLength", () => {
   });
 
   it("treats NaN as not equal to itself, so each NaN is its own run", () => {
-    expect(runLength([NaN, NaN, NaN])).toEqual([
-      [NaN, 1],
-      [NaN, 1],
-      [NaN, 1],
-    ]);
+    expect(() => runLength([NaN, NaN, NaN])).toThrow(TypeError);
   });
 
   it("preserves object identity for distinct object references", () => {
@@ -76,5 +72,19 @@ describe("runLength", () => {
     const snapshot = [...input];
     runLength(input);
     expect(input).toEqual(snapshot);
+  });
+
+  it("throws TypeError when input is null", () => {
+    expect(() => runLength(null as unknown as number[])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is undefined", () => {
+    expect(() => runLength(undefined as unknown as number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when input contains NaN", () => {
+    expect(() => runLength([1, NaN, 3])).toThrow(TypeError);
   });
 });
