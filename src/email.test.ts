@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertValidEmail,
   buildMagicLinkEmail,
   InvalidEmailError,
   isValidEmail,
@@ -35,6 +36,15 @@ describe("email helpers", () => {
         "user.name+tag@example.com",
       );
     });
+
+    it("throws TypeError when input is null or undefined", () => {
+      expect(() => normalizeEmail(null as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => normalizeEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 
   describe("maskEmail", () => {
@@ -50,6 +60,13 @@ describe("email helpers", () => {
     it("returns input unchanged when the domain is missing", () => {
       expect(maskEmail("user@")).toBe("user@");
     });
+
+    it("throws TypeError when input is null or undefined", () => {
+      expect(() => maskEmail(null as unknown as string)).toThrow(TypeError);
+      expect(() => maskEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 
   describe("assertValidEmail", () => {
@@ -60,6 +77,15 @@ describe("email helpers", () => {
       const err = new InvalidEmailError("bogus");
       expect(err.name).toBe("InvalidEmailError");
       expect(err.message).toBe('Invalid email address: "bogus"');
+    });
+
+    it("throws TypeError when input is null or undefined", () => {
+      expect(() => assertValidEmail(null as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => assertValidEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
     });
   });
 
@@ -90,6 +116,17 @@ describe("email helpers", () => {
           magicLink: "https://example.com/m",
         }),
       ).toThrow(InvalidEmailError);
+    });
+
+    it("throws TypeError when expiresInMinutes is NaN", () => {
+      expect(() =>
+        buildMagicLinkEmail({
+          to: "user@example.com",
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+          expiresInMinutes: Number.NaN,
+        }),
+      ).toThrow(TypeError);
     });
   });
 

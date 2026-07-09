@@ -29,6 +29,9 @@ export function isValidEmail(input: string): boolean {
  * (with the original input) if validation fails.
  */
 export function assertValidEmail(input: string): void {
+  if (input === null || input === undefined) {
+    throw new TypeError("input must be a string");
+  }
   if (!isValidEmail(input)) {
     throw new InvalidEmailError(input);
   }
@@ -39,6 +42,9 @@ export function assertValidEmail(input: string): void {
  * whitespace and lowercases the entire string.
  */
 export function normalizeEmail(input: string): string {
+  if (input === null || input === undefined) {
+    throw new TypeError("input must be a string");
+  }
   return input.trim().toLowerCase();
 }
 
@@ -48,6 +54,9 @@ export function normalizeEmail(input: string): string {
  * Returns `input` unchanged if it is missing a local part or domain.
  */
 export function maskEmail(input: string): string {
+  if (input === null || input === undefined) {
+    throw new TypeError("input must be a string");
+  }
   const [local, domain] = input.split("@");
   if (!local || !domain) return input;
   const head = local.slice(0, 2);
@@ -80,6 +89,9 @@ export function buildMagicLinkEmail(params: {
 }): SentEmail {
   assertValidEmail(params.to);
   const expiresInMinutes = params.expiresInMinutes ?? 15;
+  if (Number.isNaN(expiresInMinutes)) {
+    throw new TypeError("expiresInMinutes must be a number");
+  }
   return {
     to: normalizeEmail(params.to),
     subject: `${params.brandName} sign-in link`,
