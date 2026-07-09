@@ -175,4 +175,117 @@ describe("deepEqual", () => {
       expect(deepEqual(obj1, obj3)).toBe(false);
     });
   });
+
+  describe("edge cases", () => {
+    it("treats the same reference as equal", () => {
+      const obj = { a: 1, b: [2, 3] };
+      const arr = [1, 2, 3];
+      const date = new Date("2024-01-01");
+      expect(deepEqual(obj, obj)).toBe(true);
+      expect(deepEqual(arr, arr)).toBe(true);
+      expect(deepEqual(date, date)).toBe(true);
+    });
+
+    it("returns true for two empty plain objects", () => {
+      expect(deepEqual({}, {})).toBe(true);
+    });
+
+    it("returns true for two empty arrays", () => {
+      expect(deepEqual([], [])).toBe(true);
+    });
+
+    it("distinguishes null from undefined", () => {
+      expect(deepEqual(null, undefined)).toBe(false);
+      expect(deepEqual(undefined, null)).toBe(false);
+    });
+
+    it("returns true for objects where one value is explicitly undefined", () => {
+      expect(deepEqual({ a: undefined }, { a: undefined })).toBe(true);
+      expect(deepEqual({ a: 1 }, { a: undefined })).toBe(false);
+    });
+
+    it("treats undefined-valued and missing keys as not equal", () => {
+      expect(deepEqual({ a: undefined }, {})).toBe(false);
+      expect(deepEqual({}, { a: undefined })).toBe(false);
+    });
+
+    it("handles objects with null prototype", () => {
+      const a = Object.create(null);
+      a.x = 1;
+      const b = Object.create(null);
+      b.x = 1;
+      expect(deepEqual(a, b)).toBe(true);
+
+      const c = Object.create(null);
+      c.x = 2;
+      expect(deepEqual(a, c)).toBe(false);
+    });
+
+    it("ignores inherited enumerable properties", () => {
+      class Base {
+        inherited = 1;
+      }
+      class Child extends Base {
+        own = 2;
+      }
+      const c1 = new Child();
+      const c2 = new Child();
+      expect(deepEqual(c1, c2)).toBe(true);
+
+      const different = new Child();
+      different.inherited = 99;
+      expect(deepEqual(c1, different)).toBe(false);
+    });
+
+    it("treats sparse arrays with the same holes as equal", () => {
+      // eslint-disable-next-line no-sparse-arrays
+      const sparse = [1, , 3];
+      // eslint-disable-next-line no-sparse-arrays
+      const sparseCopy = [1, , 3];
+      expect(deepEqual(sparse, sparseCopy)).toBe(true);
+    });
+
+    it("returns false when comparing functions to each other", () => {
+      expect(
+        deepEqual(
+          () => 1,
+          () => 1,
+        ),
+      ).toBe(false);
+    });
+
+    it("returns false when comparing a function to a non-function object", () => {
+      const fn = () => 1;
+      expect(deepEqual(fn, {})).toBe(false);
+      expect(deepEqual({}, fn)).toBe(false);
+    });
+
+    it("returns false for arrays vs objects with the same numeric keys", () => {
+      expect(deepEqual([1, 2], { 0: 1, 1: 2, length: 2 })).toBe(false);
+    });
+
+    it("treats BigInt values with Object.is semantics", () => {
+      expect(deepEqual(1n, 1n)).toBe(true);
+      expect(deepEqual(1n, 2n)).toBe(false);
+      expect(deepEqual(1n, 1)).toBe(false);
+    });
+
+    it("distinguishes numeric strings from numbers", () => {
+      expect(deepEqual("1", 1)).toBe(false);
+      expect(deepEqual(1, "1")).toBe(false);
+    });
+
+    it("handles empty string vs missing string", () => {
+      expect(deepEqual({ a: "" }, { a: "" })).toBe(true);
+      expect(deepEqual({ a: "" }, {})).toBe(false);
+    });
+
+    it("treats invalid Date instances as not equal to valid Dates", () => {
+      const invalid = new Date("not-a-date");
+      const valid = new Date("2024-01-01");
+      expect(Number.isNaN(invalid.getTime())).toBe(true);
+      expect(deepEqual(invalid, valid)).toBe(false);
+      expect(deepEqual(invalid, invalid)).toBe(true);
+    });
+  });
 });
