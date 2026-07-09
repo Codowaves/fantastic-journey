@@ -1,6 +1,13 @@
 /**
  * Checks whether an array contains any duplicate values.
  *
+ * @example
+ * hasDuplicates([1, 2, 3, 2]); // true
+ * @example
+ * hasDuplicates([1, 2, 3, 4]); // false
+ * @example
+ * hasDuplicates([]); // false
+ *
  * @returns `true` if any value appears more than once, `false` otherwise.
  */
 export function hasDuplicates<T>(arr: readonly T[]): boolean {
