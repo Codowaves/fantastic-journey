@@ -23,4 +23,23 @@ describe("movingAverage", () => {
     expect(() => movingAverage([1, 2, 3], 0)).toThrow(RangeError);
     expect(() => movingAverage([1, 2, 3], -1)).toThrow(RangeError);
   });
+
+  it("throws TypeError when nums is null or undefined", () => {
+    expect(() => movingAverage(null as unknown as number[], 2)).toThrow(
+      TypeError,
+    );
+    expect(() => movingAverage(undefined as unknown as number[], 2)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when w is null, undefined, or NaN", () => {
+    expect(() => movingAverage([1, 2, 3], null as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      movingAverage([1, 2, 3], undefined as unknown as number),
+    ).toThrow(TypeError);
+    expect(() => movingAverage([1, 2, 3], Number.NaN)).toThrow(TypeError);
+  });
 });
