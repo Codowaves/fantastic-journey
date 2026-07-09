@@ -46,4 +46,33 @@ describe("mapKeys", () => {
       "prefix:only": "x",
     });
   });
+
+  it("propagates an exception thrown by fn", () => {
+    const input = { a: 1, b: 2 };
+    const boom = () => {
+      throw new Error("fn exploded");
+    };
+    expect(() => mapKeys(input, boom)).toThrowError("fn exploded");
+  });
+
+  it("propagates an exception thrown by fn on a later key after partial work", () => {
+    const input = { a: 1, b: 2, c: 3 };
+    const halfBoom = (k: string) => {
+      if (k === "b") throw new Error("stop at b");
+      return k.toUpperCase();
+    };
+    expect(() => mapKeys(input, halfBoom)).toThrowError("stop at b");
+  });
+
+  it("throws a TypeError when obj is null", () => {
+    expect(() =>
+      mapKeys(null as unknown as Record<string, number>, (k) => k),
+    ).toThrow(TypeError);
+  });
+
+  it("throws a TypeError when obj is undefined", () => {
+    expect(() =>
+      mapKeys(undefined as unknown as Record<string, number>, (k) => k),
+    ).toThrow(TypeError);
+  });
 });
