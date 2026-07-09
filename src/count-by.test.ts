@@ -35,4 +35,51 @@ describe("countBy", () => {
   it("handles a single-element input", () => {
     expect(countBy([42], (n) => n)).toEqual({ 42: 1 });
   });
+
+  it("propagates errors thrown by keyFn", () => {
+    const items = [{ type: "fruit" }, { type: "veg" }, { type: "bad" }];
+    expect(() =>
+      countBy(items, (i) => {
+        if (i.type === "bad") {
+          throw new Error("bad item");
+        }
+        return i.type;
+      }),
+    ).toThrow("bad item");
+  });
+
+  it("propagates the first throw from keyFn and stops iteration", () => {
+    let calls = 0;
+    expect(() =>
+      countBy([1, 2, 3, 4], (n) => {
+        calls++;
+        if (n === 2) {
+          throw new RangeError("boom");
+        }
+        return n;
+      }),
+    ).toThrow(RangeError);
+    expect(calls).toBe(2);
+  });
+
+  it("does not throw when keyFn returns a non-finite numeric key", () => {
+    const items = [0, 1, 2, NaN as unknown as number];
+    const result = countBy(items, (n) => n);
+    expect(result[NaN]).toBe(1);
+    expect(result[0]).toBe(1);
+    expect(result[1]).toBe(1);
+    expect(result[2]).toBe(1);
+  });
+
+  it("lets keyFn decide what to do with null/undefined items", () => {
+    const items: Array<unknown> = [1, null, undefined, 2, 1];
+    expect(() =>
+      countBy(items, (item) => {
+        if (item == null) {
+          throw new TypeError("item is nullish");
+        }
+        return typeof item;
+      }),
+    ).toThrow(TypeError);
+  });
 });
