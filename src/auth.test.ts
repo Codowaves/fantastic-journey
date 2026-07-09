@@ -753,3 +753,227 @@ describe("resetAuthState", () => {
     ).toEqual(["owner_1", "user_1"]);
   });
 });
+
+describe("edge cases", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("contextFromRequest returns null for an empty user-agent header", () => {
+    const request = makeRequest({ "user-agent": "" });
+    expect(contextFromRequest(request)).toEqual({
+      ip: null,
+      userAgent: null,
+    });
+  });
+
+  it("contextFromRequest treats whitespace-only x-real-ip as missing", () => {
+    const request = makeRequest({
+      "x-forwarded-for": "",
+      "x-real-ip": " \t\n ",
+    });
+    expect(contextFromRequest(request)).toEqual({
+      ip: null,
+      userAgent: null,
+    });
+  });
+
+  it("listAuthEvents returns a snapshot copy that does not mutate the log", () => {
+    recordAuthEvent({ kind: "fail", context: CONTEXT });
+    const snapshot = listAuthEvents();
+    snapshot.pop();
+    snapshot.push({
+      id: "evt_injected",
+      ts: "2099-01-01T00:00:00.000Z",
+      workspace_id: null,
+      user_id: null,
+      ip: null,
+      user_agent: null,
+      kind: "fail",
+      reason: null,
+      created_at: "2099-01-01T00:00:00.000Z",
+    });
+    expect(listAuthEvents()).toHaveLength(1);
+  });
+
+  it("saveSamlMetadata rejects an empty XML string", async () => {
+    await expect(
+      saveSamlMetadata({ workspaceId: "ws_1", xml: "" }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+
+  it("saveSamlMetadata rejects an empty metadataUrl without falling back", async () => {
+    await expect(
+      saveSamlMetadata({ workspaceId: "ws_1", metadataUrl: "" }),
+    ).rejects.toMatchObject({ code: "saml_metadata_invalid" });
+  });
+
+  it("getSamlMetadata returns null for an unknown workspace", () => {
+    expect(getSamlMetadata("ws_does_not_exist")).toBeNull();
+  });
+
+  it("createMagicLinkToken produces a token that expires exactly 15 minutes from now", () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "boundary@example.com",
+      context: CONTEXT,
+      now,
+    });
+    const expectedExpiry = new Date(now.getTime() + 15 * 60 * 1000);
+    expect(token.expiresAt).toBe(expectedExpiry.toISOString());
+  });
+
+  it("createMagicLinkToken creates a new user when the email is unknown", () => {
+    const token = createMagicLinkToken({
+      workspaceId: "ws_new",
+      email: "first-time@example.com",
+      context: CONTEXT,
+    });
+    expect(token.userId).toMatch(/^usr_/);
+    const users = listWorkspaceUsers("ws_new");
+    const uniqueIds = [...new Set(users.map((u) => u.userId))];
+    expect(uniqueIds).toHaveLength(1);
+    expect(users[0]?.email).toBe("first-time@example.com");
+  });
+
+  it("redeemMagicLinkToken rejects an empty token string", () => {
+    const result = redeemMagicLinkToken({ token: "", context: CONTEXT });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("magic_token_not_found");
+  });
+
+  it("redeemMagicLinkToken fails when the token expired exactly at now", () => {
+    const past = new Date("2026-01-01T00:00:00.000Z");
+    const token = createMagicLinkToken({
+      workspaceId: "ws_1",
+      email: "exp-boundary@example.com",
+      context: CONTEXT,
+      now: past,
+    });
+    token.expiresAt = past.toISOString();
+    const result = redeemMagicLinkToken({
+      token: token.token,
+      context: CONTEXT,
+      now: past,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("magic_token_expired");
+  });
+
+  it("authenticatePassword rejects an empty password", () => {
+    const result = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "owner_1",
+      password: "",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("password_invalid");
+  });
+
+  it("authenticatePassword rejects an empty userId", () => {
+    const result = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "",
+      password: "password",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("password_invalid");
+  });
+
+  it("authenticatePassword rejects an empty workspaceId", () => {
+    const result = authenticatePassword({
+      workspaceId: "",
+      userId: "owner_1",
+      password: "password",
+      context: CONTEXT,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("password_invalid");
+  });
+
+  it("listActiveSessions excludes revoked sessions", () => {
+    const login = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "owner_1",
+      password: "password",
+      context: CONTEXT,
+    });
+    if (!login.ok) throw new Error("expected login");
+    expect(listActiveSessions("ws_1")).toHaveLength(1);
+    revokeSession({
+      workspaceId: "ws_1",
+      sessionId: login.session.id,
+      actorUserId: "owner_1",
+    });
+    expect(listActiveSessions("ws_1")).toHaveLength(0);
+  });
+
+  it("revokeSession can be called multiple times — overwrites revokedAt", () => {
+    const login = authenticatePassword({
+      workspaceId: "ws_1",
+      userId: "owner_1",
+      password: "password",
+      context: CONTEXT,
+    });
+    if (!login.ok) throw new Error("expected login");
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-02-01T00:00:00.000Z");
+    expect(
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: login.session.id,
+        actorUserId: "owner_1",
+        now: first,
+      }),
+    ).toBe(true);
+    expect(
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: login.session.id,
+        actorUserId: "owner_1",
+        now: second,
+      }),
+    ).toBe(true);
+    expect(getActiveSession(login.session.id)).toBeNull();
+  });
+
+  it("revokeSession returns false when the sessionId is an empty string", () => {
+    expect(
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: "",
+        actorUserId: "owner_1",
+      }),
+    ).toBe(false);
+  });
+
+  it("listWorkspaceUsers returns an empty array for an unknown workspace", () => {
+    expect(listWorkspaceUsers("ws_unknown")).toEqual([]);
+  });
+
+  it("isWorkspaceOwner returns false for an unknown workspace", () => {
+    expect(isWorkspaceOwner("ws_unknown", "owner_1")).toBe(false);
+  });
+
+  it("isWorkspaceOwner returns false for an empty userId string", () => {
+    expect(isWorkspaceOwner("ws_1", "")).toBe(false);
+  });
+
+  it("getActiveSession returns null for an empty string sessionId", () => {
+    expect(getActiveSession("")).toBeNull();
+  });
+
+  it("recordAuthEvent accepts empty-string workspaceId and userId without coercing", () => {
+    const event = recordAuthEvent({
+      workspaceId: "",
+      userId: "",
+      kind: "fail",
+      context: CONTEXT,
+    });
+    expect(event.workspace_id).toBe("");
+    expect(event.user_id).toBe("");
+  });
+});
