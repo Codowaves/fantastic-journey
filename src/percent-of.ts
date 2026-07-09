@@ -4,6 +4,10 @@
  * @param part - The numerator (e.g. 25)
  * @param whole - The denominator total (e.g. 200); if 0, returns 0 instead of NaN
  * @returns `part / whole * 100`, or 0 if `whole` is 0
+ * @example
+ * percentOf(25, 200); // 12.5
+ * percentOf(0, 100); // 0
+ * percentOf(5, 0); // 0
  */
 export function percentOf(part: number, whole: number): number {
   if (whole === 0) {
