@@ -61,4 +61,55 @@ describe("rotateArray", () => {
   it("throws RangeError when n is -Infinity", () => {
     expect(() => rotateArray([1, 2, 3], -Infinity)).toThrow(RangeError);
   });
+
+  it("returns an empty array when n is non-zero but input is empty", () => {
+    expect(rotateArray<string>([], -5)).toEqual([]);
+    expect(rotateArray<number>([], 0)).toEqual([]);
+  });
+
+  it("throws RangeError on empty input when n is NaN", () => {
+    expect(() => rotateArray([], NaN)).toThrow(RangeError);
+  });
+
+  it("throws RangeError on empty input when n is Infinity", () => {
+    expect(() => rotateArray([], Infinity)).toThrow(RangeError);
+    expect(() => rotateArray([], -Infinity)).toThrow(RangeError);
+  });
+
+  it("rotates a single-element array regardless of n", () => {
+    expect(rotateArray([42], 1)).toEqual([42]);
+    expect(rotateArray([42], -1)).toEqual([42]);
+    expect(rotateArray([42], 99)).toEqual([42]);
+  });
+
+  it("does not return the same reference for single-element arrays", () => {
+    const input = [42];
+    const result = rotateArray(input, 0);
+    expect(result).toEqual([42]);
+    expect(result).not.toBe(input);
+  });
+
+  it("rotates by exactly one position for a two-element array", () => {
+    expect(rotateArray([1, 2], 1)).toEqual([2, 1]);
+    expect(rotateArray([1, 2], -1)).toEqual([2, 1]);
+  });
+
+  it("handles n that is exactly -len", () => {
+    expect(rotateArray([1, 2, 3, 4], -4)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("handles fractional n that truncates to zero", () => {
+    expect(rotateArray([1, 2, 3, 4, 5], 0.4)).toEqual([1, 2, 3, 4, 5]);
+    expect(rotateArray([1, 2, 3, 4, 5], -0.4)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("rotates by very large n (multiple wraps)", () => {
+    expect(rotateArray([1, 2, 3], 1e10)).toEqual([2, 3, 1]);
+    expect(rotateArray([1, 2, 3], -1e10)).toEqual([3, 1, 2]);
+  });
+
+  it("preserves complex element types including null and undefined", () => {
+    const input: Array<number | null | undefined> = [1, null, undefined, 2];
+    expect(rotateArray(input, 1)).toEqual([null, undefined, 2, 1]);
+  });
 });
