@@ -78,6 +78,21 @@ describe("truncateMiddle", () => {
     expect(() => truncateMiddle("hello", 3.14)).toThrow(RangeError);
   });
 
+  it("throws RangeError for NaN maxLength", () => {
+    expect(() => truncateMiddle("hello", NaN)).toThrow(RangeError);
+  });
+
+  it("throws RangeError for Infinity maxLength", () => {
+    expect(() => truncateMiddle("hello", Infinity)).toThrow(RangeError);
+    expect(() => truncateMiddle("hello", -Infinity)).toThrow(RangeError);
+  });
+
+  it("throws RangeError for string-coerced numeric maxLength", () => {
+    expect(() => truncateMiddle("hello", "5" as unknown as number)).toThrow(
+      RangeError,
+    );
+  });
+
   it("throws RangeError for maxLength < 1", () => {
     expect(() => truncateMiddle("hello", 0)).toThrow(RangeError);
     expect(() => truncateMiddle("hello", -5)).toThrow(RangeError);
