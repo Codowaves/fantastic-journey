@@ -44,4 +44,17 @@ describe("onceFn", () => {
     expect(fn).toHaveBeenCalledWith(1, 2, 3, 4);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() => onceFn(null as unknown as () => number)).toThrow(TypeError);
+    expect(() => onceFn(undefined as unknown as () => number)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn is NaN", () => {
+    expect(() => onceFn(Number.NaN as unknown as () => number)).toThrow(
+      TypeError,
+    );
+  });
 });
