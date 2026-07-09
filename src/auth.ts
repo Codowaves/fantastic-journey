@@ -97,6 +97,18 @@ function nowIso(now = new Date()): string {
   return now.toISOString();
 }
 
+function requireNonEmptyString(
+  value: unknown,
+  name: string,
+): asserts value is string {
+  if (value === null || value === undefined) {
+    throw new TypeError(`${name} is required`);
+  }
+  if (typeof value !== "string" || value.length === 0) {
+    throw new TypeError(`${name} must be a non-empty string`);
+  }
+}
+
 function seedDefaultUsers(): void {
   workspaceUsers.clear();
   addWorkspaceUser({
@@ -153,6 +165,7 @@ function getOrCreateUser(
 
 /** Returns every WorkspaceUser that belongs to the given workspace. */
 export function listWorkspaceUsers(workspaceId: string): WorkspaceUser[] {
+  requireNonEmptyString(workspaceId, "workspaceId");
   return [...workspaceUsers.values()].filter(
     (u) => u.workspaceId === workspaceId,
   );
@@ -163,6 +176,8 @@ export function getUser(
   workspaceId: string,
   userId: string,
 ): WorkspaceUser | null {
+  requireNonEmptyString(workspaceId, "workspaceId");
+  requireNonEmptyString(userId, "userId");
   return workspaceUsers.get(userKey(workspaceId, userId)) ?? null;
 }
 
@@ -358,6 +373,7 @@ export function listAuthEvents(): AuthEvent[] {
 
 /** Returns the SAML metadata stored for a workspace, or null if none is configured. */
 export function getSamlMetadata(workspaceId: string): SamlMetadata | null {
+  requireNonEmptyString(workspaceId, "workspaceId");
   return samlMetadataByWorkspace.get(workspaceId) ?? null;
 }
 
@@ -369,6 +385,15 @@ export async function saveSamlMetadata(params: {
   timeoutMs?: number;
   fetcher?: typeof fetch;
 }): Promise<SamlMetadata> {
+  requireNonEmptyString(params.workspaceId, "workspaceId");
+  if (
+    params.timeoutMs !== undefined &&
+    (typeof params.timeoutMs !== "number" ||
+      Number.isNaN(params.timeoutMs) ||
+      params.timeoutMs <= 0)
+  ) {
+    throw new TypeError("timeoutMs must be a positive number");
+  }
   const timeoutMs = params.timeoutMs ?? 2_000;
   let xml = params.xml;
   let source: SamlMetadata["source"] = "upload";
@@ -438,6 +463,13 @@ export function authenticateSaml(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  requireNonEmptyString(params.workspaceId, "workspaceId");
+  requireNonEmptyString(params.assertion, "assertion");
+  requireNonEmptyString(params.expectedAudience, "expectedAudience");
+  requireNonEmptyString(params.expectedDestination, "expectedDestination");
+  if (params.context === null || params.context === undefined) {
+    throw new TypeError("context is required");
+  }
   const metadata = getSamlMetadata(params.workspaceId);
 
   if (!metadata) {
@@ -569,6 +601,11 @@ export function createMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): MagicLinkToken {
+  requireNonEmptyString(params.workspaceId, "workspaceId");
+  requireNonEmptyString(params.email, "email");
+  if (params.context === null || params.context === undefined) {
+    throw new TypeError("context is required");
+  }
   const now = params.now ?? new Date();
   const user = getOrCreateUser(params.workspaceId, params.email);
   const token: MagicLinkToken = {
@@ -598,6 +635,10 @@ export function redeemMagicLinkToken(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  requireNonEmptyString(params.token, "token");
+  if (params.context === null || params.context === undefined) {
+    throw new TypeError("context is required");
+  }
   const magicToken = magicTokensByToken.get(params.token);
   const now = params.now ?? new Date();
   if (!magicToken) {
@@ -661,6 +702,12 @@ export function authenticatePassword(params: {
   context: AuthRequestContext;
   now?: Date;
 }): { ok: true; session: Session } | { ok: false; reason: string } {
+  requireNonEmptyString(params.workspaceId, "workspaceId");
+  requireNonEmptyString(params.userId, "userId");
+  requireNonEmptyString(params.password, "password");
+  if (params.context === null || params.context === undefined) {
+    throw new TypeError("context is required");
+  }
   const user = getUser(params.workspaceId, params.userId);
   if (!user || params.password !== "password") {
     recordAuthEvent({
@@ -694,6 +741,7 @@ export function authenticatePassword(params: {
 
 /** Returns non-revoked sessions belonging to a workspace. */
 export function listActiveSessions(workspaceId: string): Session[] {
+  requireNonEmptyString(workspaceId, "workspaceId");
   return [...sessionsById.values()].filter(
     (session) => session.workspaceId === workspaceId && !session.revokedAt,
   );
@@ -715,6 +763,9 @@ export function revokeSession(params: {
   actorUserId: string;
   now?: Date;
 }): boolean {
+  requireNonEmptyString(params.workspaceId, "workspaceId");
+  requireNonEmptyString(params.sessionId, "sessionId");
+  requireNonEmptyString(params.actorUserId, "actorUserId");
   const actor = getUser(params.workspaceId, params.actorUserId);
   if (actor?.role !== "owner") return false;
 
@@ -730,6 +781,7 @@ export function isWorkspaceOwner(
   workspaceId: string,
   userId: string | null,
 ): boolean {
+  requireNonEmptyString(workspaceId, "workspaceId");
   if (!userId) return false;
   return getUser(workspaceId, userId)?.role === "owner";
 }

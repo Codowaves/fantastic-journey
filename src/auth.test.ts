@@ -10,6 +10,7 @@ import {
   createMagicLinkToken,
   getActiveSession,
   getSamlMetadata,
+  getUser,
   isWorkspaceOwner,
   listActiveSessions,
   listAuthEvents,
@@ -751,5 +752,141 @@ describe("resetAuthState", () => {
     expect(
       [...new Set(listWorkspaceUsers("ws_1").map((u) => u.userId))].sort(),
     ).toEqual(["owner_1", "user_1"]);
+  });
+});
+
+describe("input validation", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("listWorkspaceUsers rejects null/undefined/empty workspaceId", () => {
+    expect(() => listWorkspaceUsers(null as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listWorkspaceUsers(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listWorkspaceUsers("")).toThrow(TypeError);
+  });
+
+  it("getUser rejects null/undefined/empty workspaceId and userId", () => {
+    expect(() => getUser(null as unknown as string, "user_1")).toThrow(
+      TypeError,
+    );
+    expect(() => getUser(undefined as unknown as string, "user_1")).toThrow(
+      TypeError,
+    );
+    expect(() => getUser("", "user_1")).toThrow(TypeError);
+    expect(() => getUser("ws_1", null as unknown as string)).toThrow(TypeError);
+    expect(() => getUser("ws_1", "")).toThrow(TypeError);
+  });
+
+  it("getSamlMetadata rejects null/undefined/empty workspaceId", () => {
+    expect(() => getSamlMetadata(null as unknown as string)).toThrow(TypeError);
+    expect(() => getSamlMetadata(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => getSamlMetadata("")).toThrow(TypeError);
+  });
+
+  it("authenticatePassword rejects null/undefined password and missing context", () => {
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: undefined as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: "password",
+        context: null as unknown as AuthRequestContext,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("createMagicLinkToken rejects null/undefined email and missing context", () => {
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: undefined as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: "user@example.com",
+        context: null as unknown as AuthRequestContext,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("redeemMagicLinkToken rejects null/undefined token", () => {
+    expect(() =>
+      redeemMagicLinkToken({
+        token: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      redeemMagicLinkToken({
+        token: undefined as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("isWorkspaceOwner rejects null/undefined/empty workspaceId", () => {
+    expect(() =>
+      isWorkspaceOwner(null as unknown as string, "owner_1"),
+    ).toThrow(TypeError);
+    expect(() =>
+      isWorkspaceOwner(undefined as unknown as string, "owner_1"),
+    ).toThrow(TypeError);
+    expect(() => isWorkspaceOwner("", "owner_1")).toThrow(TypeError);
+  });
+
+  it("revokeSession rejects null/undefined fields", () => {
+    expect(() =>
+      revokeSession({
+        workspaceId: null as unknown as string,
+        sessionId: "sess_x",
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: undefined as unknown as string,
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: "sess_x",
+        actorUserId: null as unknown as string,
+      }),
+    ).toThrow(TypeError);
   });
 });
