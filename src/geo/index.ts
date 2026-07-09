@@ -27,6 +27,12 @@ function ensureCoord(value: number, name: string): number {
  * @param bx - The x-coordinate of the second point.
  * @param by - The y-coordinate of the second point.
  * @returns The Euclidean distance between `(ax, ay)` and `(bx, by)`.
+ *
+ * @example
+ * euclidean(0, 0, 3, 4);
+ * // 5
+ * euclidean(1, 1, 1, 1);
+ * // 0
  */
 export function euclidean(
   ax: number,
@@ -52,6 +58,12 @@ export function euclidean(
  * @param bx - The x-coordinate of the second point.
  * @param by - The y-coordinate of the second point.
  * @returns The Manhattan distance between `(ax, ay)` and `(bx, by)`.
+ *
+ * @example
+ * manhattan(0, 0, 3, 4);
+ * // 7
+ * manhattan(1, 1, 1, 1);
+ * // 0
  */
 export function manhattan(
   ax: number,
