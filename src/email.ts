@@ -17,6 +17,9 @@ export class InvalidEmailError extends Error {
  * part, `@`, domain containing at least one dot, no whitespace anywhere).
  */
 export function isValidEmail(input: string): boolean {
+  if (input === null || input === undefined || Number.isNaN(input)) {
+    throw new TypeError("input must be a string");
+  }
   if (typeof input !== "string") return false;
   if (input.length === 0 || input.length > 254) return false;
   // RFC-ish: local part (no whitespace / @), "@", domain with at least one dot
@@ -39,6 +42,9 @@ export function assertValidEmail(input: string): void {
  * whitespace and lowercases the entire string.
  */
 export function normalizeEmail(input: string): string {
+  if (input === null || input === undefined || Number.isNaN(input)) {
+    throw new TypeError("input must be a string");
+  }
   return input.trim().toLowerCase();
 }
 
@@ -48,6 +54,9 @@ export function normalizeEmail(input: string): string {
  * Returns `input` unchanged if it is missing a local part or domain.
  */
 export function maskEmail(input: string): string {
+  if (input === null || input === undefined || Number.isNaN(input)) {
+    throw new TypeError("input must be a string");
+  }
   const [local, domain] = input.split("@");
   if (!local || !domain) return input;
   const head = local.slice(0, 2);
@@ -78,6 +87,13 @@ export function buildMagicLinkEmail(params: {
   magicLink: string;
   expiresInMinutes?: number;
 }): SentEmail {
+  if (
+    params.to === null ||
+    params.to === undefined ||
+    Number.isNaN(params.to)
+  ) {
+    throw new TypeError("to must be a string");
+  }
   assertValidEmail(params.to);
   const expiresInMinutes = params.expiresInMinutes ?? 15;
   return {
@@ -97,6 +113,13 @@ export function sendMagicLinkEmail(params: {
   brandName: string;
   magicLink: string;
 }): SentEmail {
+  if (
+    params.to === null ||
+    params.to === undefined ||
+    Number.isNaN(params.to)
+  ) {
+    throw new TypeError("to must be a string");
+  }
   const email = buildMagicLinkEmail(params);
   sentEmails.push(email);
   return email;

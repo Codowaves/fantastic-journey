@@ -35,6 +35,18 @@ describe("email helpers", () => {
         "user.name+tag@example.com",
       );
     });
+
+    it("throws TypeError when input is null, undefined, or NaN", () => {
+      expect(() => normalizeEmail(null as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => normalizeEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => normalizeEmail(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 
   describe("maskEmail", () => {
@@ -49,6 +61,16 @@ describe("email helpers", () => {
 
     it("returns input unchanged when the domain is missing", () => {
       expect(maskEmail("user@")).toBe("user@");
+    });
+
+    it("throws TypeError when input is null, undefined, or NaN", () => {
+      expect(() => maskEmail(null as unknown as string)).toThrow(TypeError);
+      expect(() => maskEmail(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+      expect(() => maskEmail(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
     });
   });
 
@@ -91,6 +113,30 @@ describe("email helpers", () => {
         }),
       ).toThrow(InvalidEmailError);
     });
+
+    it("throws TypeError when to is null, undefined, or NaN", () => {
+      expect(() =>
+        buildMagicLinkEmail({
+          to: null as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
+      expect(() =>
+        buildMagicLinkEmail({
+          to: undefined as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
+      expect(() =>
+        buildMagicLinkEmail({
+          to: Number.NaN as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
+    });
   });
 
   describe("sendMagicLinkEmail", () => {
@@ -102,6 +148,30 @@ describe("email helpers", () => {
           magicLink: "https://example.com/m",
         }),
       ).toThrow(InvalidEmailError);
+    });
+
+    it("throws TypeError when to is null, undefined, or NaN", () => {
+      expect(() =>
+        sendMagicLinkEmail({
+          to: null as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
+      expect(() =>
+        sendMagicLinkEmail({
+          to: undefined as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
+      expect(() =>
+        sendMagicLinkEmail({
+          to: Number.NaN as unknown as string,
+          brandName: "Acme",
+          magicLink: "https://example.com/m",
+        }),
+      ).toThrow(TypeError);
     });
 
     it("records the sent email in the in-memory log", () => {
