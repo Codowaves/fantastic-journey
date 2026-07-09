@@ -175,4 +175,77 @@ describe("deepEqual", () => {
       expect(deepEqual(obj1, obj3)).toBe(false);
     });
   });
+
+  describe("edge cases", () => {
+    it("handles empty string vs empty string", () => {
+      expect(deepEqual("", "")).toBe(true);
+      expect(deepEqual("", "x")).toBe(false);
+    });
+
+    it("handles BigInt equality", () => {
+      expect(deepEqual(1n, 1n)).toBe(true);
+      expect(deepEqual(1n, 2n)).toBe(false);
+    });
+
+    it("handles Infinity and -Infinity", () => {
+      expect(deepEqual(Infinity, Infinity)).toBe(true);
+      expect(deepEqual(-Infinity, -Infinity)).toBe(true);
+      expect(deepEqual(Infinity, -Infinity)).toBe(false);
+      expect(deepEqual(Infinity, 1)).toBe(false);
+    });
+
+    it("handles numeric boundary values", () => {
+      expect(deepEqual(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)).toBe(
+        true,
+      );
+      expect(deepEqual(Number.MIN_VALUE, Number.MIN_VALUE)).toBe(true);
+    });
+
+    it("distinguishes objects with undefined values from missing keys", () => {
+      expect(deepEqual({ a: undefined }, { a: undefined })).toBe(true);
+      expect(deepEqual({ a: undefined }, {})).toBe(false);
+      expect(deepEqual({}, { a: undefined })).toBe(false);
+    });
+
+    it("handles arrays containing null and undefined", () => {
+      expect(deepEqual([1, null, undefined], [1, null, undefined])).toBe(true);
+      expect(deepEqual([null], [undefined])).toBe(false);
+    });
+
+    it("handles nested null and undefined inside objects", () => {
+      expect(deepEqual({ a: null }, { a: null })).toBe(true);
+      expect(deepEqual({ a: null }, { a: undefined })).toBe(false);
+      expect(deepEqual({ a: { b: null } }, { a: { b: null } })).toBe(true);
+    });
+
+    it("handles NaN nested inside objects and arrays", () => {
+      expect(deepEqual({ a: NaN }, { a: NaN })).toBe(true);
+      expect(deepEqual([NaN, NaN], [NaN, NaN])).toBe(true);
+      expect(deepEqual({ a: NaN }, { a: 1 })).toBe(false);
+    });
+
+    it("handles empty nested containers", () => {
+      expect(deepEqual({ a: [] }, { a: [] })).toBe(true);
+      expect(deepEqual({ a: {} }, { a: {} })).toBe(true);
+      expect(deepEqual({ a: [] }, { a: {} })).toBe(false);
+      expect(deepEqual({ a: [{}] }, { a: [{}] })).toBe(true);
+    });
+
+    it("handles sparse arrays with holes consistently", () => {
+      const sparse1 = [1, , 3];
+      const sparse2 = [1, , 3];
+      expect(deepEqual(sparse1, sparse2)).toBe(true);
+    });
+
+    it("returns false for functions even when structurally same", () => {
+      const fn = () => 1;
+      expect(deepEqual(fn, fn)).toBe(true);
+      expect(
+        deepEqual(
+          () => 1,
+          () => 1,
+        ),
+      ).toBe(false);
+    });
+  });
 });
