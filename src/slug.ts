@@ -8,6 +8,9 @@
  * @returns A URL-safe slug (e.g. `slug('  Hello, World! ')` returns `'hello-world'`).
  */
 export function slug(text: string): string {
+  if (text === null || text === undefined || Number.isNaN(text)) {
+    throw new TypeError("text must be a string");
+  }
   return text
     .toLowerCase()
     .trim()

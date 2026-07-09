@@ -30,4 +30,13 @@ describe("slug", () => {
   it("returns an empty string for an empty input", () => {
     expect(slug("")).toBe("");
   });
+
+  it("throws TypeError when input is null or undefined", () => {
+    expect(() => slug(null as unknown as string)).toThrow(TypeError);
+    expect(() => slug(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when input is NaN", () => {
+    expect(() => slug(Number.NaN as unknown as string)).toThrow(TypeError);
+  });
 });
