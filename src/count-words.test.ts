@@ -22,4 +22,16 @@ describe("countWords", () => {
   it("handles leading and trailing whitespace", () => {
     expect(countWords("  hello world  ")).toBe(2);
   });
+
+  it("throws TypeError on null input", () => {
+    expect(() => countWords(null as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError on undefined input", () => {
+    expect(() => countWords(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError on non-string input", () => {
+    expect(() => countWords(123 as unknown as string)).toThrow(TypeError);
+  });
 });
