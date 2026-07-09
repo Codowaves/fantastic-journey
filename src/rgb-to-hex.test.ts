@@ -26,4 +26,18 @@ describe("rgbToHex", () => {
   it("rounds fractional values", () => {
     expect(rgbToHex(15.7, 15.3, 200.6)).toBe("#100fc9");
   });
+
+  it("throws on null component", () => {
+    expect(() => rgbToHex(null as unknown as number, 0, 0)).toThrow(TypeError);
+  });
+
+  it("throws on undefined component", () => {
+    expect(() => rgbToHex(0, undefined as unknown as number, 0)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws on NaN component", () => {
+    expect(() => rgbToHex(0, 0, NaN)).toThrow(TypeError);
+  });
 });
