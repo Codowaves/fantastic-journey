@@ -28,4 +28,28 @@ describe("minBy", () => {
   it("returns undefined for an empty array", () => {
     expect(minBy<number>([], (n) => n)).toBeUndefined();
   });
+
+  it("throws TypeError when arr is null or undefined", () => {
+    expect(() => minBy(null as unknown as number[], (n: number) => n)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      minBy(undefined as unknown as number[], (n: number) => n),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() =>
+      minBy([1, 2, 3], null as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+    expect(() =>
+      minBy([1, 2, 3], undefined as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn is NaN", () => {
+    expect(() =>
+      minBy([1, 2, 3], Number.NaN as unknown as (n: number) => number),
+    ).toThrow(TypeError);
+  });
 });

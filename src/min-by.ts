@@ -7,6 +7,16 @@
  * @returns The item with the smallest `fn(item)`, or `undefined` when `arr` is empty.
  */
 export function minBy<T>(arr: T[], fn: (item: T) => number): T | undefined {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("arr must be an array");
+  }
+  if (
+    fn === null ||
+    fn === undefined ||
+    Number.isNaN(fn as unknown as number)
+  ) {
+    throw new TypeError("fn must be a function");
+  }
   if (arr.length === 0) {
     return undefined;
   }
