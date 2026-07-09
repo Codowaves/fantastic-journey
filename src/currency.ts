@@ -4,6 +4,8 @@
  * @param cents - Amount in euro cents.
  * @returns The formatted euro string, prefixed with "€" (e.g. 1234 → "€12.34").
  * @throws {TypeError} If `cents` is null, undefined, or NaN.
+ * @example
+ * formatEur(1234); // "€12.34"
  */
 export function formatEur(cents: number): string {
   if (cents === null || cents === undefined || Number.isNaN(cents)) {
@@ -18,6 +20,8 @@ export function formatEur(cents: number): string {
  * @param cents - Amount in British pence.
  * @returns The formatted pound string, prefixed with "£" (e.g. 1234 → "£12.34").
  * @throws {TypeError} If `cents` is null, undefined, or NaN.
+ * @example
+ * formatGbp(1234); // "£12.34"
  */
 export function formatGbp(cents: number): string {
   if (cents === null || cents === undefined || Number.isNaN(cents)) {
