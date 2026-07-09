@@ -217,4 +217,89 @@ describe("TypedEventEmitter", () => {
 
     expect(() => emitter.off("message", listener)).not.toThrow();
   });
+
+  it("should deduplicate when the same listener is registered twice", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    emitter.on("message", listener);
+    emitter.on("message", listener);
+
+    emitter.emit("message", "hello");
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(emitter.listenerCount("message")).toBe(1);
+  });
+
+  it("should wrap non-Error thrown values into an Error instance", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const thrown = "string-not-an-error";
+
+    emitter.on("count", () => {
+      throw thrown;
+    });
+
+    expect(() => emitter.emit("count", 1)).toThrow(String(thrown));
+  });
+
+  it("should be a no-op when off is called for an event that was never registered", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    expect(() => emitter.off("data", listener)).not.toThrow();
+
+    emitter.on("data", listener);
+    emitter.off("data", listener);
+    expect(emitter.listenerCount("data")).toBe(0);
+  });
+
+  it("should not remove a once wrapper when off is called with the original listener reference", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const original = vi.fn();
+
+    emitter.once("message", original);
+    emitter.off("message", original);
+
+    emitter.emit("message", "still fires");
+
+    expect(original).toHaveBeenCalledWith("still fires");
+    expect(original).toHaveBeenCalledTimes(1);
+  });
+
+  it("should make unsubscribe from once a no-op if called after the listener already fired", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const listener = vi.fn();
+
+    const unsubscribe = emitter.once("message", listener);
+    emitter.emit("message", "first");
+    expect(() => unsubscribe()).not.toThrow();
+
+    emitter.emit("message", "second");
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("should drop a once listener from listenerCount after it fires", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+
+    emitter.once("message", () => {});
+    expect(emitter.listenerCount("message")).toBe(1);
+
+    emitter.emit("message", "fired");
+    expect(emitter.listenerCount("message")).toBe(0);
+  });
+
+  it("should deliver the same payload object reference to all listeners", () => {
+    const emitter = new TypedEventEmitter<TestEvents>();
+    const payload = { id: 7, name: "shared" };
+    const received: Array<typeof payload> = [];
+
+    emitter.on("data", (p) => received.push(p));
+    emitter.on("data", (p) => received.push(p));
+
+    emitter.emit("data", payload);
+
+    expect(received).toHaveLength(2);
+    expect(received[0]).toBe(payload);
+    expect(received[1]).toBe(payload);
+  });
 });
