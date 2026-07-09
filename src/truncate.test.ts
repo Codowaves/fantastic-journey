@@ -37,4 +37,14 @@ describe("truncate", () => {
       "maxLength must be an integer >= 1",
     );
   });
+
+  it("returns empty string unchanged", () => {
+    expect(truncate("", 10)).toBe("");
+    expect(truncate("", 1)).toBe("");
+  });
+
+  it("throws RangeError for NaN or Infinity maxLength", () => {
+    expect(() => truncate("hello", NaN)).toThrow(RangeError);
+    expect(() => truncate("hello", Infinity)).toThrow(RangeError);
+  });
 });
