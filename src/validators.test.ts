@@ -27,6 +27,18 @@ describe("isEmail", () => {
   it("rejects the empty string", () => {
     expect(isEmail("")).toBe(false);
   });
+
+  it("rejects strings with multiple @ signs", () => {
+    expect(isEmail("a@b@c.com")).toBe(false);
+  });
+
+  it("rejects strings with only @", () => {
+    expect(isEmail("@")).toBe(false);
+  });
+
+  it("rejects strings that are only whitespace", () => {
+    expect(isEmail("   ")).toBe(false);
+  });
 });
 
 describe("isUrl", () => {
@@ -58,6 +70,23 @@ describe("isUrl", () => {
 
   it("rejects the empty string", () => {
     expect(isUrl("")).toBe(false);
+  });
+
+  it("rejects schemes without ://", () => {
+    expect(isUrl("http:example.com")).toBe(false);
+  });
+
+  it("rejects just a scheme prefix", () => {
+    expect(isUrl("https://")).toBe(false);
+  });
+
+  it("rejects schemes with uppercase first char (scheme must start with letter but case-insensitive)", () => {
+    expect(isUrl("HTTP://example.com")).toBe(true);
+  });
+
+  it("rejects tab and newline whitespace in URL", () => {
+    expect(isUrl("http://example.com\tpath")).toBe(false);
+    expect(isUrl("http://example.com\n")).toBe(false);
   });
 });
 
@@ -94,5 +123,25 @@ describe("isUuid", () => {
 
   it("rejects the empty string", () => {
     expect(isUuid("")).toBe(false);
+  });
+
+  it("rejects UUIDs with too many hex chars in a group", () => {
+    expect(isUuid("550e84000-e29b-41d4-a716-446655440000")).toBe(false);
+  });
+
+  it("rejects UUIDs with extra trailing characters", () => {
+    expect(isUuid("550e8400-e29b-41d4-a716-446655440000x")).toBe(false);
+  });
+
+  it("rejects UUIDs that are nearly valid but off by one hex char", () => {
+    expect(isUuid("550e8400-e29b-41d4-a716-44665544000g")).toBe(false);
+  });
+
+  it("rejects UUID-like strings with only hyphens", () => {
+    expect(isUuid("--------")).toBe(false);
+  });
+
+  it("rejects UUIDs with spaces around them", () => {
+    expect(isUuid(" 550e8400-e29b-41d4-a716-446655440000 ")).toBe(false);
   });
 });
