@@ -60,3 +60,39 @@ describe("addTax", () => {
     expect(addTax(1000, 0.08875)).toBe(1089);
   });
 });
+
+describe("formatUsd edge cases", () => {
+  it("handles negative amounts", () => {
+    expect(formatUsd(-100)).toBe("$-1.00");
+  });
+
+  it("handles single cent", () => {
+    expect(formatUsd(1)).toBe("$0.01");
+  });
+
+  it("handles sub-cent fractional values", () => {
+    expect(formatUsd(0.5)).toBe("$0.01");
+  });
+});
+
+describe("addTax edge cases", () => {
+  it("returns 0 when rate is 0 and amount is 0", () => {
+    expect(addTax(0, 0)).toBe(0);
+  });
+
+  it("handles negative tax rate (discount)", () => {
+    expect(addTax(1000, -0.1)).toBe(900);
+  });
+
+  it("handles rate greater than 1 (e.g. 200%)", () => {
+    expect(addTax(100, 2)).toBe(300);
+  });
+
+  it("handles negative amount", () => {
+    expect(addTax(-1000, 0.1)).toBe(-1100);
+  });
+
+  it("handles very small amount", () => {
+    expect(addTax(1, 0.1)).toBe(1);
+  });
+});
