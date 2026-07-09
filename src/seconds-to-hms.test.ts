@@ -63,4 +63,20 @@ describe("secondsToHMS", () => {
       "seconds must be a finite number",
     );
   });
+
+  it("throws RangeError for null", () => {
+    expect(() => secondsToHMS(null as unknown as number)).toThrow(RangeError);
+    expect(() => secondsToHMS(null as unknown as number)).toThrow(
+      "seconds must be a finite number",
+    );
+  });
+
+  it("throws RangeError for undefined", () => {
+    expect(() => secondsToHMS(undefined as unknown as number)).toThrow(
+      RangeError,
+    );
+    expect(() => secondsToHMS(undefined as unknown as number)).toThrow(
+      "seconds must be a finite number",
+    );
+  });
 });
