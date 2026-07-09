@@ -8,6 +8,12 @@
  * @throws {RangeError} If `start` or `end` is not a finite integer.
  */
 export function range(start: number, end: number): number[] {
+  if (start === null || start === undefined || Number.isNaN(start)) {
+    throw new RangeError("range() requires integer arguments");
+  }
+  if (end === null || end === undefined || Number.isNaN(end)) {
+    throw new RangeError("range() requires integer arguments");
+  }
   if (!Number.isInteger(start) || !Number.isInteger(end)) {
     throw new RangeError("range() requires integer arguments");
   }

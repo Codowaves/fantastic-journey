@@ -26,4 +26,28 @@ describe("range", () => {
   it("throws a RangeError when end is not an integer", () => {
     expect(() => range(0, 3.5)).toThrow(RangeError);
   });
+
+  it("throws a RangeError when start is null", () => {
+    expect(() => range(null as unknown as number, 3)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError when end is null", () => {
+    expect(() => range(0, null as unknown as number)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError when start is undefined", () => {
+    expect(() => range(undefined as unknown as number, 3)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError when end is undefined", () => {
+    expect(() => range(0, undefined as unknown as number)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError when start is NaN", () => {
+    expect(() => range(NaN, 3)).toThrow(RangeError);
+  });
+
+  it("throws a RangeError when end is NaN", () => {
+    expect(() => range(0, NaN)).toThrow(RangeError);
+  });
 });
