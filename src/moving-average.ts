@@ -9,8 +9,16 @@
  *   moving averages. Returns `[]` when `nums.length < w`.
  */
 export function movingAverage(nums: number[], w: number): number[] {
+  if (nums === null || nums === undefined || Number.isNaN(w)) {
+    throw new TypeError("nums must be an array and w must be a number");
+  }
   if (w <= 0) {
     throw new RangeError("window size must be a positive integer");
+  }
+  for (const v of nums) {
+    if (typeof v !== "number" || Number.isNaN(v)) {
+      throw new TypeError("nums must contain only finite numbers");
+    }
   }
   if (nums.length < w) {
     return [];
