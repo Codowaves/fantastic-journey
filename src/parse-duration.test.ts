@@ -134,5 +134,18 @@ describe("parseDuration", () => {
       expect(() => parseDuration("1h 2x")).toThrow(TypeError);
       expect(() => parseDuration("1h 2x")).toThrow("trailing garbage");
     });
+
+    it("throws TypeError when input is null or undefined", () => {
+      expect(() => parseDuration(null as unknown as string)).toThrow(TypeError);
+      expect(() => parseDuration(undefined as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
+
+    it("throws TypeError when input is NaN", () => {
+      expect(() => parseDuration(Number.NaN as unknown as string)).toThrow(
+        TypeError,
+      );
+    });
   });
 });

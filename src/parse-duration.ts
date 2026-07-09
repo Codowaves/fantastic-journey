@@ -9,6 +9,10 @@
  * @returns The total duration in milliseconds.
  */
 export function parseDuration(input: string): number {
+  if (input === null || input === undefined || Number.isNaN(input)) {
+    throw new TypeError("Duration string must be a valid string");
+  }
+
   if (!input || input.trim() === "") {
     throw new TypeError("Duration string cannot be empty");
   }
