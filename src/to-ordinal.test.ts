@@ -30,4 +30,13 @@ describe("toOrdinal", () => {
     expect(toOrdinal(10)).toBe("10th");
     expect(toOrdinal(100)).toBe("100th");
   });
+
+  it("throws TypeError when n is null or undefined", () => {
+    expect(() => toOrdinal(null as unknown as number)).toThrow(TypeError);
+    expect(() => toOrdinal(undefined as unknown as number)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when n is NaN", () => {
+    expect(() => toOrdinal(Number.NaN)).toThrow(TypeError);
+  });
 });
