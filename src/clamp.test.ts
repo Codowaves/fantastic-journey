@@ -41,4 +41,37 @@ describe("clamp", () => {
     expect(() => clamp(5, 0, NaN)).toThrow(TypeError);
     expect(() => clamp(5, 0, NaN)).toThrow("hi must be a finite number");
   });
+
+  it("returns lo when n equals the lower bound", () => {
+    expect(clamp(0, 0, 10)).toBe(0);
+  });
+
+  it("returns hi when n equals the upper bound", () => {
+    expect(clamp(10, 0, 10)).toBe(10);
+  });
+
+  it("returns the sole value when lo equals hi", () => {
+    expect(clamp(5, 7, 7)).toBe(7);
+    expect(clamp(7, 7, 7)).toBe(7);
+    expect(clamp(10, 7, 7)).toBe(7);
+  });
+
+  it("handles negative bounds", () => {
+    expect(clamp(-15, -10, -5)).toBe(-10);
+    expect(clamp(-7, -10, -5)).toBe(-7);
+    expect(clamp(0, -10, -5)).toBe(-5);
+  });
+
+  it("handles floating point values", () => {
+    expect(clamp(0.5, 0, 1)).toBe(0.5);
+    expect(clamp(-0.1, 0, 1)).toBe(0);
+    expect(clamp(1.5, 0, 1)).toBe(1);
+  });
+
+  it("handles Infinity inputs without throwing", () => {
+    expect(clamp(Infinity, 0, 10)).toBe(10);
+    expect(clamp(-Infinity, 0, 10)).toBe(0);
+    expect(clamp(5, -Infinity, 10)).toBe(5);
+    expect(clamp(5, 0, Infinity)).toBe(5);
+  });
 });
