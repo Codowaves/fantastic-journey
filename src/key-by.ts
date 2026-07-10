@@ -25,9 +25,23 @@ export function keyBy<T, K extends PropertyKey>(
   arr: readonly T[],
   fn: (item: T) => K,
 ): Record<K, T> {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("arr must be an array");
+  }
+  if (typeof fn !== "function") {
+    throw new TypeError("fn must be a function");
+  }
   const result = {} as Record<K, T>;
   for (const item of arr) {
-    result[fn(item)] = item;
+    const key = fn(item);
+    if (
+      key === null ||
+      key === undefined ||
+      (typeof key === "number" && Number.isNaN(key))
+    ) {
+      throw new TypeError("fn must return a non-null, non-NaN key");
+    }
+    result[key] = item;
   }
   return result;
 }

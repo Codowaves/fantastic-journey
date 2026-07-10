@@ -44,4 +44,38 @@ describe("keyBy", () => {
     keyBy(input, (n) => n);
     expect(input).toEqual(snapshot);
   });
+
+  it("throws TypeError when arr is null", () => {
+    expect(() => keyBy(null as unknown as number[], (n) => n)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when arr is undefined", () => {
+    expect(() => keyBy(undefined as unknown as number[], (n) => n)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn is not a function", () => {
+    expect(() =>
+      keyBy([1, 2, 3], "not a function" as unknown as (n: number) => string),
+    ).toThrow(TypeError);
+  });
+
+  it("throws TypeError when fn returns null", () => {
+    expect(() => keyBy([1, 2], () => null as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn returns undefined", () => {
+    expect(() => keyBy([1, 2], () => undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn returns NaN", () => {
+    expect(() => keyBy([1, 2], () => NaN)).toThrow(TypeError);
+  });
 });
