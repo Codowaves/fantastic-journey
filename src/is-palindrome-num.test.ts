@@ -34,4 +34,23 @@ describe("isPalindromeNum", () => {
   it("returns false for NaN", () => {
     expect(isPalindromeNum(Number.NaN)).toBe(false);
   });
+
+  it("returns false for Infinity and -Infinity", () => {
+    expect(isPalindromeNum(Number.POSITIVE_INFINITY)).toBe(false);
+    expect(isPalindromeNum(Number.NEGATIVE_INFINITY)).toBe(false);
+  });
+
+  it("returns false for non-integer floats", () => {
+    expect(isPalindromeNum(1.5)).toBe(false);
+    expect(isPalindromeNum(3.14)).toBe(false);
+  });
+
+  it("handles integer-valued floats correctly", () => {
+    expect(isPalindromeNum(121.0)).toBe(true);
+    expect(isPalindromeNum(123.0)).toBe(false);
+  });
+
+  it("returns false for non-palindromic non-number types", () => {
+    expect(isPalindromeNum("hello" as unknown as number)).toBe(false);
+  });
 });
