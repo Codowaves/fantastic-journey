@@ -43,4 +43,35 @@ describe("chunk", () => {
     chunk(input, 2);
     expect(input).toEqual([1, 2, 3, 4, 5]);
   });
+
+  it("throws RangeError when size is NaN", () => {
+    expect(() => chunk([1, 2, 3], NaN)).toThrow(RangeError);
+  });
+
+  it("throws RangeError when size is Infinity", () => {
+    expect(() => chunk([1, 2, 3], Infinity)).toThrow(RangeError);
+  });
+
+  it("throws RangeError when size is negative Infinity", () => {
+    expect(() => chunk([1, 2, 3], -Infinity)).toThrow(RangeError);
+  });
+
+  it("returns a single chunk of full length when size equals array length", () => {
+    expect(chunk([1, 2, 3], 3)).toEqual([[1, 2, 3]]);
+  });
+
+  it("works with string elements (type polymorphism)", () => {
+    expect(chunk(["a", "b", "c", "d", "e"], 2)).toEqual([
+      ["a", "b"],
+      ["c", "d"],
+      ["e"],
+    ]);
+  });
+
+  it("works with object elements (type polymorphism)", () => {
+    const o1 = { id: 1 };
+    const o2 = { id: 2 };
+    const o3 = { id: 3 };
+    expect(chunk([o1, o2, o3], 2)).toEqual([[o1, o2], [o3]]);
+  });
 });
