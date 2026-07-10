@@ -5,6 +5,8 @@
  * @param arr - The array to split. Not mutated.
  * @param size - The maximum length of each chunk. Must be a positive integer.
  * @returns A new array of chunks. Returns an empty array if `arr` is empty.
+ * @throws {TypeError} If `arr` is null or undefined, or if `size` is null,
+ *   undefined, or NaN.
  * @throws {RangeError} If `size` is not a positive integer.
  *
  * @example
@@ -13,6 +15,12 @@
  * chunk([], 3); // []
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
+  if (arr === null || arr === undefined) {
+    throw new TypeError("chunk: arr must be an array");
+  }
+  if (size === null || size === undefined || Number.isNaN(size)) {
+    throw new TypeError("chunk: size must be a number");
+  }
   if (!Number.isInteger(size) || size <= 0) {
     throw new RangeError(`chunk: size must be a positive integer, got ${size}`);
   }
