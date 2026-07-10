@@ -4,6 +4,14 @@
  * @param price The original price.
  * @param percent The discount percentage to subtract (e.g., `20` for 20% off).
  * @returns The discounted price.
+ *
+ * @example
+ * applyDiscount(100, 20);
+ * // 80
+ * applyDiscount(50, 0);
+ * // 50
+ * applyDiscount(100, 100);
+ * // 0
  */
 export function applyDiscount(price: number, percent: number): number {
   return price - (price * percent) / 100;
