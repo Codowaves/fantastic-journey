@@ -10,6 +10,7 @@ import {
   createMagicLinkToken,
   getActiveSession,
   getSamlMetadata,
+  getUser,
   isWorkspaceOwner,
   listActiveSessions,
   listAuthEvents,
@@ -751,5 +752,104 @@ describe("resetAuthState", () => {
     expect(
       [...new Set(listWorkspaceUsers("ws_1").map((u) => u.userId))].sort(),
     ).toEqual(["owner_1", "user_1"]);
+  });
+});
+
+describe("input validation", () => {
+  beforeEach(() => {
+    resetAuthState();
+  });
+
+  it("throws TypeError when workspaceId is null/undefined across string exports", () => {
+    expect(() => listWorkspaceUsers(null as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listWorkspaceUsers(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => getUser(null as unknown as string, "user_1")).toThrow(
+      TypeError,
+    );
+    expect(() => getSamlMetadata(undefined as unknown as string)).toThrow(
+      TypeError,
+    );
+    expect(() => listActiveSessions(null as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when userId/sessionId/email/token are null/undefined", () => {
+    expect(() => getUser("ws_1", null as unknown as string)).toThrow(TypeError);
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: "ws_1",
+        email: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      createMagicLinkToken({
+        workspaceId: null as unknown as string,
+        email: "a@b.co",
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      redeemMagicLinkToken({
+        token: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      authenticatePassword({
+        workspaceId: "ws_1",
+        userId: "owner_1",
+        password: null as unknown as string,
+        context: CONTEXT,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("isWorkspaceOwner throws when workspaceId is null/undefined", () => {
+    expect(() =>
+      isWorkspaceOwner(null as unknown as string, "owner_1"),
+    ).toThrow(TypeError);
+    expect(() =>
+      isWorkspaceOwner(undefined as unknown as string, "owner_1"),
+    ).toThrow(TypeError);
+  });
+
+  it("revokeSession throws when any required string param is null/undefined", () => {
+    expect(() =>
+      revokeSession({
+        workspaceId: null as unknown as string,
+        sessionId: "sess_x",
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: null as unknown as string,
+        actorUserId: "owner_1",
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      revokeSession({
+        workspaceId: "ws_1",
+        sessionId: "sess_x",
+        actorUserId: undefined as unknown as string,
+      }),
+    ).toThrow(TypeError);
+  });
+
+  it("saveSamlMetadata throws when timeoutMs is NaN", async () => {
+    await expect(
+      saveSamlMetadata({
+        workspaceId: "ws_1",
+        xml: "<x/>",
+        timeoutMs: Number.NaN,
+      }),
+    ).rejects.toThrow(TypeError);
   });
 });
