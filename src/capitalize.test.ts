@@ -25,4 +25,18 @@ describe("capitalize", () => {
   it("only capitalizes first character, leaves rest untouched", () => {
     expect(capitalize("hello world")).toBe("Hello world");
   });
+
+  it("handles string starting with whitespace", () => {
+    expect(capitalize(" hello")).toBe(" hello");
+  });
+
+  it("handles uppercase first character", () => {
+    expect(capitalize("ABC")).toBe("ABC");
+  });
+
+  it("does not mutate the input string", () => {
+    const input = "hello";
+    capitalize(input);
+    expect(input).toBe("hello");
+  });
 });
