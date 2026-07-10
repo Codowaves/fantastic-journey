@@ -74,4 +74,14 @@ describe("difference", () => {
       difference([1, 2, 3], undefined as unknown as number[]),
     ).toThrow("b must be an array");
   });
+
+  it("treats NaN as equal to itself via Set membership", () => {
+    expect(difference([NaN, 1, 2], [NaN])).toEqual([1, 2]);
+  });
+
+  it("uses reference equality for objects", () => {
+    const x = { id: 1 };
+    const y = { id: 1 };
+    expect(difference([x, y], [y])).toEqual([x]);
+  });
 });
