@@ -35,4 +35,25 @@ describe("countBy", () => {
   it("handles a single-element input", () => {
     expect(countBy([42], (n) => n)).toEqual({ 42: 1 });
   });
+
+  it("propagates an error thrown by keyFn on the first item", () => {
+    const boom = (): never => {
+      throw new Error("keyFn failed");
+    };
+    expect(() => countBy([1, 2, 3], boom)).toThrow("keyFn failed");
+  });
+
+  it("propagates an error thrown by keyFn on a later item", () => {
+    const items = [{ type: "a" }, { type: "b" }, { type: "c" }];
+    let callCount = 0;
+    const keyFn = (item: { type: string }): string => {
+      callCount += 1;
+      if (item.type === "b") {
+        throw new Error("bad key");
+      }
+      return item.type;
+    };
+    expect(() => countBy(items, keyFn)).toThrow("bad key");
+    expect(callCount).toBe(2);
+  });
 });
