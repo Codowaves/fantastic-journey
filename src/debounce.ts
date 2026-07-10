@@ -13,6 +13,16 @@ export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   waitMs: number,
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } {
+  if (
+    fn === null ||
+    fn === undefined ||
+    (typeof fn === "number" && Number.isNaN(fn))
+  ) {
+    throw new TypeError("fn must be a function");
+  }
+  if (typeof fn !== "function") {
+    throw new TypeError("fn must be a function");
+  }
   if (!Number.isFinite(waitMs) || waitMs < 0) {
     throw new RangeError("waitMs must be a non-negative finite number");
   }

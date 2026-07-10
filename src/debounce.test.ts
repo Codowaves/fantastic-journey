@@ -60,4 +60,19 @@ describe("debounce", () => {
     expect(() => debounce(fn, Infinity)).toThrow(RangeError);
     expect(() => debounce(fn, NaN)).toThrow(RangeError);
   });
+
+  it("throws TypeError when fn is null or undefined", () => {
+    expect(() => debounce(null as unknown as () => void, 100)).toThrow(
+      TypeError,
+    );
+    expect(() => debounce(undefined as unknown as () => void, 100)).toThrow(
+      TypeError,
+    );
+  });
+
+  it("throws TypeError when fn is NaN", () => {
+    expect(() => debounce(Number.NaN as unknown as () => void, 100)).toThrow(
+      TypeError,
+    );
+  });
 });
