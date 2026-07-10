@@ -19,6 +19,25 @@ describe("circleArea", () => {
     expect(() => circleArea(-1)).toThrow(RangeError);
     expect(() => circleArea(-1)).toThrow("radius must be non-negative");
   });
+
+  it("throws TypeError for null radius", () => {
+    expect(() => circleArea(null as unknown as number)).toThrow(TypeError);
+    expect(() => circleArea(null as unknown as number)).toThrow(
+      "radius must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for undefined radius", () => {
+    expect(() => circleArea(undefined as unknown as number)).toThrow(TypeError);
+    expect(() => circleArea(undefined as unknown as number)).toThrow(
+      "radius must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for NaN radius", () => {
+    expect(() => circleArea(NaN)).toThrow(TypeError);
+    expect(() => circleArea(NaN)).toThrow("radius must not be NaN");
+  });
 });
 
 describe("rectArea", () => {
@@ -38,5 +57,47 @@ describe("rectArea", () => {
     expect(() => rectArea(-1, 5)).toThrow(
       "width and height must be non-negative",
     );
+  });
+
+  it("throws TypeError for null width", () => {
+    expect(() => rectArea(null as unknown as number, 5)).toThrow(TypeError);
+    expect(() => rectArea(null as unknown as number, 5)).toThrow(
+      "width must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for null height", () => {
+    expect(() => rectArea(5, null as unknown as number)).toThrow(TypeError);
+    expect(() => rectArea(5, null as unknown as number)).toThrow(
+      "height must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for undefined width", () => {
+    expect(() => rectArea(undefined as unknown as number, 5)).toThrow(
+      TypeError,
+    );
+    expect(() => rectArea(undefined as unknown as number, 5)).toThrow(
+      "width must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for undefined height", () => {
+    expect(() => rectArea(5, undefined as unknown as number)).toThrow(
+      TypeError,
+    );
+    expect(() => rectArea(5, undefined as unknown as number)).toThrow(
+      "height must not be null or undefined",
+    );
+  });
+
+  it("throws TypeError for NaN width", () => {
+    expect(() => rectArea(NaN, 5)).toThrow(TypeError);
+    expect(() => rectArea(NaN, 5)).toThrow("width must not be NaN");
+  });
+
+  it("throws TypeError for NaN height", () => {
+    expect(() => rectArea(5, NaN)).toThrow(TypeError);
+    expect(() => rectArea(5, NaN)).toThrow("height must not be NaN");
   });
 });
