@@ -6,6 +6,9 @@
  * @returns The number of whitespace-separated tokens, or 0 if `s` is empty or all whitespace.
  */
 export function wordCount(s: string): number {
+  if (s === null || s === undefined || Number.isNaN(s)) {
+    throw new TypeError("s must be a string");
+  }
   const t = s.trim();
   return t ? t.split(/\s+/).length : 0;
 }
