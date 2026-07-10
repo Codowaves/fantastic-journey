@@ -74,4 +74,22 @@ describe("difference", () => {
       difference([1, 2, 3], undefined as unknown as number[]),
     ).toThrow("b must be an array");
   });
+
+  it("throws TypeError when a is NaN", () => {
+    expect(() => difference(NaN as unknown as number[], [1, 2])).toThrow(
+      TypeError,
+    );
+    expect(() => difference(NaN as unknown as number[], [1, 2])).toThrow(
+      "a must be an array",
+    );
+  });
+
+  it("throws TypeError when b is NaN", () => {
+    expect(() => difference([1, 2, 3], NaN as unknown as number[])).toThrow(
+      TypeError,
+    );
+    expect(() => difference([1, 2, 3], NaN as unknown as number[])).toThrow(
+      "b must be an array",
+    );
+  });
 });

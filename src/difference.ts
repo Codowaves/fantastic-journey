@@ -14,7 +14,19 @@ export function difference<T>(a: readonly T[], b: readonly T[]): T[] {
   if (a === null || a === undefined) {
     throw new TypeError("a must be an array");
   }
+  if (Array.isArray(a) === false) {
+    throw new TypeError("a must be an array");
+  }
+  if (Number.isNaN(a as unknown as number)) {
+    throw new TypeError("a must be an array");
+  }
   if (b === null || b === undefined) {
+    throw new TypeError("b must be an array");
+  }
+  if (Array.isArray(b) === false) {
+    throw new TypeError("b must be an array");
+  }
+  if (Number.isNaN(b as unknown as number)) {
     throw new TypeError("b must be an array");
   }
   const excluded = new Set(b);
