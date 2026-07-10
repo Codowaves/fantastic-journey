@@ -11,6 +11,10 @@
  * @param pred - Predicate called on each adjacent pair `(prev, next)`. While it
  *   returns `true`, the two items are kept in the same chunk.
  * @returns A new array of chunks. Returns an empty array if `arr` is empty.
+ * @example
+ * chunkWhile([1, 1, 2, 2, 3], (a, b) => a === b); // [[1, 1], [2, 2], [3]]
+ * chunkWhile([1, 2, 3, 2, 3, 4], (a, b) => a < b); // [[1, 2, 3], [2, 3, 4]]
+ * chunkWhile([], () => true); // []
  */
 export function chunkWhile<T>(
   arr: readonly T[],
