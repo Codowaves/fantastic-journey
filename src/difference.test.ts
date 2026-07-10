@@ -74,4 +74,18 @@ describe("difference", () => {
       difference([1, 2, 3], undefined as unknown as number[]),
     ).toThrow("b must be an array");
   });
+
+  it("throws TypeError when a contains NaN", () => {
+    expect(() => difference([1, Number.NaN, 3], [2])).toThrow(TypeError);
+    expect(() => difference([1, Number.NaN, 3], [2])).toThrow(
+      "a must not contain NaN",
+    );
+  });
+
+  it("throws TypeError when b contains NaN", () => {
+    expect(() => difference([1, 2, 3], [Number.NaN])).toThrow(TypeError);
+    expect(() => difference([1, 2, 3], [Number.NaN])).toThrow(
+      "b must not contain NaN",
+    );
+  });
 });
