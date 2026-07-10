@@ -7,9 +7,13 @@
  * Date instances are compared by timestamp.
  * Values of different types are never equal.
  *
+ * Throws a `TypeError` if either top-level argument (or any value encountered during
+ * recursive descent) is `null`, `undefined`, or `NaN`.
+ *
  * @param a - The first value to compare.
  * @param b - The second value to compare.
  * @returns `true` if `a` and `b` are structurally equal, `false` otherwise.
+ * @throws {TypeError} If `a` or `b` (or a nested value) is `null`, `undefined`, or `NaN`.
  *
  * Limitations: Does not handle Map, Set, or cyclic structures.
  *
@@ -17,23 +21,25 @@
  * deepEqual(1, 1); // true
  * deepEqual([1, 2, 3], [1, 2, 3]); // true
  * deepEqual({ a: 1, b: [2, 3] }, { a: 1, b: [2, 3] }); // true
- * deepEqual(NaN, NaN); // true
+ * deepEqual(NaN, NaN); // TypeError
  * deepEqual({ a: 1 }, { a: 2 }); // false
- * deepEqual(null, {}); // false
+ * deepEqual(null, {}); // TypeError
  */
 export function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === null || a === undefined || Number.isNaN(a as number)) {
+    throw new TypeError("a must not be null, undefined, or NaN");
+  }
+  if (b === null || b === undefined || Number.isNaN(b as number)) {
+    throw new TypeError("b must not be null, undefined, or NaN");
+  }
+
   // Use Object.is for primitive comparison (handles NaN, +0/-0 correctly)
   if (Object.is(a, b)) {
     return true;
   }
 
   // If either is null or not an object, they're not equal (already checked Object.is)
-  if (
-    a === null ||
-    b === null ||
-    typeof a !== "object" ||
-    typeof b !== "object"
-  ) {
+  if (typeof a !== "object" || typeof b !== "object") {
     return false;
   }
 

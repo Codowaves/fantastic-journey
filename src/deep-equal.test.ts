@@ -8,19 +8,12 @@ describe("deepEqual", () => {
       expect(deepEqual("hello", "hello")).toBe(true);
       expect(deepEqual(true, true)).toBe(true);
       expect(deepEqual(false, false)).toBe(true);
-      expect(deepEqual(null, null)).toBe(true);
-      expect(deepEqual(undefined, undefined)).toBe(true);
     });
 
     it("returns false for different primitives", () => {
       expect(deepEqual(1, 2)).toBe(false);
       expect(deepEqual("hello", "world")).toBe(false);
       expect(deepEqual(true, false)).toBe(false);
-      expect(deepEqual(null, undefined)).toBe(false);
-    });
-
-    it("handles NaN with Object.is semantics", () => {
-      expect(deepEqual(NaN, NaN)).toBe(true);
     });
 
     it("distinguishes +0 and -0 with Object.is semantics", () => {
@@ -136,11 +129,6 @@ describe("deepEqual", () => {
   });
 
   describe("mixed types", () => {
-    it("returns false for null vs empty object", () => {
-      expect(deepEqual(null, {})).toBe(false);
-      expect(deepEqual({}, null)).toBe(false);
-    });
-
     it("returns false for array vs object", () => {
       expect(deepEqual([], {})).toBe(false);
       expect(deepEqual({}, [])).toBe(false);
@@ -150,6 +138,54 @@ describe("deepEqual", () => {
     it("returns false for primitive vs object", () => {
       expect(deepEqual(1, { valueOf: () => 1 })).toBe(false);
       expect(deepEqual("hello", { toString: () => "hello" })).toBe(false);
+    });
+  });
+
+  describe("input validation", () => {
+    it("throws TypeError when a is null", () => {
+      expect(() => deepEqual(null, {})).toThrow(TypeError);
+      expect(() => deepEqual(null, 1)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when b is null", () => {
+      expect(() => deepEqual({}, null)).toThrow(TypeError);
+      expect(() => deepEqual(1, null)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when a is undefined", () => {
+      expect(() => deepEqual(undefined, {})).toThrow(TypeError);
+      expect(() => deepEqual(undefined, 1)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when b is undefined", () => {
+      expect(() => deepEqual({}, undefined)).toThrow(TypeError);
+      expect(() => deepEqual(1, undefined)).toThrow(TypeError);
+    });
+
+    it("throws TypeError when a is NaN", () => {
+      expect(() => deepEqual(NaN, 1)).toThrow(TypeError);
+      expect(() => deepEqual(NaN, {})).toThrow(TypeError);
+    });
+
+    it("throws TypeError when b is NaN", () => {
+      expect(() => deepEqual(1, NaN)).toThrow(TypeError);
+      expect(() => deepEqual({}, NaN)).toThrow(TypeError);
+    });
+
+    it("throws TypeError for nested null", () => {
+      expect(() => deepEqual({ a: null }, { a: 1 })).toThrow(TypeError);
+      expect(() => deepEqual({ a: 1 }, { a: null })).toThrow(TypeError);
+      expect(() => deepEqual([1, null], [1, 2])).toThrow(TypeError);
+    });
+
+    it("throws TypeError for nested undefined", () => {
+      expect(() => deepEqual({ a: undefined }, { a: 1 })).toThrow(TypeError);
+      expect(() => deepEqual([undefined, 2], [1, 2])).toThrow(TypeError);
+    });
+
+    it("throws TypeError for nested NaN", () => {
+      expect(() => deepEqual({ a: NaN }, { a: 1 })).toThrow(TypeError);
+      expect(() => deepEqual([NaN, 2], [1, 2])).toThrow(TypeError);
     });
   });
 
