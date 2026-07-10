@@ -131,4 +131,53 @@ describe("dedupeAdjacent", () => {
     expect(result).not.toBe(input);
     expect(result).toEqual(input);
   });
+
+  it("throws TypeError when called with null", () => {
+    // @ts-expect-error -- intentionally passing null to test the error path
+    expect(() => dedupeAdjacent(null)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when called with undefined", () => {
+    expect(() =>
+      // @ts-expect-error -- intentionally passing undefined to test the error path
+      dedupeAdjacent(undefined),
+    ).toThrow(TypeError);
+  });
+
+  it("propagates a TypeError when the length getter throws", () => {
+    const evil: { readonly length: number; readonly [k: number]: number } = {
+      get length(): number {
+        throw new TypeError("boom on length");
+      },
+      get 0(): number {
+        return 1;
+      },
+    };
+    expect(() => dedupeAdjacent(evil as unknown as number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("propagates a TypeError when an indexed getter throws", () => {
+    const evil: { readonly length: number; readonly [k: number]: number } = {
+      length: 2,
+      get 0(): number {
+        return 1;
+      },
+      get 1(): number {
+        throw new TypeError("boom on index");
+      },
+    };
+    expect(() => dedupeAdjacent(evil as unknown as number[])).toThrow(
+      TypeError,
+    );
+  });
+
+  it("does not throw when every element is well-defined (negative control)", () => {
+    expect(() => dedupeAdjacent([1, 2, 3])).not.toThrow();
+  });
+
+  it("does not throw on an empty array (negative control)", () => {
+    expect(() => dedupeAdjacent<number>([])).not.toThrow();
+  });
 });
