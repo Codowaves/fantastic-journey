@@ -9,6 +9,19 @@
  * @typeParam T - The element type of the input array.
  * @param arr - The array to deduplicate. Not mutated.
  * @returns A new array with consecutive duplicates removed.
+ *
+ * @example
+ * dedupeAdjacent([1, 1, 2, 3, 3, 3, 1]);
+ * // => [1, 2, 3, 1]
+ *
+ * @example
+ * dedupeAdjacent(['a', 'a', 'b', 'b', 'c']);
+ * // => ['a', 'b', 'c']
+ *
+ * @example
+ * const original = [1, 2, 2, 3];
+ * const result = dedupeAdjacent(original);
+ * // original is unchanged; result is [1, 2, 3]
  */
 export function dedupeAdjacent<T>(arr: readonly T[]): T[] {
   const result: T[] = [];
