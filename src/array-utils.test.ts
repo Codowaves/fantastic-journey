@@ -37,4 +37,30 @@ describe("unique", () => {
     const result = unique([true, false, true, true, false]);
     expect(result).toEqual([true, false]);
   });
+
+  describe("error paths", () => {
+    it("throws TypeError when given a string", () => {
+      expect(() => unique("hello" as unknown as number[])).toThrow(TypeError);
+    });
+
+    it("throws TypeError when given a number", () => {
+      expect(() => unique(42 as unknown as number[])).toThrow(TypeError);
+    });
+
+    it("throws TypeError when given null", () => {
+      expect(() => unique(null as unknown as number[])).toThrow(TypeError);
+    });
+
+    it("throws TypeError when given undefined", () => {
+      expect(() => unique(undefined as unknown as number[])).toThrow(TypeError);
+    });
+
+    it("throws TypeError when given a plain object", () => {
+      expect(() => unique({} as unknown as number[])).toThrow(TypeError);
+    });
+
+    it("throws TypeError when given a boolean", () => {
+      expect(() => unique(true as unknown as number[])).toThrow(TypeError);
+    });
+  });
 });
