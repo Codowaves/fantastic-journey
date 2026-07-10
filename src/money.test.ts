@@ -59,4 +59,65 @@ describe("addTax", () => {
   it("handles a typical sales tax of 8.875%", () => {
     expect(addTax(1000, 0.08875)).toBe(1089);
   });
+
+  it("handles the smallest non-zero cent amount", () => {
+    expect(addTax(1, 0)).toBe(1);
+    expect(addTax(1, 1)).toBe(2);
+  });
+
+  it("handles negative tax rate (discount)", () => {
+    expect(addTax(1000, -0.1)).toBe(900);
+  });
+
+  it("handles negative amount", () => {
+    expect(addTax(-1000, 0.1)).toBe(-1100);
+  });
+
+  it("rounds half-cent values to the nearest cent", () => {
+    expect(addTax(1, 0.5)).toBe(2);
+    expect(addTax(2, 0.5)).toBe(3);
+  });
+
+  it("returns NaN when given NaN inputs", () => {
+    expect(Number.isNaN(addTax(Number.NaN, 0.1))).toBe(true);
+    expect(Number.isNaN(addTax(100, Number.NaN))).toBe(true);
+  });
+
+  it("returns Infinity for very large tax rate", () => {
+    expect(addTax(1000, Number.POSITIVE_INFINITY)).toBe(
+      Number.POSITIVE_INFINITY,
+    );
+  });
+
+  it("handles a very small tax rate", () => {
+    expect(addTax(10000, 0.001)).toBe(10010);
+  });
+});
+
+describe("formatUsd edge cases", () => {
+  it("formats one cent as $0.01", () => {
+    expect(formatUsd(1)).toBe("$0.01");
+  });
+
+  it("formats negative values with a leading minus", () => {
+    expect(formatUsd(-199)).toBe("$-1.99");
+  });
+
+  it("formats 1 cent through 99 cents with leading zero", () => {
+    expect(formatUsd(1)).toBe("$0.01");
+    expect(formatUsd(10)).toBe("$0.10");
+    expect(formatUsd(99)).toBe("$0.99");
+  });
+
+  it("formats very large values", () => {
+    expect(formatUsd(Number.MAX_SAFE_INTEGER)).toBe("$90071992547409.91");
+  });
+
+  it("returns $NaN for NaN input", () => {
+    expect(formatUsd(Number.NaN)).toBe("$NaN");
+  });
+
+  it("returns $Infinity for Infinity input", () => {
+    expect(formatUsd(Number.POSITIVE_INFINITY)).toBe("$Infinity");
+  });
 });
