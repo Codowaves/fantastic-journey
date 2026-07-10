@@ -7,6 +7,14 @@ describe("mode", () => {
     expect(mode([])).toBeUndefined();
   });
 
+  it("throws TypeError when nums is null", () => {
+    expect(() => mode(null as unknown as number[])).toThrow(TypeError);
+  });
+
+  it("throws TypeError when nums is undefined", () => {
+    expect(() => mode(undefined as unknown as number[])).toThrow(TypeError);
+  });
+
   it("returns the single value for a one-element array", () => {
     expect(mode([7])).toBe(7);
   });
