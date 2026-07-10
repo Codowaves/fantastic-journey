@@ -67,4 +67,127 @@ describe("defaultTo", () => {
     expect(defaultTo<number | null>(null, -1)).toBe(-1);
     expect(defaultTo<number | undefined>(undefined, -1)).toBe(-1);
   });
+
+  describe("error/throw paths", () => {
+    it("does not invoke a throwing getter when v is a bare accessor object", () => {
+      let getterCalled = false;
+      const v = {};
+      Object.defineProperty(v, "value", {
+        enumerable: true,
+        get() {
+          getterCalled = true;
+          throw new Error("getter should never run");
+        },
+      });
+      // V is a non-null object reference, so defaultTo must short-circuit on
+      // the v === null / v === undefined checks and return v without reading
+      // any of its properties.
+      const result = defaultTo(v, { fallback: true });
+      expect(getterCalled).toBe(false);
+      expect(result).toBe(v);
+    });
+
+    it("does not throw when the fallback is a bare accessor object", () => {
+      let getterCalled = false;
+      const d = {};
+      Object.defineProperty(d, "value", {
+        enumerable: true,
+        get() {
+          getterCalled = true;
+          throw new Error("getter should never run");
+        },
+      });
+      // v is nullish, so the fallback d must be returned without reading any
+      // of its properties — even if reading would throw.
+      const result = defaultTo(null, d);
+      expect(getterCalled).toBe(false);
+      expect(result).toBe(d);
+    });
+
+    it("does not throw when both v and d are throwing-accessor objects and v is non-nullish", () => {
+      const make = () => {
+        const o = {};
+        Object.defineProperty(o, "value", {
+          enumerable: true,
+          get() {
+            throw new Error("boom");
+          },
+        });
+        return o;
+      };
+      const v = make();
+      const d = make();
+      expect(() => defaultTo(v, d)).not.toThrow();
+      expect(defaultTo(v, d)).toBe(v);
+    });
+
+    it("does not throw on a frozen value", () => {
+      const v: { a: number } = Object.freeze({ a: 1 });
+      const d: { a: number } = Object.freeze({ a: 2 });
+      expect(() => defaultTo(v, d)).not.toThrow();
+      expect(defaultTo(v, d)).toBe(v);
+    });
+
+    it("does not throw on a sealed value", () => {
+      const v: { a: number } = Object.seal({ a: 1 });
+      const d: { a: number } = Object.seal({ a: 2 });
+      expect(() => defaultTo(v, d)).not.toThrow();
+      expect(defaultTo(v, d)).toBe(v);
+    });
+
+    it("does not throw when v is nullish and the fallback is frozen", () => {
+      const d = Object.freeze([1, 2, 3]);
+      expect(() => defaultTo(null, d)).not.toThrow();
+      expect(() => defaultTo(undefined, d)).not.toThrow();
+      expect(defaultTo(null, d)).toBe(d);
+    });
+
+    it("does not throw when v is nullish and the fallback is a Proxy", () => {
+      const d = new Proxy({ a: 1 }, {});
+      expect(() => defaultTo(undefined, d)).not.toThrow();
+      expect(defaultTo(undefined, d)).toBe(d);
+    });
+
+    it("does not throw on NaN fallback that aliases Number.NaN", () => {
+      // Number.NaN, globalThis.NaN, and any NaN produced by 0/0 are all
+      // indistinguishable by value, but the fallback branch still returns the
+      // expression as written.
+      expect(() => defaultTo(NaN, Number.NaN)).not.toThrow();
+      expect(() => defaultTo(NaN, 0 / 0)).not.toThrow();
+      expect(Number.isNaN(defaultTo(NaN, 0 / 0))).toBe(true);
+    });
+
+    it("does not throw on BigInt values (BigInt is non-nullish, non-number)", () => {
+      // typeof 1n === "bigint", so the NaN branch never fires; the function
+      // returns v unchanged. BigInts are well-defined value types and must
+      // not surprise the caller.
+      expect(() => defaultTo(1n, 0n)).not.toThrow();
+      expect(defaultTo(1n, 99n)).toBe(1n);
+    });
+
+    it("does not throw on symbol values (symbols are non-nullish, non-number)", () => {
+      const s = Symbol("x");
+      const fallback = Symbol("fallback");
+      expect(() => defaultTo<symbol>(s, fallback)).not.toThrow();
+      expect(defaultTo<symbol>(s, fallback)).toBe(s);
+    });
+
+    it("does not throw on void 0 (the documented `undefined` spelling)", () => {
+      expect(() => defaultTo(void 0, "fallback")).not.toThrow();
+      expect(defaultTo(void 0, "fallback")).toBe("fallback");
+    });
+
+    it("does not throw on document.all (a non-null object that typeof reports as undefined)", () => {
+      // document.all is famously typeof === "undefined" while not actually
+      // undefined. The function's strict `=== undefined` check correctly
+      // treats it as a non-nullish value and returns it as-is.
+      const all = (globalThis as { document?: { all?: unknown } }).document
+        ?.all as unknown;
+      if (all === null || all === undefined) {
+        // Environment without document.all — skip the typeof check.
+        return;
+      }
+      expect(defaultTo(all, { fallback: true })).toBe(all);
+    });
+  });
 });
