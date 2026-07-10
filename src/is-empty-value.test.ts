@@ -54,6 +54,11 @@ describe("isEmptyValue", () => {
       expect(isEmptyValue(Infinity)).toBe(false);
     });
 
+    it("explicitly guards NaN as not empty", () => {
+      expect(isEmptyValue(Number.NaN)).toBe(false);
+      expect(isEmptyValue(Number("not-a-number"))).toBe(false);
+    });
+
     it("returns false for bigints via the fallback branch", () => {
       expect(isEmptyValue(0n)).toBe(false);
       expect(isEmptyValue(42n)).toBe(false);
