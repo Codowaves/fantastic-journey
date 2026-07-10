@@ -61,11 +61,18 @@ export interface Order {
  * @param customerId - The ID of the customer placing the order.
  * @param items - The line items to include in the order.
  * @returns The newly created {@link Order} in `pending` status.
+ * @throws {TypeError} If `customerId` or `items` is `null` or `undefined`.
  */
 export function createOrder(
   customerId: string,
   items: Array<{ id: string; qty: number }>,
 ): Order {
+  if (customerId === null || customerId === undefined) {
+    throw new TypeError("customerId must be a string");
+  }
+  if (items === null || items === undefined) {
+    throw new TypeError("items must be an array");
+  }
   return {
     id: `ord_${Date.now()}`,
     customerId,
@@ -82,8 +89,12 @@ export function createOrder(
  * fields unchanged.
  *
  * @returns A new {@link Order} with `status` set to `confirmed`.
+ * @throws {TypeError} If `order` is `null` or `undefined`.
  */
 export function confirmOrder(order: Order): Order {
+  if (order === null || order === undefined) {
+    throw new TypeError("order must be an object");
+  }
   return { ...order, status: "confirmed" };
 }
 
@@ -92,10 +103,17 @@ export function confirmOrder(order: Order): Order {
  *
  * @returns A promise resolving to the order's {@link Order.status} when found,
  * or `null` if the ID is empty.
+ * @throws {TypeError} If `orderId` is `null`, `undefined`, or `NaN`.
  */
 export function getOrderStatus(
   orderId: string,
 ): Promise<Order["status"] | null> {
+  if (orderId === null || orderId === undefined) {
+    throw new TypeError("orderId must be a string");
+  }
+  if (typeof orderId === "number" && Number.isNaN(orderId)) {
+    throw new TypeError("orderId must be a string");
+  }
   return Promise.resolve(orderId ? "pending" : null);
 }
 
@@ -332,8 +350,12 @@ async function checkDbConnection(): Promise<{
  * `X-Request-Id` header.
  *
  * @returns The {@link Response} produced by the routed handler.
+ * @throws {TypeError} If `request` is `null` or `undefined`.
  */
 export async function handleRequest(request: Request): Promise<Response> {
+  if (request === null || request === undefined) {
+    throw new TypeError("request must be a Request");
+  }
   const context = createRequestContext();
   const response = await runWithRequestContext(async () => {
     const routedResponse = await routeRequest(request);
