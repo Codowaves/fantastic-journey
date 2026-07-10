@@ -22,4 +22,15 @@ describe("countWords", () => {
   it("handles leading and trailing whitespace", () => {
     expect(countWords("  hello world  ")).toBe(2);
   });
+
+  it("throws TypeError when str is null or undefined", () => {
+    expect(() => countWords(null as unknown as string)).toThrow(TypeError);
+    expect(() => countWords(undefined as unknown as string)).toThrow(TypeError);
+  });
+
+  it("throws TypeError when str is NaN", () => {
+    expect(() => countWords(Number.NaN as unknown as string)).toThrow(
+      TypeError,
+    );
+  });
 });
