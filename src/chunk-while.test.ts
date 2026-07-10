@@ -68,4 +68,34 @@ describe("chunkWhile", () => {
     chunkWhile(input, (a, b) => a === b);
     expect(input).toEqual([1, 1, 2, 2, 3]);
   });
+
+  it("propagates errors thrown by the predicate on the first call", () => {
+    expect(() =>
+      chunkWhile([1, 2], () => {
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+  });
+
+  it("propagates errors thrown by the predicate mid-iteration", () => {
+    expect(() =>
+      chunkWhile([1, 1, 2], (a, b) => {
+        if (a === 1 && b === 2) {
+          throw new Error("boundary boom");
+        }
+        return a === b;
+      }),
+    ).toThrow("boundary boom");
+  });
+
+  it("propagates errors thrown by the predicate on the final pair", () => {
+    expect(() =>
+      chunkWhile([1, 2, 3], (a, b) => {
+        if (a === 2 && b === 3) {
+          throw new Error("tail boom");
+        }
+        return a === b;
+      }),
+    ).toThrow("tail boom");
+  });
 });
