@@ -35,6 +35,15 @@ describe("email helpers", () => {
         "user.name+tag@example.com",
       );
     });
+
+    it("throws InvalidEmailError for null, undefined, or NaN input", () => {
+      // @ts-expect-error – exercising runtime guard
+      expect(() => normalizeEmail(null)).toThrow(InvalidEmailError);
+      // @ts-expect-error – exercising runtime guard
+      expect(() => normalizeEmail(undefined)).toThrow(InvalidEmailError);
+      // @ts-expect-error – exercising runtime guard
+      expect(() => normalizeEmail(NaN)).toThrow(InvalidEmailError);
+    });
   });
 
   describe("maskEmail", () => {
@@ -49,6 +58,15 @@ describe("email helpers", () => {
 
     it("returns input unchanged when the domain is missing", () => {
       expect(maskEmail("user@")).toBe("user@");
+    });
+
+    it("throws InvalidEmailError for null, undefined, or NaN input", () => {
+      // @ts-expect-error – exercising runtime guard
+      expect(() => maskEmail(null)).toThrow(InvalidEmailError);
+      // @ts-expect-error – exercising runtime guard
+      expect(() => maskEmail(undefined)).toThrow(InvalidEmailError);
+      // @ts-expect-error – exercising runtime guard
+      expect(() => maskEmail(NaN)).toThrow(InvalidEmailError);
     });
   });
 
