@@ -3,6 +3,11 @@
  * @param bytes - Non-negative finite number of bytes.
  * @param decimals - Number of decimal places to keep in the scaled value (default 1).
  * @returns The formatted size string (e.g. `"1.5 KiB"`); returns `"0 B"` when `bytes` is zero.
+ * @example
+ * formatBytes(0);              // "0 B"
+ * formatBytes(1024);           // "1 KiB"
+ * formatBytes(1536, 2);        // "1.5 KiB"
+ * formatBytes(1073741824, 2);  // "1 GiB"
  */
 export function formatBytes(bytes: number, decimals: number = 1): string {
   if (!Number.isFinite(bytes)) {
