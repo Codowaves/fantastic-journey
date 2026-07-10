@@ -27,7 +27,31 @@ describe("groupBy", () => {
   });
 
   it("returns an empty object for an empty input", () => {
-    expect(groupBy([], (n: number) => n)).toEqual({});
+    let calls = 0;
+
+    expect(
+      groupBy([], (n: number) => {
+        calls += 1;
+        return n;
+      }),
+    ).toEqual({});
+    expect(calls).toBe(0);
+  });
+
+  it("groups items by symbol keys", () => {
+    const odd = Symbol("odd");
+    const even = Symbol("even");
+
+    const grouped = groupBy([1, 2, 3, 4], (n) => (n % 2 === 0 ? even : odd));
+
+    expect(grouped[odd]).toEqual([1, 3]);
+    expect(grouped[even]).toEqual([2, 4]);
+  });
+
+  it("throws TypeError when keyFn is not callable", () => {
+    expect(() =>
+      groupBy([1], undefined as unknown as (n: number) => number),
+    ).toThrow(TypeError);
   });
 
   it("puts every item into a single group when all keys match", () => {
