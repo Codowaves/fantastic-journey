@@ -19,6 +19,14 @@ describe('reimbursableCents', () => {
   it('reimburses half at 50% for an evenly divisible amount', () => {
     expect(reimbursableCents(10000, 50)).toBe(5000);
   });
+
+  it('rounds a fractional cent to the nearest cent', () => {
+    expect(reimbursableCents(999, 50)).toBe(500); // 499.5 rounds up
+    expect(reimbursableCents(997, 50)).toBe(499); // 498.5 rounds up
+    expect(reimbursableCents(333, 75)).toBe(250); // 249.75 rounds up
+    expect(reimbursableCents(101, 75)).toBe(76); // 75.75 rounds up
+    expect(reimbursableCents(103, 75)).toBe(77); // 77.25 rounds down
+  });
 });
 
 describe('reimbursableForCategory', () => {

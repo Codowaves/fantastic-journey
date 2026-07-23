@@ -15,7 +15,7 @@ export const REIMBURSEMENT_RATES: Record<string, number> = {
 
 /** Whole cents the company reimburses for `amountCents` at `ratePercent`. */
 export function reimbursableCents(amountCents: number, ratePercent: number): number {
-  return Math.trunc((amountCents * ratePercent) / 100);
+  return Math.round((amountCents * ratePercent) / 100);
 }
 
 /** Reimbursable cents for one expense, using its category's policy rate. */
