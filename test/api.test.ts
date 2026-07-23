@@ -66,6 +66,49 @@ describe('GET /expenses/:id', () => {
   });
 });
 
+describe('GET /expenses/report', () => {
+  it('totals per employee over the inclusive range', async () => {
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, date: '2024-06-01' });
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, date: '2024-06-30', amountCents: 100 });
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, date: '2024-07-01' });
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, employee: 'Grace Hopper', date: '2024-06-15', amountCents: 900 });
+
+    const res = await request(app).get('/expenses/report?from=2024-06-01&to=2024-06-30');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      from: '2024-06-01',
+      to: '2024-06-30',
+      employees: [
+        { employee: 'Ada Lovelace', totalCents: 4300, count: 2 },
+        { employee: 'Grace Hopper', totalCents: 900, count: 1 },
+      ],
+    });
+  });
+
+  it('400s on a missing or malformed date', async () => {
+    const res = await request(app).get('/expenses/report?from=June&to=2024-06-30');
+    expect(res.status).toBe(400);
+    expect(res.body.errors).toEqual([{ field: 'from', message: expect.any(String) }]);
+
+    const missing = await request(app).get('/expenses/report');
+    expect(missing.status).toBe(400);
+    expect(missing.body.errors).toHaveLength(2);
+  });
+
+  it('400s when to precedes from', async () => {
+    const res = await request(app).get('/expenses/report?from=2024-06-30&to=2024-06-01');
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('DELETE /expenses/:id', () => {
   it('removes an existing expense', async () => {
     const created = await request(app).post('/expenses').send(valid);

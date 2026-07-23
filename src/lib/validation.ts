@@ -11,6 +11,11 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** Largest expense the service accepts: $1,000,000. */
 export const MAX_CENTS = 100_000_000;
 
+/** True when `value` is a well-formed, parseable ISO `YYYY-MM-DD` date. */
+export function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value));
+}
+
 /**
  * Validate a raw create-expense body. Returns one {field, message} per problem
  * (empty array = valid). Pure; performs no I/O.
@@ -38,11 +43,7 @@ export function validateExpense(input: NewExpenseInput): FieldError[] {
     });
   }
 
-  if (
-    typeof input.date !== 'string' ||
-    !ISO_DATE.test(input.date) ||
-    Number.isNaN(Date.parse(input.date))
-  ) {
+  if (!isIsoDate(input.date)) {
     errors.push({ field: 'date', message: 'date must be a valid ISO date (YYYY-MM-DD)' });
   }
 
