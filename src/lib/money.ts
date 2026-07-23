@@ -1,6 +1,13 @@
 export const CATEGORIES = ['travel', 'meals', 'lodging', 'supplies', 'software'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+/** ISO 4217 codes the service accepts. */
+export const CURRENCIES = ['USD', 'EUR', 'GBP'] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+/** Currency assumed when a create request omits one. */
+export const DEFAULT_CURRENCY: Currency = 'USD';
+
 /**
  * Fraction of an expense the company pays back, as a whole percent, by
  * category. A category missing here reimburses 0%.

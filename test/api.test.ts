@@ -34,6 +34,25 @@ describe('POST /expenses', () => {
     expect(res.body.currency).toBe('USD');
   });
 
+  it('stores and returns a supported currency', async () => {
+    const res = await request(app)
+      .post('/expenses')
+      .send({ ...valid, currency: 'GBP' });
+    expect(res.status).toBe(201);
+    expect(res.body.currency).toBe('GBP');
+
+    const fetched = await request(app).get(`/expenses/${res.body.id}`);
+    expect(fetched.body.currency).toBe('GBP');
+  });
+
+  it('400s on an unsupported currency', async () => {
+    const res = await request(app)
+      .post('/expenses')
+      .send({ ...valid, currency: 'JPY' });
+    expect(res.status).toBe(400);
+    expect(res.body.errors.map((e: { field: string }) => e.field)).toContain('currency');
+  });
+
   it('rejects an invalid body with 400 and field errors', async () => {
     const res = await request(app).post('/expenses').send({ employee: '', category: 'bribes' });
     expect(res.status).toBe(400);

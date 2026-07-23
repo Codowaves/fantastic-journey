@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import { ExpenseStore, NotFoundError } from './store';
 import { validateExpense } from './lib/validation';
+import { DEFAULT_CURRENCY, type Currency } from './lib/money';
 
 export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
   const app = express();
@@ -26,7 +27,7 @@ export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
       employee: body.employee as string,
       category: body.category as string,
       amountCents: body.amountCents as number,
-      currency: 'USD',
+      currency: (body.currency as Currency | undefined) ?? DEFAULT_CURRENCY,
       date: body.date as string,
       note: typeof body.note === 'string' ? body.note : undefined,
     });

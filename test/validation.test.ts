@@ -37,6 +37,16 @@ describe('validateExpense', () => {
     expect(fieldsWithErrors({ ...valid, amountCents: MAX_CENTS + 1 })).toContain('amountCents');
   });
 
+  it('accepts a supported currency and an omitted one', () => {
+    expect(validateExpense({ ...valid, currency: 'EUR' })).toEqual([]);
+    expect(validateExpense({ ...valid, currency: undefined })).toEqual([]);
+  });
+
+  it('rejects an unsupported or non-string currency', () => {
+    expect(fieldsWithErrors({ ...valid, currency: 'JPY' })).toContain('currency');
+    expect(fieldsWithErrors({ ...valid, currency: 42 })).toContain('currency');
+  });
+
   it('rejects a malformed date', () => {
     expect(fieldsWithErrors({ ...valid, date: 'not-a-date' })).toContain('date');
   });

@@ -1,4 +1,4 @@
-import { CATEGORIES, type Category } from './money';
+import { CATEGORIES, CURRENCIES, type Category, type Currency } from './money';
 import type { NewExpenseInput } from '../types';
 
 export interface FieldError {
@@ -35,6 +35,16 @@ export function validateExpense(input: NewExpenseInput): FieldError[] {
     errors.push({
       field: 'amountCents',
       message: `amountCents must be between 1 and ${MAX_CENTS}`,
+    });
+  }
+
+  if (
+    input.currency !== undefined &&
+    (typeof input.currency !== 'string' || !CURRENCIES.includes(input.currency as Currency))
+  ) {
+    errors.push({
+      field: 'currency',
+      message: `currency must be one of: ${CURRENCIES.join(', ')}`,
     });
   }
 
