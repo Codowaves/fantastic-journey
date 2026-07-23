@@ -40,4 +40,17 @@ describe('validateExpense', () => {
   it('rejects a malformed date', () => {
     expect(fieldsWithErrors({ ...valid, date: 'not-a-date' })).toContain('date');
   });
+
+  it('rejects a future-dated expense', () => {
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    expect(fieldsWithErrors({ ...valid, date: tomorrow })).toContain('date');
+    expect(validateExpense({ ...valid, date: tomorrow })).toEqual([
+      { field: 'date', message: 'date must not be in the future' },
+    ]);
+  });
+
+  it('accepts an expense dated today', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    expect(validateExpense({ ...valid, date: today })).toEqual([]);
+  });
 });
