@@ -1,4 +1,4 @@
-import type { Expense } from './types';
+import type { Budget, Expense } from './types';
 import { deriveId } from './lib/ids';
 
 export class NotFoundError extends Error {
@@ -17,6 +17,7 @@ export type ExpenseDraft = Omit<Expense, 'id'>;
 /** In-memory expense store. Every operation is async to model a real backend. */
 export class ExpenseStore {
   private items = new Map<string, Expense>();
+  private budgets = new Map<string, Budget>();
 
   async add(draft: ExpenseDraft): Promise<Expense> {
     const id = deriveId(this.items.size);
@@ -44,8 +45,22 @@ export class ExpenseStore {
     this.items.delete(id);
   }
 
+  /** Upsert the monthly limit for `category`. */
+  async setBudget(category: string, limitCents: number): Promise<Budget> {
+    await tick();
+    const budget: Budget = { category, limitCents };
+    this.budgets.set(category, budget);
+    return budget;
+  }
+
+  async listBudgets(): Promise<Budget[]> {
+    await tick();
+    return [...this.budgets.values()];
+  }
+
   async clear(): Promise<void> {
     await tick();
     this.items.clear();
+    this.budgets.clear();
   }
 }

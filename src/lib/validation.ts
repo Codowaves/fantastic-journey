@@ -1,5 +1,5 @@
 import { CATEGORIES, type Category } from './money';
-import type { NewExpenseInput } from '../types';
+import type { NewBudgetInput, NewExpenseInput } from '../types';
 
 export interface FieldError {
   field: string;
@@ -7,6 +7,12 @@ export interface FieldError {
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** True when `value` is a well-formed `YYYY-MM` month key. */
+export function isIsoMonth(value: unknown): value is string {
+  return typeof value === 'string' && ISO_MONTH.test(value);
+}
 
 /** Largest expense the service accepts: $1,000,000. */
 export const MAX_CENTS = 100_000_000;
@@ -44,6 +50,32 @@ export function validateExpense(input: NewExpenseInput): FieldError[] {
     Number.isNaN(Date.parse(input.date))
   ) {
     errors.push({ field: 'date', message: 'date must be a valid ISO date (YYYY-MM-DD)' });
+  }
+
+  return errors;
+}
+
+/**
+ * Validate a raw set-budget request: the category from the path plus the body.
+ * Returns one {field, message} per problem (empty array = valid). Pure.
+ */
+export function validateBudget(category: unknown, input: NewBudgetInput): FieldError[] {
+  const errors: FieldError[] = [];
+
+  if (typeof category !== 'string' || !CATEGORIES.includes(category as Category)) {
+    errors.push({
+      field: 'category',
+      message: `category must be one of: ${CATEGORIES.join(', ')}`,
+    });
+  }
+
+  if (typeof input.limitCents !== 'number' || !Number.isInteger(input.limitCents)) {
+    errors.push({ field: 'limitCents', message: 'limitCents must be an integer' });
+  } else if (input.limitCents < 0 || input.limitCents > MAX_CENTS) {
+    errors.push({
+      field: 'limitCents',
+      message: `limitCents must be between 0 and ${MAX_CENTS}`,
+    });
   }
 
   return errors;

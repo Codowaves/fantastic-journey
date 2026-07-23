@@ -20,3 +20,15 @@ export interface NewExpenseInput {
   date?: unknown;
   note?: unknown;
 }
+
+/** A spending limit for one category, applied to every calendar month. */
+export interface Budget {
+  category: string;
+  /** Limit in whole cents (integer), per month. */
+  limitCents: number;
+}
+
+/** Raw, untrusted request body for setting a budget. */
+export interface NewBudgetInput {
+  limitCents?: unknown;
+}

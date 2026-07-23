@@ -1,6 +1,8 @@
 import express, { type Express } from 'express';
 import { ExpenseStore, NotFoundError } from './store';
-import { validateExpense } from './lib/validation';
+import { isIsoMonth, validateBudget, validateExpense } from './lib/validation';
+import { budgetStatuses } from './lib/budgets';
+import { monthOf } from './lib/dates';
 
 export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
   const app = express();
@@ -57,6 +59,30 @@ export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
       }
       throw err;
     }
+  });
+
+  app.put('/budgets/:category', async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const errors = validateBudget(req.params.category, body);
+    if (errors.length > 0) {
+      res.status(400).json({ errors });
+      return;
+    }
+    const budget = await store.setBudget(req.params.category, body.limitCents as number);
+    res.json(budget);
+  });
+
+  app.get('/budgets', async (req, res) => {
+    const requested = req.query.month;
+    if (requested !== undefined && !isIsoMonth(requested)) {
+      res.status(400).json({
+        errors: [{ field: 'month', message: 'month must be a valid ISO month (YYYY-MM)' }],
+      });
+      return;
+    }
+    const month = requested ?? monthOf(new Date().toISOString());
+    const [budgets, expenses] = await Promise.all([store.listBudgets(), store.list()]);
+    res.json({ month, budgets: budgetStatuses(budgets, expenses, month) });
   });
 
   return app;
