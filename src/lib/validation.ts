@@ -31,7 +31,7 @@ export function validateExpense(input: NewExpenseInput): FieldError[] {
 
   if (typeof input.amountCents !== 'number' || !Number.isInteger(input.amountCents)) {
     errors.push({ field: 'amountCents', message: 'amountCents must be an integer' });
-  } else if (input.amountCents < 0 || input.amountCents > MAX_CENTS) {
+  } else if (input.amountCents < 1 || input.amountCents > MAX_CENTS) {
     errors.push({
       field: 'amountCents',
       message: `amountCents must be between 1 and ${MAX_CENTS}`,
