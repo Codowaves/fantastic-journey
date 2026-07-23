@@ -29,6 +29,14 @@ describe('validateExpense', () => {
     expect(fieldsWithErrors({ ...valid, amountCents: -100 })).toContain('amountCents');
   });
 
+  it('rejects a zero amount', () => {
+    expect(fieldsWithErrors({ ...valid, amountCents: 0 })).toContain('amountCents');
+  });
+
+  it('accepts the smallest positive amount', () => {
+    expect(validateExpense({ ...valid, amountCents: 1 })).toEqual([]);
+  });
+
   it('rejects a non-integer amount', () => {
     expect(fieldsWithErrors({ ...valid, amountCents: 10.5 })).toContain('amountCents');
   });
