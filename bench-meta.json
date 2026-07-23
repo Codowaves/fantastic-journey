@@ -1,0 +1,6 @@
+{
+  "baselineTag": "bench-baseline-v1",
+  "arena": "team-expenses",
+  "purpose": "Codowave agent-quality benchmark arena. Contents are reset on every bench run.",
+  "note": "Do not depend on this repo. Its main branch is force-reset to the baseline tag by eval/bench/run-bench.sh."
+}
