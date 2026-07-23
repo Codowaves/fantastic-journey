@@ -34,6 +34,30 @@ describe('POST /expenses', () => {
     expect(res.body.currency).toBe('USD');
   });
 
+  it('keeps every expense when creates overlap', async () => {
+    const posts = Array.from({ length: 5 }, (_, i) =>
+      request(app)
+        .post('/expenses')
+        .send({ ...valid, amountCents: 100 * (i + 1) }),
+    );
+    const created = await Promise.all(posts);
+    expect(created.map((r) => r.status)).toEqual([201, 201, 201, 201, 201]);
+    expect(new Set(created.map((r) => r.body.id)).size).toBe(5);
+
+    const list = await request(app).get('/expenses');
+    expect(list.body).toHaveLength(5);
+    expect(
+      list.body.reduce((sum: number, e: { amountCents: number }) => sum + e.amountCents, 0),
+    ).toBe(1500);
+  });
+
+  it('does not reuse an id after a delete', async () => {
+    const first = await request(app).post('/expenses').send(valid);
+    await request(app).delete(`/expenses/${first.body.id}`);
+    const second = await request(app).post('/expenses').send(valid);
+    expect(second.body.id).not.toBe(first.body.id);
+  });
+
   it('rejects an invalid body with 400 and field errors', async () => {
     const res = await request(app).post('/expenses').send({ employee: '', category: 'bribes' });
     expect(res.status).toBe(400);

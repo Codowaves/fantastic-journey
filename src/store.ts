@@ -17,9 +17,13 @@ export type ExpenseDraft = Omit<Expense, 'id'>;
 /** In-memory expense store. Every operation is async to model a real backend. */
 export class ExpenseStore {
   private items = new Map<string, Expense>();
+  /** Monotonic id sequence — never rewinds on delete, unlike `items.size`. */
+  private issued = 0;
 
   async add(draft: ExpenseDraft): Promise<Expense> {
-    const id = deriveId(this.items.size);
+    // Claim the id synchronously: awaiting first lets overlapping adds derive
+    // the same id and silently clobber each other.
+    const id = deriveId(this.issued++);
     await tick();
     const expense: Expense = { id, ...draft };
     this.items.set(id, expense);
