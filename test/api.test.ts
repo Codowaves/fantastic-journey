@@ -52,6 +52,34 @@ describe('GET /expenses', () => {
   });
 });
 
+describe('GET /expenses/summary', () => {
+  it('rolls up total cents and count per category', async () => {
+    await request(app).post('/expenses').send(valid);
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, amountCents: 1300 });
+    await request(app)
+      .post('/expenses')
+      .send({ ...valid, category: 'meals', amountCents: 900 });
+
+    const res = await request(app).get('/expenses/summary');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.arrayContaining([
+        { category: 'travel', totalCents: 5500, count: 2 },
+        { category: 'meals', totalCents: 900, count: 1 },
+      ]),
+    );
+    expect(res.body).toHaveLength(2);
+  });
+
+  it('returns an empty array when there are no expenses', async () => {
+    const res = await request(app).get('/expenses/summary');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+});
+
 describe('GET /expenses/:id', () => {
   it('returns a single expense', async () => {
     const created = await request(app).post('/expenses').send(valid);

@@ -33,6 +33,22 @@ export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
     res.status(201).json(expense);
   });
 
+  // Must be registered before `/expenses/:id`, or `summary` is read as an id.
+  app.get('/expenses/summary', async (_req, res) => {
+    const totals = new Map<string, { category: string; totalCents: number; count: number }>();
+    for (const expense of await store.list()) {
+      const row = totals.get(expense.category) ?? {
+        category: expense.category,
+        totalCents: 0,
+        count: 0,
+      };
+      row.totalCents += expense.amountCents;
+      row.count += 1;
+      totals.set(expense.category, row);
+    }
+    res.json([...totals.values()]);
+  });
+
   app.get('/expenses/:id', async (req, res) => {
     try {
       const expense = await store.get(req.params.id);
