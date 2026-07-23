@@ -48,7 +48,7 @@ export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
 
   app.delete('/expenses/:id', async (req, res) => {
     try {
-      store.remove(req.params.id);
+      await store.remove(req.params.id);
       res.status(204).end();
     } catch (err) {
       if (err instanceof NotFoundError) {

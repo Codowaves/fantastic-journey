@@ -71,5 +71,18 @@ describe('DELETE /expenses/:id', () => {
     const created = await request(app).post('/expenses').send(valid);
     const res = await request(app).delete(`/expenses/${created.body.id}`);
     expect(res.status).toBe(204);
+    expect((await request(app).get('/expenses')).body).toHaveLength(0);
+  });
+
+  it('404s for an unknown id', async () => {
+    const res = await request(app).delete('/expenses/exp_999');
+    expect(res.status).toBe(404);
+  });
+
+  it('404s when deleting the same expense twice', async () => {
+    const created = await request(app).post('/expenses').send(valid);
+    await request(app).delete(`/expenses/${created.body.id}`);
+    const res = await request(app).delete(`/expenses/${created.body.id}`);
+    expect(res.status).toBe(404);
   });
 });
