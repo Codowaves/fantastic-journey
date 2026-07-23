@@ -10,8 +10,12 @@ export function createApp(store: ExpenseStore = new ExpenseStore()): Express {
     res.json({ ok: true });
   });
 
-  app.get('/expenses', async (_req, res) => {
-    const items = await store.list();
+  app.get('/expenses', async (req, res) => {
+    const { category, employee } = req.query;
+    const items = await store.list({
+      category: typeof category === 'string' ? category : undefined,
+      employee: typeof employee === 'string' ? employee : undefined,
+    });
     res.json(items);
   });
 

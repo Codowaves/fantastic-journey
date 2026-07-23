@@ -50,6 +50,46 @@ describe('GET /expenses', () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].employee).toBe('Ada Lovelace');
   });
+
+  describe('filtering', () => {
+    const grace = { ...valid, employee: 'Grace Hopper', category: 'meals' };
+    const adaMeals = { ...valid, category: 'meals' };
+
+    beforeEach(async () => {
+      await request(app).post('/expenses').send(valid); // Ada / travel
+      await request(app).post('/expenses').send(adaMeals); // Ada / meals
+      await request(app).post('/expenses').send(grace); // Grace / meals
+    });
+
+    it('filters by category', async () => {
+      const res = await request(app).get('/expenses?category=meals');
+      expect(res.status).toBe(200);
+      expect(res.body.map((e: { category: string }) => e.category)).toEqual(['meals', 'meals']);
+    });
+
+    it('filters by employee', async () => {
+      const res = await request(app).get('/expenses?employee=Grace%20Hopper');
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].employee).toBe('Grace Hopper');
+    });
+
+    it('ANDs both filters', async () => {
+      const res = await request(app).get('/expenses?employee=Ada%20Lovelace&category=meals');
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].employee).toBe('Ada Lovelace');
+      expect(res.body[0].category).toBe('meals');
+    });
+
+    it('returns everything with no filter', async () => {
+      const res = await request(app).get('/expenses');
+      expect(res.body).toHaveLength(3);
+    });
+
+    it('returns nothing when nothing matches', async () => {
+      const res = await request(app).get('/expenses?category=lodging');
+      expect(res.body).toEqual([]);
+    });
+  });
 });
 
 describe('GET /expenses/:id', () => {
